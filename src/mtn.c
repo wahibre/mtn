@@ -66,6 +66,9 @@
 
 #define UTF8_FILENAME_SIZE (FILENAME_MAX*4)
 
+//TODO MF Just a guess
+#define LINESIZE_ALIGN 1
+
 #ifdef WIN32
     unsigned int _CRT_fmode = _O_BINARY;  // default binary file including stdin, stdout, stderr
     #include <tchar.h>
@@ -802,8 +805,8 @@ gdImagePtr detect_edge(AVFrame *pFrame, int width, int height, float *edge, floa
     return ip;
 }
 
-/* for debuging */
-void save_AVFrame(AVFrame *pFrame, int src_width, int src_height, int pix_fmt, 
+/* for debuging
+void save_AVFrame(const AVFrame* const pFrame, int src_width, int src_height, int pix_fmt,
     char *filename, int dst_width, int dst_height)
 {
     AVFrame *pFrameRGB = NULL;
@@ -811,20 +814,23 @@ void save_AVFrame(AVFrame *pFrame, int src_width, int src_height, int pix_fmt,
     struct SwsContext *pSwsCtx = NULL;
     gdImagePtr ip = NULL;
 
-    pFrameRGB = avcodec_alloc_frame();
+    pFrameRGB = av_frame_alloc();
     if (pFrameRGB == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
     }
-    int rgb_bufsize = avpicture_get_size(PIX_FMT_RGB24, dst_width, dst_height);
+    int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, dst_width, dst_height, av_image_get_buffer_size_linesize);
     rgb_buffer = av_malloc(rgb_bufsize);
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
     }
-    avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, PIX_FMT_RGB24, dst_width, dst_height);
+    //  DEPRECATED avpicture_fill -> av_image_fill_arrays
+//    avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, dst_width, dst_height);
+    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, pFrameRGB->format, pFrameRGB->width, pFrameRGB->height, av_image_get_buffer_size_linesize);
+
     pSwsCtx = sws_getContext(src_width, src_height, pix_fmt,
-        dst_width, dst_height, PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        dst_width, dst_height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     if (NULL == pSwsCtx) { // sws_getContext is not documented
         av_log(NULL, AV_LOG_ERROR, "  sws_getContext failed\n");
         goto cleanup;
@@ -854,6 +860,8 @@ void save_AVFrame(AVFrame *pFrame, int src_width, int src_height, int pix_fmt,
     if (NULL != pFrameRGB)
         av_free(pFrameRGB);
 }
+*/
+
 
 /* av_pkt_dump_log()?? */
 void dump_packet(AVPacket *p, AVStream * ps)
@@ -865,7 +873,7 @@ void dump_packet(AVPacket *p, AVStream * ps)
     better to rely on pkt->dts if you do not decompress the payload.
     */
     av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"\n", p->pos);
-    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %d\n",
+    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"\n",
         p->pts, p->dts, p->duration);
     av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f\n",
         p->pts * av_q2d(ps->time_base), p->dts * av_q2d(ps->time_base), 
@@ -874,8 +882,12 @@ void dump_packet(AVPacket *p, AVStream * ps)
 
 void dump_codec_context(AVCodecContext * p)
 {
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context %s, time_base: %d / %d\n", p->codec_name, 
-        p->time_base.num, p->time_base.den);
+    if(p->codec == 0)
+        av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context: codec = ?0?\n");
+    else
+        av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context %s, time_base: %d / %d\n", p->codec->name,
+            p->time_base.num, p->time_base.den);
+
     av_log(NULL, AV_LOG_VERBOSE, "frame_number: %d, width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
         p->frame_number, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
         (0 == p->sample_aspect_ratio.num) ? "" : "**a**");
@@ -893,7 +905,7 @@ void dump_index_entries(AVStream * p)
         //assert(cur_ts > 0);
         diff += cur_ts - prev_ts;
         if (i < 20) { // show only first 20
-            av_log(NULL, AV_LOG_VERBOSE, "    i: %d, pos: %"PRId64", timestamp tb: %"PRId64", timestamp s: %.2f, flags: %d, size: %d, min_distance: %d\n", 
+            av_log(NULL, AV_LOG_VERBOSE, "    i: %2d, pos: %8"PRId64", timestamp tb: %6"PRId64", timestamp s: %6.2f, flags: %d, size: %6d, min_distance: %3d\n",
                 i, e->pos, e->timestamp, e->timestamp * av_q2d(p->time_base), e->flags, e->size, e->min_distance);
         }
         prev_ts = cur_ts;
@@ -933,79 +945,81 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
 /*
 modified from libavformat's dump_format
 */
-void get_stream_info_type(AVFormatContext *ic, enum CodecType type, char *buf, AVRational sample_aspect_ratio)
-{
-    char sub_buf[1024] = ""; // FIXME
-    unsigned int i;
-    for(i=0; i<ic->nb_streams; i++) {
-        char codec_buf[256];
-        int flags = ic->iformat->flags;
-        AVStream *st = ic->streams[i];
 
-        if (type != st->codec->codec_type) {
-            continue;
-        }
+//TODO docasne vyhodene
+//void get_stream_info_type(AVFormatContext */*ic*/,  enum AVMediaType /*type*/, char */*buf*/, AVRational /*sample_aspect_ratio*/)
+//{
+//    char sub_buf[1024] = ""; // FIXME
+//    unsigned int i;
+//    for(i=0; i<ic->nb_streams; i++) {
+//        char codec_buf[256];
+//        int flags = ic->iformat->flags;
+//        AVStream *st = ic->streams[i];
 
-        if (CODEC_TYPE_SUBTITLE == st->codec->codec_type) {
-            if (strlen(st->language) > 0) {
-                sprintf(sub_buf + strlen(sub_buf), "%s ", st->language);
-            } else {
-                // FIXME: ignore for now; language seem to be missing in .vob files
-                //sprintf(sub_buf + strlen(sub_buf), "? ");
-            }
-            continue;
-        }
+//        if (type != st->codecpar->codec_type) {
+//            continue;
+//        }
 
-        if (gb_v_verbose > 0) {
-            sprintf(buf + strlen(buf), "Stream %d", i);
-            if (flags & AVFMT_SHOW_IDS) {
-                sprintf(buf + strlen(buf), "[0x%x]", st->id);
-            }
-            /*
-            int g = ff_gcd(st->time_base.num, st->time_base.den);
-            sprintf(buf + strlen(buf), ", %d/%d", st->time_base.num/g, st->time_base.den/g);
-            */
-            sprintf(buf + strlen(buf), ": ");
-        }
+//        if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
+//            if (strlen(st->language) > 0) {
+//                sprintf(sub_buf + strlen(sub_buf), "%s ", st->language);
+//            } else {
+//                // FIXME: ignore for now; language seem to be missing in .vob files
+//                //sprintf(sub_buf + strlen(sub_buf), "? ");
+//            }
+//            continue;
+//        }
 
-        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
-        // remove [PAR DAR] from string, it's not very useful.
-        char *begin = NULL, *end = NULL;
-        if ((begin=strstr(codec_buf, " [PAR")) != NULL 
-            && (end=strchr(begin, ']')) != NULL) {
-            while (*++end != '\0') {
-                *begin++ = *end;
-            }
-            *begin = '\0';
-        }
-        sprintf(buf + strlen(buf), codec_buf);
+//        if (gb_v_verbose > 0) {
+//            sprintf(buf + strlen(buf), "Stream %d", i);
+//            if (flags & AVFMT_SHOW_IDS) {
+//                sprintf(buf + strlen(buf), "[0x%x]", st->id);
+//            }
+//            /*
+//            int g = ff_gcd(st->time_base.num, st->time_base.den);
+//            sprintf(buf + strlen(buf), ", %d/%d", st->time_base.num/g, st->time_base.den/g);
+//            */
+//            sprintf(buf + strlen(buf), ": ");
+//        }
 
-        if (st->codec->codec_type == CODEC_TYPE_VIDEO){
-            if (st->r_frame_rate.den && st->r_frame_rate.num)
-                sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
-            //else if(st->time_base.den && st->time_base.num)
-            //  sprintf(buf + strlen(buf), ", %5.2f fps(m)", 1/av_q2d(st->time_base));
-            else
-                sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->codec->time_base));
+//        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
+//        // remove [PAR DAR] from string, it's not very useful.
+//        char *begin = NULL, *end = NULL;
+//        if ((begin=strstr(codec_buf, " [PAR")) != NULL
+//            && (end=strchr(begin, ']')) != NULL) {
+//            while (*++end != '\0') {
+//                *begin++ = *end;
+//            }
+//            *begin = '\0';
+//        }
+//        sprintf(buf + strlen(buf), codec_buf);
 
-            // show aspect ratio
-            int scaled_src_width, scaled_src_height;
-            calc_scale_src(st->codec->width, st->codec->height, sample_aspect_ratio,
-                &scaled_src_width, &scaled_src_height);
-            if (scaled_src_width != st->codec->width || scaled_src_height != st->codec->height) {
-                sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
-            }
-        }
-        if (strlen(st->language) > 0) {
-            sprintf(buf + strlen(buf), " (%s)", st->language);
-        }
-        sprintf(buf + strlen(buf), NEWLINE);
-    }
+//        if (st->codecpar-> == AVMEDIA_TYPE_VIDEO ){
+//            if (st->r_frame_rate.den && st->r_frame_rate.num)
+//                sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
+//            //else if(st->time_base.den && st->time_base.num)
+//            //  sprintf(buf + strlen(buf), ", %5.2f fps(m)", 1/av_q2d(st->time_base));
+//            else
+//                sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->codec->time_base));
 
-    if (0 < strlen(sub_buf)) {
-        sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
-    }
-}
+//            // show aspect ratio
+//            int scaled_src_width, scaled_src_height;
+//            calc_scale_src(st->codec->width, st->codec->height, sample_aspect_ratio,
+//                &scaled_src_width, &scaled_src_height);
+//            if (scaled_src_width != st->codec->width || scaled_src_height != st->codec->height) {
+//                sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
+//            }
+//        }
+//        if (strlen(st->language) > 0) {
+//            sprintf(buf + strlen(buf), " (%s)", st->language);
+//        }
+//        sprintf(buf + strlen(buf), NEWLINE);
+//    }
+
+//    if (0 < strlen(sub_buf)) {
+//        sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
+//    }
+//}
 
 /*
 modified from libavformat's dump_format
@@ -1013,26 +1027,29 @@ modified from libavformat's dump_format
 char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational __attribute__((unused)) sample_aspect_ratio)
 {
     static char buf[4096]; // FIXME: this is also used for all text at the top
-    int duration = -1;
+    /*int duration = -1;*/
 
     char *file_name = url;
     if (1 == strip_path) {
         file_name = path_2_file(url);
     }
 
+    // ic->file_size -> avio_size()
+    int64_t file_size = avio_size(ic->pb);
+
     sprintf(buf, "File: %s", file_name);
     //sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);
-    sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, ic->file_size, format_size(ic->file_size, "B"));
+    sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size, "B"));
     if (ic->duration != AV_NOPTS_VALUE) { // FIXME: gcc warning: comparison between signed and unsigned
         int hours, mins, secs;
-        duration = secs = ic->duration / AV_TIME_BASE;
+        /*TODO docasne>  duration =*/ secs = ic->duration / AV_TIME_BASE;
         mins = secs / 60;
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        sprintf(buf + strlen(buf), ", duration: %02d:%02d:%02d", hours, mins, secs);
+        sprintf(buf + strlen(buf), ", duration: %02d:%02d:%02d \n", hours, mins, secs);
     } else {
-        sprintf(buf + strlen(buf), ", duration: N/A");
+        sprintf(buf + strlen(buf), ", duration: N/A \n");
     }
     /*
     if (ic->start_time != AV_NOPTS_VALUE) {
@@ -1046,6 +1063,8 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     // some formats, eg. flv, dont seem to support bit_rate, so we'll prefer to 
     // calculate from duration.
     // is this ok? probably not ok with .vob files when duration is wrong. DEBUG
+
+    /*TODO docasne vyhodnee
     if (duration > 0) {
         sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s%s", (double) ic->file_size * 8 / duration / 1000, NEWLINE);
     } else if (ic->bit_rate) {
@@ -1077,25 +1096,25 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     av_log(NULL, LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO)); 
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64", file_size: %"PRId64"\n",
-        p->start_time, p->duration, p->file_size);
-    av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
-        (double) p->start_time / AV_TIME_BASE, (double) p->duration / AV_TIME_BASE);
-    if (p->track != 0)
-        av_log(NULL, LOG_INFO, "  Track: %d\n", p->track);
-    if (p->title[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Title: %s\n", p->title);
-    if (p->author[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Author: %s\n", p->author);
-    if (p->copyright[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Copyright: %s\n", p->copyright);
-    if (p->comment[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Comment: %s\n", p->comment);
-    if (p->album[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Album: %s\n", p->album);
-    if (p->year != 0)
-        av_log(NULL, LOG_INFO, "  Year: %d\n", p->year);
-    if (p->genre[0] != '\0')
-        av_log(NULL, LOG_INFO, "  Genre: %s\n", p->genre);
+        p->start_time, p->duration, (long int)-1);
+//    av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
+//        (double) p->start_time / AV_TIME_BASE, (double) p->duration / AV_TIME_BASE);
+//    if (p->track != 0)
+//        av_log(NULL, LOG_INFO, "  Track: %d\n", p->track);
+//    if (p->title[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Title: %s\n", p->title);
+//    if (p->author[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Author: %s\n", p->author);
+//    if (p->copyright[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Copyright: %s\n", p->copyright);
+//    if (p->comment[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Comment: %s\n", p->comment);
+//    if (p->album[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Album: %s\n", p->album);
+//    if (p->year != 0)
+//        av_log(NULL, LOG_INFO, "  Year: %d\n", p->year);
+//    if (p->genre[0] != '\0')
+//        av_log(NULL, LOG_INFO, "  Genre: %s\n", p->genre);
 }
 
 /*
@@ -1142,8 +1161,8 @@ uint64_t gb_video_pkt_pts = AV_NOPTS_VALUE;
  * buffer. We use this to store the global_pts in
  * a frame at the time it is allocated.
  */
-int our_get_buffer(struct AVCodecContext *c, AVFrame *pic) {
-  int ret = avcodec_default_get_buffer(c, pic);
+int our_get_buffer(struct AVCodecContext *c, AVFrame *pic, int flags) {
+  int ret = avcodec_default_get_buffer2(c, pic, 0);
   uint64_t *pts = av_malloc(sizeof(uint64_t));
   *pts = gb_video_pkt_pts;
   pic->opaque = pts;
@@ -1151,9 +1170,10 @@ int our_get_buffer(struct AVCodecContext *c, AVFrame *pic) {
   return ret;
 }
 
-void our_release_buffer(struct AVCodecContext *c, AVFrame *pic) {
+void our_release_buffer(AVFrame *pic) {
   if(pic) av_freep(&pic->opaque);
-  avcodec_default_release_buffer(c, pic);
+//  avcodec_default_release_buffer(c, pic);
+  av_frame_unref(pic);
 }
 
 /*
@@ -1172,6 +1192,7 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
     static int run = 0; // # of times read_and_decode has been called for a file
     static double avg_decoded_frame = 0; // average # of decoded frame
     static int skip_non_key = 0;
+    int decoded;
 
     if (first) {
         // reset stats
@@ -1186,12 +1207,12 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
     // keep decoding until we get a key frame
     for (got_picture = 0; 0 == got_picture 
         //|| (1 == key_only && !(1 == pFrame->key_frame && FF_I_TYPE == pFrame->pict_type)); // same as version 0.61
-        || (1 == key_only && !(1 == pFrame->key_frame || FF_I_TYPE == pFrame->pict_type)); // same as version 2.42
+        || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)); // same as version 2.42
         //|| (1 == key_only && 1 != pFrame->key_frame); // is there a reason why not use this? t_warhawk_review_gt_h264.mov (svq3) seems to set only pict_type
-        av_free_packet(&packet)) {
+        av_packet_unref(&packet)) {
 
         if (0 != av_read_frame(pFormatCtx, &packet)) {
-            if (url_ferror(pFormatCtx->pb) != 0) { // from ffplay - not documented
+            if (pFormatCtx->pb->error != 0) { // from ffplay - not documented
                 return -1;
             }
             return 0;
@@ -1219,9 +1240,14 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
         gb_video_pkt_pts = packet.pts;
 
         // Decode video frame
-        avcodec_decode_video(pCodecCtx, pFrame, &got_picture, packet.data, packet.size);
+        decoded = avcodec_decode_video2(pCodecCtx, pFrame, &got_picture, &packet);
+        if(decoded < 0)
+        {
+            av_log(NULL, AV_LOG_ERROR, "coul'd not decode frame (ret=%d)\n", decoded);
+            return -1;
+        }
         // error is ignored. perhaps packets read are not enough.
-        av_log(NULL, AV_LOG_VERBOSE, "*avcodec_decode_video: got_picture: %d, key_frame: %d, pict_type: %d\n", got_picture, pFrame->key_frame, pFrame->pict_type);
+        av_log(NULL, AV_LOG_VERBOSE, "*avcodec_decode_video2: got_picture: %d, key_frame: %d, pict_type: %d, decoded: %d Bytes\n", got_picture, pFrame->key_frame, pFrame->pict_type, decoded);
 
         // FIXME: with some .dat files, got_picture is never set, why??
 
@@ -1231,8 +1257,8 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
                 av_log(NULL, LOG_INFO, "  no picture in %d packets\n", pkt_without_pic);
             }
             if (1000 == pkt_without_pic) { // is 1000 enough? // FIXME
-                av_log(NULL, AV_LOG_ERROR, "  * avcodec_decode_video couldn't decode picture\n");
-                av_free_packet(&packet);
+                av_log(NULL, AV_LOG_ERROR, "  * avcodec_decode_video2 couldn't decode picture\n");
+                av_packet_unref(&packet);
                 return -1;
             }
         } else {
@@ -1265,7 +1291,7 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
         //av_log(NULL, AV_LOG_VERBOSE, "*after avcodec_decode_video pts: %.2f\n", pts);
         */
     }
-    av_free_packet(&packet);
+    av_packet_unref(&packet);
 
     // stats & enable skipping of non key packets
     run++;
@@ -1279,13 +1305,14 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
 
     av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %d\n", pFrame->repeat_pict,
         (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, pFrame->pict_type);
-    if(NULL != pFrame->opaque && AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
+    if(NULL != pFrame->opaque && (uint64_t)AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
         //av_log(NULL, AV_LOG_VERBOSE, "*pts: %.2f, value in opaque: %"PRId64"\n", pts, *(uint64_t *) pFrame->opaque);
         av_log(NULL, AV_LOG_VERBOSE, "*value in opaque: %"PRId64"\n", *(uint64_t *) pFrame->opaque);
     }
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
-    *pPts = packet.pts;
+//TODO MF    *pPts = packet.pts;  -> verify
+    *pPts = gb_video_pkt_pts;
     return 1;
 }
 
@@ -1325,8 +1352,11 @@ double guess_duration(AVFormatContext *pFormatCtx, int index,
     // pFormatCtx->start_time would be incorrect for .vob file with multiple titles.
     // pStream->start_time doesn't work either. so we'll need to disable timestamping.
     assert(NULL != pStream && NULL != pStream->codec);
-    if (pStream->codec->bit_rate > 0 && pFormatCtx->file_size > 0) {
-        guess = 0.9 * pFormatCtx->file_size / (pStream->codec->bit_rate / 8);
+
+    int64_t file_size = avio_size(pFormatCtx->pb);
+
+    if (pStream->codec->bit_rate > 0 && file_size > 0) {
+        guess = 0.9 * file_size / (pStream->codec->bit_rate / 8);
         if (guess > 0) {
             av_log(NULL, AV_LOG_ERROR, "  ** duration is unknown: %.2f; guessing: %.2f s from bit_rate\n", duration, guess);
             return guess;
@@ -1413,12 +1443,13 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     // normally when seeking by timestamp we add start_time to timestamp 
     // before seeking, but seeking by byte we need to subtract the added start_time
     timestamp -= start_time / av_q2d(pStream->time_base);
-    if (pFormatCtx->file_size <= 0) {
+    int64_t file_size = avio_size(pFormatCtx->pb);
+    if (file_size <= 0) {
         return -1;
     }
     if (duration > 0) {
-        int64_t byte_pos = av_rescale(timestamp, pFormatCtx->file_size, duration_tb);
-        av_log(NULL, LOG_INFO, "AVSEEK_FLAG_BYTE: byte_pos: %"PRId64", timestamp: %"PRId64", file_size: %"PRId64", duration_tb: %"PRId64"\n", byte_pos, timestamp, pFormatCtx->file_size, duration_tb);
+        int64_t byte_pos = av_rescale(timestamp, file_size, duration_tb);
+        av_log(NULL, LOG_INFO, "AVSEEK_FLAG_BYTE: byte_pos: %"PRId64", timestamp: %"PRId64", file_size: %"PRId64", duration_tb: %"PRId64"\n", byte_pos, timestamp, file_size, duration_tb);
         return av_seek_frame(pFormatCtx, index, byte_pos, AVSEEK_FLAG_BYTE);
     }
 
@@ -1558,9 +1589,9 @@ void make_thumbnail(char *file)
     }
 
     // Open video file
-    ret = av_open_input_file(&pFormatCtx, file, NULL, 0, NULL);
+    ret = avformat_open_input(&pFormatCtx, file, NULL, NULL);
     if (0 != ret) {
-        av_log(NULL, AV_LOG_ERROR, "\n%s: av_open_input_file %s failed: %d\n", gb_argv0, file, ret);
+        av_log(NULL, AV_LOG_ERROR, "\n%s: avformat_open_input %s failed: %d\n", gb_argv0, file, ret);
         goto cleanup;
     }
 
@@ -1570,9 +1601,9 @@ void make_thumbnail(char *file)
     pFormatCtx->flags |= AVFMT_FLAG_GENPTS;
 
     // Retrieve stream information
-    ret = av_find_stream_info(pFormatCtx);
+    ret = avformat_find_stream_info(pFormatCtx, NULL);
     if (ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "\n%s: av_find_stream_info %s failed: %d\n", gb_argv0, file, ret);
+        av_log(NULL, AV_LOG_ERROR, "\n%s: avformat_find_stream_info %s failed: %d\n", gb_argv0, file, ret);
         goto cleanup;
     }
     dump_format_context(pFormatCtx, nb_file, file, 0);
@@ -1615,16 +1646,16 @@ void make_thumbnail(char *file)
     }
 
     // Open codec
-    ret = avcodec_open(pCodecCtx, pCodec);
+    ret = avcodec_open2(pCodecCtx, pCodec, NULL);
     if (ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't open codec %s id %d: %d\n", pCodec->name, pCodec->id, ret);
         goto cleanup;
     }
-    pCodecCtx->get_buffer = our_get_buffer;
-    pCodecCtx->release_buffer = our_release_buffer;
+    pCodecCtx->get_buffer2 = our_get_buffer;
+    //FIXME neexistuje nahrada: pCodecCtx->release_buffer = our_release_buffer;
 
     // Allocate video frame
-    pFrame = avcodec_alloc_frame();
+    pFrame = av_frame_alloc();
     if (pFrame == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
@@ -1810,20 +1841,29 @@ void make_thumbnail(char *file)
         av_log(NULL, LOG_INFO, "  step is less than 14 s; blank & blur evasion is turned off.\n");
     }
 
-    /* prepare for resize & conversion to PIX_FMT_RGB24 */
-    pFrameRGB = avcodec_alloc_frame();
+    /* prepare for resize & conversion to AV_PIX_FMT_RGB24 */
+    pFrameRGB = av_frame_alloc();
     if (pFrameRGB == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
     }
-    rgb_buffer = av_malloc(rgb_bufsize);
     int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
+//    rgb_buffer = av_malloc(rgb_bufsize);
+    rgb_buffer = (u_int8_t*)malloc(rgb_bufsize*sizeof(u_int8_t));
+
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
     }
-    avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, PIX_FMT_RGB24,
-        tn.shot_width, tn.shot_height);
+    //FIXME DEPRECATED avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
+    // Returns: the size in bytes required for src, a negative error code in case of failure
+    ret = av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
+    if(ret <0 )
+    {
+        av_log(NULL, AV_LOG_ERROR, "  av_image_fill_arrays failed (%d)\n", ret);
+        goto cleanup;
+    }
+
     pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
         tn.shot_width, tn.shot_height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     if (NULL == pSwsCtx) { // sws_getContext is not documented
@@ -2016,9 +2056,15 @@ void make_thumbnail(char *file)
             goto skip_shot;
         }
 
-        /* convert to PIX_FMT_RGB24 & resize */
-        sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, pCodecCtx->height, 
+        /* convert to AV_PIX_FMT_RGB24 & resize */
+        int output_height; //the height of the output slice
+        output_height = sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height,
             pFrameRGB->data, pFrameRGB->linesize);
+        if(output_height <= 0)
+        {
+            av_log(NULL, AV_LOG_ERROR, "  sws_scale() failed\n");
+            goto cleanup;
+        }
         /*
         sprintf(debug_filename, "%s_resized%05d.jpg", tn.out_filename, nb_shots - 1); // DEBUG
         save_AVFrame(pFrameRGB, tn.shot_width, tn.shot_height, AV_PIX_FMT_RGB24,
@@ -2090,7 +2136,7 @@ void make_thumbnail(char *file)
             }
             /* stamp idx & blank & edge for debugging */
             if (gb_v_verbose > 0) {
-                char idx_str[10]; // FIXME
+                char idx_str[1000]; // FIXME
                 sprintf(idx_str, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f", 
                     idx, blank, edge[0], edge[1], edge[2], edge[3], edge[4], edge[5]);
                 image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK);
@@ -2211,7 +2257,7 @@ void make_thumbnail(char *file)
 
     // Close the video file
     if (NULL != pFormatCtx)
-        av_close_input_file(pFormatCtx);
+        avformat_close_input(&pFormatCtx);
 
     thumb_cleanup_dynamic(&tn);
     
@@ -2220,7 +2266,7 @@ void make_thumbnail(char *file)
 
 /* modified from glibc
 */
-int alphasort(const void *a, const void *b)
+int myalphasort(const void *a, const void *b)
 {
     return strcoll(*(const char **) a, *(const char **) b);
     //return strcasecmp(*(const char **) a, *(const char **) b);
@@ -2375,7 +2421,7 @@ void process_loop(int n, char **files)
 }
 
 // copied & modified from mingw-runtime-3.13's init.c
-typedef struct {
+typedef struct STARTUPINFO{
   int newmode;
 } _startupinfo;
 extern void __wgetmainargs (int *, wchar_t ***, wchar_t ***, int, _startupinfo *);
@@ -2719,8 +2765,8 @@ int main(int argc, char *argv[])
     int parse_error = 0;
     int c;
     while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:tT:vVw:WzZ"))) {
-        switch (c) {
         double tmp_a_ratio = 0;
+        switch (c) {
         case 'a':
             if (0 == get_double_opt('a', &tmp_a_ratio, optarg, 1)) { // success
                 gb_a_ratio.num = tmp_a_ratio * 10000;

@@ -1,17 +1,19 @@
-# older ffmpeg doesn't have swscale. you might need to build a newer ffmpeg from source
+#CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
+#CFLAGS=-W -Wall `pkg-config --cflags libavformat`
+CFLAGS=-W -Wall
+INCPATH=-I/usr/include/ffmpeg
+#LDFLAGS= -lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
+LIBS=-L/usr/lib64/ffmpeg -lavcodec -lavformat -lswscale -lavutil -lm -lgd
 
-CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
-LDFLAGS= -lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
-#LIBS=/home/tuitfun/lib/libavcodec.a /home/tuitfun/lib/libavformat.a /home/tuitfun/lib/libavutil.a /home/tuitfun/lib/libswscale.a
-#LIBS=/usr/lib/libgd.a
+mtn: mtn.c Makefile
+        $(CC) -o mtn mtn.c         $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 all: mtn mtns
 
-mtn: mtn.c Makefile
-	$(CC) -o mtn mtn.c $(CFLAGS) $(LDFLAGS) $(LIBS)
-
-mtns: mtn.c Makefile
-	$(CC) -o mtns mtn.c -static $(CFLAGS) $(LDFLAGS) $(LIBS)
+mtns: mtn.c
+        $(CC) -o mtns mtn.c -static $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 clean:
 	rm -f mtn mtns
+
+rebuild: clean mtn
