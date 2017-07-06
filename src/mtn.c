@@ -56,6 +56,8 @@
 #include <time.h>
 #include <unistd.h>
 
+#include "libavutil/imgutils.h"
+#include "libavutil/avutil.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
@@ -549,7 +551,7 @@ int save_jpg(gdImagePtr ip, char *outname)
 }
 
 /*
-pFrame must be a PIX_FMT_RGB24 frame
+pFrame must be a AV_PIX_FMT_RGB24 frame
 */
 void FrameRGB_2_gdImage(AVFrame *pFrame, gdImagePtr ip, int width, int height)
 {
@@ -642,7 +644,7 @@ void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, int idx, int64_t pts)
 #endif
 /*
 perform convolution on pFrame and store result in ip
-pFrame must be a PIX_FMT_RGB24 frame
+pFrame must be a AV_PIX_FMT_RGB24 frame
 ip must be of the same size as pFrame
 begin = upper left, end = lower right
 filter should be a 2-dimensional but since we cant pass it without knowning the size, we'll use 1 dimension
@@ -731,7 +733,7 @@ int is_edge(float *edge, float edge_found)
 }
 
 /*
-pFrame must be an PIX_FMT_RGB24 frame
+pFrame must be an AV_PIX_FMT_RGB24 frame
 http://student.kuleuven.be/~m0216922/CG/
 http://www.pages.drexel.edu/~weg22/edge.html
 http://student.kuleuven.be/~m0216922/CG/filtering.html
@@ -1008,7 +1010,7 @@ void get_stream_info_type(AVFormatContext *ic, enum CodecType type, char *buf, A
 /*
 modified from libavformat's dump_format
 */
-char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational sample_aspect_ratio)
+char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational __attribute__((unused)) sample_aspect_ratio)
 {
     static char buf[4096]; // FIXME: this is also used for all text at the top
     int duration = -1;
@@ -1052,9 +1054,11 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         sprintf(buf + strlen(buf), ", bitrate: N/A%s", NEWLINE);
     }
 
-    get_stream_info_type(ic, CODEC_TYPE_AUDIO, buf, sample_aspect_ratio);
-    get_stream_info_type(ic, CODEC_TYPE_VIDEO, buf, sample_aspect_ratio);
-    get_stream_info_type(ic, CODEC_TYPE_SUBTITLE, buf, sample_aspect_ratio);
+
+    get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
+    get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio);
+    get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio);
+    */
     // CODEC_TYPE_DATA FIXME: what is this type?
     // CODEC_TYPE_NB FIXME: what is this type?
 
@@ -1115,7 +1119,7 @@ double uint8_cmp(uint8_t *pa, uint8_t *pb, uint8_t *pc, int n)
 
 /*
 return sameness of the frame; 1 means the frame is the same in all directions, i.e. blank
-pFrame must be an PIX_FMT_RGB24 frame
+pFrame must be an AV_PIX_FMT_RGB24 frame
 */
 double blank_frame(AVFrame *pFrame, int width, int height)
 {
@@ -1203,7 +1207,7 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
         // so we'll use it only when a key frame is difficult to find.
         // hope this wont break anything. :)
         // this seems to help a lot for files with vorbis audio
-        if (1 == skip_non_key && 1 == key_only && !(packet.flags & PKT_FLAG_KEY)) {
+        if (1 == skip_non_key && 1 == key_only && !(packet.flags & AV_PKT_FLAG_KEY)) {
             continue;
         }
         
@@ -1576,9 +1580,9 @@ void make_thumbnail(char *file)
     // Find the first video stream
     // int av_find_default_stream_index(AVFormatContext *s)
     int video_index = -1;
-    for (i = 0; i < pFormatCtx->nb_streams; i++) {
-        if (CODEC_TYPE_VIDEO == pFormatCtx->streams[i]->codec->codec_type) {
-            video_index = i;
+    for (uint j = 0; j < pFormatCtx->nb_streams; j++) {
+        if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
+            video_index = j;
             break;
         }
     }
@@ -1812,8 +1816,8 @@ void make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
     }
-    int rgb_bufsize = avpicture_get_size(PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
     rgb_buffer = av_malloc(rgb_bufsize);
+    int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
@@ -1821,7 +1825,7 @@ void make_thumbnail(char *file)
     avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, PIX_FMT_RGB24,
         tn.shot_width, tn.shot_height);
     pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
-        tn.shot_width, tn.shot_height, PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        tn.shot_width, tn.shot_height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     if (NULL == pSwsCtx) { // sws_getContext is not documented
         av_log(NULL, AV_LOG_ERROR, "  sws_getContext failed\n");
         goto cleanup;
@@ -2017,7 +2021,7 @@ void make_thumbnail(char *file)
             pFrameRGB->data, pFrameRGB->linesize);
         /*
         sprintf(debug_filename, "%s_resized%05d.jpg", tn.out_filename, nb_shots - 1); // DEBUG
-        save_AVFrame(pFrameRGB, tn.shot_width, tn.shot_height, PIX_FMT_RGB24, 
+        save_AVFrame(pFrameRGB, tn.shot_width, tn.shot_height, AV_PIX_FMT_RGB24,
             debug_filename, tn.shot_width, tn.shot_height);
         */
 
@@ -2224,7 +2228,7 @@ int alphasort(const void *a, const void *b)
 
 /* modified from glibc
 */
-int alphacasesort(const void *a, const void *b)
+int myalphacasesort(const void *a, const void *b)
 {
     //return strcoll(*(const char **) a, *(const char **) b);
     return strcasecmp(*(const char **) a, *(const char **) b);
@@ -2245,7 +2249,7 @@ int check_extension(char *filename)
 
     static const int nb_ext = sizeof(movie_ext) / sizeof(*movie_ext);
     if (0 == sorted) {
-        qsort(movie_ext, nb_ext, sizeof(*movie_ext), alphacasesort);
+        qsort(movie_ext, nb_ext, sizeof(*movie_ext), myalphacasesort);
         sorted = 1;
     }
 
@@ -2254,7 +2258,7 @@ int check_extension(char *filename)
         return 0;
     }
     ext += 1;
-    if (NULL == bsearch(&ext, movie_ext, nb_ext, sizeof(*movie_ext), alphacasesort)) {
+    if (NULL == bsearch(&ext, movie_ext, nb_ext, sizeof(*movie_ext), myalphacasesort)) {
         return 0;
     }
     if (NULL != strstr(filename, "uTorrentPartFile")) {
@@ -2339,7 +2343,7 @@ void process_dir(char *dir)
         v[cnt++] = vnew;
         //av_log(NULL, LOG_INFO, "process_dir added: %s\n", v[cnt-1]); // DEBUG
     }
-    qsort(v, cnt, sizeof(*v), alphasort);
+    qsort(v, cnt, sizeof(*v), myalphasort);
 
     /* process dirs & files */
     process_loop(cnt, v);
