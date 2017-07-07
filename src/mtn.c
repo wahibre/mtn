@@ -942,84 +942,132 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
     }
 }
 
+AVCodecContext* get_codecContext_for_codecID(enum AVCodecID codecID)
+{
+    AVCodec *pCodec;
+    AVCodecContext *pCodecContext;
+
+    pCodec = avcodec_find_decoder(codecID);
+    if(!pCodec)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Couldn't find decoder for codec ID=%d %s", codecID, NEWLINE);
+        return NULL;
+    }
+
+    pCodecContext = avcodec_alloc_context3(pCodec);
+    if(!pCodecContext)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context for codec name:\"%s\", id: %d%s", pCodec->name, codecID, NEWLINE);
+        return NULL;
+    }
+
+    return pCodecContext;
+}
+
 /*
 modified from libavformat's dump_format
 */
+void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf, AVRational sample_aspect_ratio)
+{
+    //char sub_buf[1024] = ""; // FIXME
+    unsigned int i;
+    AVCodecContext *pCodexCtx;
 
-//TODO docasne vyhodene
-//void get_stream_info_type(AVFormatContext */*ic*/,  enum AVMediaType /*type*/, char */*buf*/, AVRational /*sample_aspect_ratio*/)
-//{
-//    char sub_buf[1024] = ""; // FIXME
-//    unsigned int i;
-//    for(i=0; i<ic->nb_streams; i++) {
-//        char codec_buf[256];
-//        int flags = ic->iformat->flags;
-//        AVStream *st = ic->streams[i];
+    for(i=0; i<ic->nb_streams; i++) {
+        char codec_buf[256];
+        int flags = ic->iformat->flags;
+        AVStream *st = ic->streams[i];
 
-//        if (type != st->codecpar->codec_type) {
-//            continue;
-//        }
+        if (type != st->codecpar->codec_type) {
+            continue;
+        }
 
-//        if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
-//            if (strlen(st->language) > 0) {
-//                sprintf(sub_buf + strlen(sub_buf), "%s ", st->language);
-//            } else {
-//                // FIXME: ignore for now; language seem to be missing in .vob files
-//                //sprintf(sub_buf + strlen(sub_buf), "? ");
-//            }
-//            continue;
-//        }
 
-//        if (gb_v_verbose > 0) {
-//            sprintf(buf + strlen(buf), "Stream %d", i);
-//            if (flags & AVFMT_SHOW_IDS) {
-//                sprintf(buf + strlen(buf), "[0x%x]", st->id);
-//            }
-//            /*
-//            int g = ff_gcd(st->time_base.num, st->time_base.den);
-//            sprintf(buf + strlen(buf), ", %d/%d", st->time_base.num/g, st->time_base.den/g);
-//            */
-//            sprintf(buf + strlen(buf), ": ");
-//        }
+        pCodexCtx = get_codecContext_for_codecID(st->codecpar->codec_id);
 
-//        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
-//        // remove [PAR DAR] from string, it's not very useful.
-//        char *begin = NULL, *end = NULL;
-//        if ((begin=strstr(codec_buf, " [PAR")) != NULL
-//            && (end=strchr(begin, ']')) != NULL) {
-//            while (*++end != '\0') {
-//                *begin++ = *end;
-//            }
-//            *begin = '\0';
-//        }
-//        sprintf(buf + strlen(buf), codec_buf);
 
-//        if (st->codecpar-> == AVMEDIA_TYPE_VIDEO ){
-//            if (st->r_frame_rate.den && st->r_frame_rate.num)
-//                sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
-//            //else if(st->time_base.den && st->time_base.num)
-//            //  sprintf(buf + strlen(buf), ", %5.2f fps(m)", 1/av_q2d(st->time_base));
-//            else
-//                sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->codec->time_base));
+        //TODO MF subtitles
+        /* language NOT SUPPORTED ANY MORE
+        if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
+            if (strlen(st->language) > 0) {
+                sprintf(sub_buf + strlen(sub_buf), "%s ", st->language);
+            } else {
+                // FIXME: ignore for now; language seem to be missing in .vob files
+                //sprintf(sub_buf + strlen(sub_buf), "? ");
+            }
+            continue;
+        }
+        */
 
-//            // show aspect ratio
-//            int scaled_src_width, scaled_src_height;
-//            calc_scale_src(st->codec->width, st->codec->height, sample_aspect_ratio,
-//                &scaled_src_width, &scaled_src_height);
+        if (gb_v_verbose > 0) {
+            sprintf(buf + strlen(buf), "Stream %d", i);
+            if (flags & AVFMT_SHOW_IDS) {
+                sprintf(buf + strlen(buf), "[0x%x]", st->id);
+            }
+            /*
+            int g = ff_gcd(st->time_base.num, st->time_base.den);
+            sprintf(buf + strlen(buf), ", %d/%d", st->time_base.num/g, st->time_base.den/g);
+            */
+            sprintf(buf + strlen(buf), ": ");
+        }
+
+        /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations] */
+        avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
+
+        //TODO MF remove [PAR DAR] from string, it's not very useful.
+        char *begin = NULL, *end = NULL;
+        if ((begin=strstr(codec_buf, " [PAR")) != NULL
+            && (end=strchr(begin, ']')) != NULL) {
+            while (*++end != '\0') {
+                *begin++ = *end;
+            }
+            *begin = '\0';
+        }
+        sprintf(buf + strlen(buf), codec_buf);
+
+        /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
+        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
+            if (st->r_frame_rate.den && st->r_frame_rate.num)
+                sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
+            //else if(st->time_base.den && st->time_base.num)
+            //  sprintf(buf + strlen(buf), ", %5.2f fps(m)", 1/av_q2d(st->time_base));
+            else
+                /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
+              //sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->codec->time_base));
+                sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->time_base));
+
+            // show aspect ratio
+            int scaled_src_width, scaled_src_height;
+
+            /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]
+            calc_scale_src(st->codec->width, st->codec->height, sample_aspect_ratio,  */
+            calc_scale_src(st->codecpar->width, st->codecpar->height, sample_aspect_ratio,
+                &scaled_src_width, &scaled_src_height);
+
+/* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
 //            if (scaled_src_width != st->codec->width || scaled_src_height != st->codec->height) {
-//                sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
-//            }
-//        }
-//        if (strlen(st->language) > 0) {
-//            sprintf(buf + strlen(buf), " (%s)", st->language);
-//        }
-//        sprintf(buf + strlen(buf), NEWLINE);
-//    }
+            if (scaled_src_width != st->codecpar->width || scaled_src_height != st->codecpar->height) {
+                sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
+            }
+        }
+        /* language NOT SUPPORTED ANY MORE
+        if (strlen(st->language) > 0) {
+            sprintf(buf + strlen(buf), " (%s)", st->language);
+        }
+        sprintf(buf + strlen(buf), NEWLINE);
+        */
+    }
 
-//    if (0 < strlen(sub_buf)) {
-//        sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
-//    }
-//}
+    /* language NOT SUPPORTED ANY MORE
+    if (0 < strlen(sub_buf)) {
+        sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
+    }
+    */
+    strcat(buf, NEWLINE);
+
+//    if(pCodexCtx)
+//        avcodec_free_context(&pCodexCtx);
+}
 
 /*
 modified from libavformat's dump_format
@@ -1027,7 +1075,7 @@ modified from libavformat's dump_format
 char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational __attribute__((unused)) sample_aspect_ratio)
 {
     static char buf[4096]; // FIXME: this is also used for all text at the top
-    /*int duration = -1;*/
+    int duration = -1;
 
     char *file_name = url;
     if (1 == strip_path) {
@@ -1040,9 +1088,9 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     sprintf(buf, "File: %s", file_name);
     //sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);
     sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size, "B"));
-    if (ic->duration != AV_NOPTS_VALUE) { // FIXME: gcc warning: comparison between signed and unsigned
+    if (ic->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs;
-        /*TODO docasne>  duration =*/ secs = ic->duration / AV_TIME_BASE;
+        duration = secs = ic->duration / AV_TIME_BASE;
         mins = secs / 60;
         secs %= 60;
         hours = mins / 60;
@@ -1064,18 +1112,18 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     // calculate from duration.
     // is this ok? probably not ok with .vob files when duration is wrong. DEBUG
 
-    /*TODO docasne vyhodnee
+
     if (duration > 0) {
-        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s%s", (double) ic->file_size * 8 / duration / 1000, NEWLINE);
+        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s%s", (double) file_size * 8.0 / duration / 1000, NEWLINE);
     } else if (ic->bit_rate) {
-        sprintf(buf + strlen(buf), ", bitrate: %d kb/s%s", ic->bit_rate / 1000, NEWLINE);
+        sprintf(buf + strlen(buf), ", bitrate: %"PRId64" kb/s%s", ic->bit_rate / 1000, NEWLINE);
     } else {
         sprintf(buf + strlen(buf), ", bitrate: N/A%s", NEWLINE);
     }
 
-
     get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
     get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio);
+    /*TODO MF docasne vyhodene
     get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio);
     */
     // CODEC_TYPE_DATA FIXME: what is this type?
@@ -1093,7 +1141,7 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     //dump_format(p, index, url, is_output);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO)); 
+    av_log(NULL, LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO));
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64", file_size: %"PRId64"\n",
         p->start_time, p->duration, (long int)-1);
@@ -1311,7 +1359,8 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
     }
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
-//TODO MF    *pPts = packet.pts;  -> verify
+
+    //    *pPts = packet.pts;  -> unreferenced after av_packet_unref(&packet)!
     *pPts = gb_video_pkt_pts;
     return 1;
 }
@@ -1338,7 +1387,7 @@ return the duration. guess when unknown.
 must be called after codec has been opened
 */
 double guess_duration(AVFormatContext *pFormatCtx, int index, 
-    AVCodecContext __attribute__((unused)) *pCodecCtx, AVFrame __attribute__((unused)) *pFrame)
+    AVCodecContext *pCodecCtx, AVFrame __attribute__((unused)) *pFrame)
 {
     double duration = (double) pFormatCtx->duration / AV_TIME_BASE; // can be incorrect for .vob files
     if (duration > 0) {
@@ -1351,12 +1400,14 @@ double guess_duration(AVFormatContext *pFormatCtx, int index,
     // if stream bitrate is known we'll interpolate from file size.
     // pFormatCtx->start_time would be incorrect for .vob file with multiple titles.
     // pStream->start_time doesn't work either. so we'll need to disable timestamping.
-    assert(NULL != pStream && NULL != pStream->codec);
+    assert(NULL != pStream && NULL != pCodecCtx);
 
     int64_t file_size = avio_size(pFormatCtx->pb);
 
-    if (pStream->codec->bit_rate > 0 && file_size > 0) {
-        guess = 0.9 * file_size / (pStream->codec->bit_rate / 8);
+//    if (pStream->codec->bit_rate > 0 && file_size > 0) {
+//        guess = 0.9 * file_size / (pStream->codec->bit_rate / 8);
+    if (pCodecCtx->bit_rate > 0 && file_size > 0) {
+        guess = 0.9 * file_size / (pCodecCtx->bit_rate / 8);
         if (guess > 0) {
             av_log(NULL, AV_LOG_ERROR, "  ** duration is unknown: %.2f; guessing: %.2f s from bit_rate\n", duration, guess);
             return guess;
@@ -1628,18 +1679,23 @@ void make_thumbnail(char *file)
     }
 
     AVStream *pStream = pFormatCtx->streams[video_index];
-    pCodecCtx = pStream->codec;
+//    pCodecCtx = pStream->codec;
+    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar->codec_id);
+    if(!pCodecCtx)
+        goto cleanup;
+
     dump_stream(pStream);
     dump_index_entries(pStream);
     dump_codec_context(pCodecCtx);
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
     // Find the decoder for the video stream
-    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
-    if (pCodec == NULL) {
-        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
-        goto cleanup;
-    }
+//    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+//    if (pCodec == NULL) {
+//        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
+//        goto cleanup;
+//    }
+    const AVCodec *pCodec = pCodecCtx->codec;
 
     // discard frames; is this OK?? // FIXME
     if (gb_s_step >= 0) {
