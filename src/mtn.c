@@ -1161,7 +1161,7 @@ uint64_t gb_video_pkt_pts = AV_NOPTS_VALUE;
  * buffer. We use this to store the global_pts in
  * a frame at the time it is allocated.
  */
-int our_get_buffer(struct AVCodecContext *c, AVFrame *pic, int flags) {
+int our_get_buffer(struct AVCodecContext *c, AVFrame *pic, int __attribute__((unused))flags) {
   int ret = avcodec_default_get_buffer2(c, pic, 0);
   uint64_t *pts = av_malloc(sizeof(uint64_t));
   *pts = gb_video_pkt_pts;

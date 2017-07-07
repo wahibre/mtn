@@ -6,14 +6,17 @@ INCPATH=-I/usr/include/ffmpeg
 LIBS=-L/usr/lib64/ffmpeg -lavcodec -lavformat -lswscale -lavutil -lm -lgd
 
 mtn: mtn.c Makefile
-        $(CC) -o mtn mtn.c         $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
+	$(CC) -o mtn mtn.c         $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 all: mtn mtns
 
 mtns: mtn.c
-        $(CC) -o mtns mtn.c -static $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
+	$(CC) -o mtns mtn.c -static $(INCPATH) $(CFLAGS) $(LDFLAGS) $(LIBS)
 
 clean:
 	rm -f mtn mtns
 
 rebuild: clean mtn
+
+install: mtn
+	install -o root -g root -m 755 mtn /usr/bin/
