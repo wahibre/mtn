@@ -764,7 +764,7 @@ gdImagePtr detect_edge(AVFrame *pFrame, int width, int height, float *edge, floa
 
     gdImagePtr ip = gdImageCreateTrueColor(width, height);
     if (NULL == ip) {
-        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed\n");
+        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed%s", NEWLINE);
         return NULL;
     }
     if (gb_v_verbose > 0) {
@@ -816,7 +816,7 @@ void save_AVFrame(const AVFrame* const pFrame, int src_width, int src_height, in
 
     pFrameRGB = av_frame_alloc();
     if (pFrameRGB == NULL) {
-        av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
+        av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame %s", NEWLINE);
         goto cleanup;
     }
     int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, dst_width, dst_height, av_image_get_buffer_size_linesize);
@@ -872,12 +872,12 @@ void dump_packet(AVPacket *p, AVStream * ps)
     pkt->pts can be AV_NOPTS_VALUE if the video format has B frames, so it is 
     better to rely on pkt->dts if you do not decompress the payload.
     */
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"\n", p->pos);
-    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"\n",
-        p->pts, p->dts, p->duration);
-    av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f\n",
+    av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"%s", p->pos, NEWLINE);
+    av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"%s",
+        p->pts, p->dts, p->duration, NEWLINE);
+    av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f%s",
         p->pts * av_q2d(ps->time_base), p->dts * av_q2d(ps->time_base), 
-        p->duration * av_q2d(ps->time_base)); // pts can be AV_NOPTS_VALUE 
+        p->duration * av_q2d(ps->time_base), NEWLINE); // pts can be AV_NOPTS_VALUE
 }
 
 void dump_codec_context(AVCodecContext * p)
@@ -1047,9 +1047,9 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        sprintf(buf + strlen(buf), ", duration: %02d:%02d:%02d \n", hours, mins, secs);
+        sprintf(buf + strlen(buf), ", duration: %02d:%02d:%02d", hours, mins, secs);
     } else {
-        sprintf(buf + strlen(buf), ", duration: N/A \n");
+        sprintf(buf + strlen(buf), ", duration: N/A");
     }
     /*
     if (ic->start_time != AV_NOPTS_VALUE) {
@@ -1494,14 +1494,19 @@ void make_thumbnail(char *file)
     struct timeval tstart;
     gettimeofday(&tstart, NULL);
 
-    int i;
     thumbnail tn; // thumbnail data & info
     thumb_new(&tn);
     // shot sh; // shot info
+
+    /* warning: variable ‘fill_buffer’ set but not used [-Wunused-but-set-variable]
+    int i;
     shot fill_buffer[gb_c_column-1]; // skipped shots to fill the last row
     for (i=0; i<gb_c_column-1; i++) {
         fill_buffer[i].ip = NULL;
     }
+    */
+
+
     int nb_shots = 0; // # of decoded shots (stat purposes)
 
     /* these are checked during cleaning up, must be NULL if not used */
@@ -2432,7 +2437,7 @@ get command line arguments and expand wildcards in utf-8 in windows
 caller needs to free argv[i]
 return 0 if ok
 */
-int get_windows_argv(int *pargc, char ***pargv)
+int get_windows_argv(int __attribute__((unused)) *pargc, char __attribute__((unused)) ***pargv)
 {
 #if defined(WIN32) && defined(_UNICODE)
     // copied & modified from mingw-runtime-3.13's init.c
