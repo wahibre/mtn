@@ -942,22 +942,35 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
     }
 }
 
-AVCodecContext* get_codecContext_for_codecID(enum AVCodecID codecID)
+AVCodecContext* get_codecContext_for_codecID(AVCodecParameters* pCodecPar)
 {
-    AVCodec *pCodec;
+//    AVCodec *pCodec;
     AVCodecContext *pCodecContext;
 
-    pCodec = avcodec_find_decoder(codecID);
-    if(!pCodec)
+//    pCodec = avcodec_find_decoder(codecID);
+//    if(!pCodec)
+//    {
+//        av_log(NULL, AV_LOG_ERROR, "Couldn't find decoder for codec ID=%d %s", codecID, NEWLINE);
+//        return NULL;
+//    }
+
+//    pCodecContext = avcodec_alloc_context3(pCodec);
+//    if(!pCodecContext)
+//    {
+//        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context for codec name:\"%s\", id: %d%s", pCodec->name, codecID, NEWLINE);
+//        return NULL;
+//    }
+
+    pCodecContext = avcodec_alloc_context3(NULL);
+    if(!pCodecContext)
     {
-        av_log(NULL, AV_LOG_ERROR, "Couldn't find decoder for codec ID=%d %s", codecID, NEWLINE);
+        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context %s", NEWLINE);
         return NULL;
     }
 
-    pCodecContext = avcodec_alloc_context3(pCodec);
-    if(!pCodecContext)
+    if(avcodec_parameters_to_context(pCodecContext, pCodecPar) <0 )
     {
-        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context for codec name:\"%s\", id: %d%s", pCodec->name, codecID, NEWLINE);
+        avcodec_free_context(&pCodecContext);
         return NULL;
     }
 
@@ -983,7 +996,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         }
 
 
-        pCodexCtx = get_codecContext_for_codecID(st->codecpar->codec_id);
+        pCodexCtx = get_codecContext_for_codecID(st->codecpar);
 
 
         //TODO MF subtitles
@@ -1013,6 +1026,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
         /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations] */
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
+//        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
 
         //TODO MF remove [PAR DAR] from string, it's not very useful.
         char *begin = NULL, *end = NULL;
@@ -1065,8 +1079,8 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
     */
     strcat(buf, NEWLINE);
 
-//    if(pCodexCtx)
-//        avcodec_free_context(&pCodexCtx);
+    if(pCodexCtx)
+        avcodec_free_context(&pCodexCtx);
 }
 
 /*
@@ -1679,8 +1693,9 @@ void make_thumbnail(char *file)
     }
 
     AVStream *pStream = pFormatCtx->streams[video_index];
-//    pCodecCtx = pStream->codec;
-    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar->codec_id);
+ //TODO   pCodecCtx = pStream->codec;
+// not working yet, avcodec_open2 says "[h264 @ 0x65cc80] No start code is found"
+    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar);
     if(!pCodecCtx)
         goto cleanup;
 
@@ -1690,12 +1705,12 @@ void make_thumbnail(char *file)
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
     // Find the decoder for the video stream
-//    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
-//    if (pCodec == NULL) {
-//        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
-//        goto cleanup;
-//    }
-    const AVCodec *pCodec = pCodecCtx->codec;
+    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+    if (pCodec == NULL) {
+        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
+        goto cleanup;
+    }
+//    const AVCodec *pCodec = pCodecCtx->codec;
 
     // discard frames; is this OK?? // FIXME
     if (gb_s_step >= 0) {
@@ -2312,9 +2327,11 @@ void make_thumbnail(char *file)
         av_free(pFrame);
 
     // Close the codec
-    if (NULL != pCodecCtx && NULL != pCodecCtx->codec) {
+//    if (NULL != pCodecCtx && NULL != pCodecCtx->codec) {
+    if (NULL != pCodecCtx) {
         avcodec_close(pCodecCtx);
-    }
+        avcodec_free_context(&pCodecCtx);
+    }    
 
     // Close the video file
     if (NULL != pFormatCtx)
