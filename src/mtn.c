@@ -1013,6 +1013,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
         /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations] */
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
+//        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
 
         //TODO MF remove [PAR DAR] from string, it's not very useful.
         char *begin = NULL, *end = NULL;
@@ -1679,10 +1680,11 @@ void make_thumbnail(char *file)
     }
 
     AVStream *pStream = pFormatCtx->streams[video_index];
-//    pCodecCtx = pStream->codec;
-    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar->codec_id);
-    if(!pCodecCtx)
-        goto cleanup;
+    pCodecCtx = pStream->codec;
+//TODO  not working yet, avcodec_open2 says "[h264 @ 0x65cc80] No start code is found"
+//    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar->codec_id);
+//    if(!pCodecCtx)
+//        goto cleanup;
 
     dump_stream(pStream);
     dump_index_entries(pStream);
@@ -1690,12 +1692,12 @@ void make_thumbnail(char *file)
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
     // Find the decoder for the video stream
-//    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
-//    if (pCodec == NULL) {
-//        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
-//        goto cleanup;
-//    }
-    const AVCodec *pCodec = pCodecCtx->codec;
+    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+    if (pCodec == NULL) {
+        av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
+        goto cleanup;
+    }
+//    const AVCodec *pCodec = pCodecCtx->codec;
 
     // discard frames; is this OK?? // FIXME
     if (gb_s_step >= 0) {
