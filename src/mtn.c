@@ -942,7 +942,7 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
     }
 }
 
-AVCodecContext* get_codecContext_for_codecID(AVCodecParameters* pCodecPar)
+AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
 {
 //    AVCodec *pCodec;
     AVCodecContext *pCodecContext;
@@ -996,7 +996,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         }
 
 
-        pCodexCtx = get_codecContext_for_codecID(st->codecpar);
+        pCodexCtx = get_codecContext_from_codecParams(st->codecpar);
 
 
         //TODO MF subtitles
@@ -1695,7 +1695,7 @@ void make_thumbnail(char *file)
     AVStream *pStream = pFormatCtx->streams[video_index];
  //TODO   pCodecCtx = pStream->codec;
 // not working yet, avcodec_open2 says "[h264 @ 0x65cc80] No start code is found"
-    pCodecCtx = get_codecContext_for_codecID(pStream->codecpar);
+    pCodecCtx = get_codecContext_from_codecParams(pStream->codecpar);
     if(!pCodecCtx)
         goto cleanup;
 
