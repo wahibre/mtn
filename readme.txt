@@ -14,7 +14,9 @@ Fedora 25:
 $dnf install ffmpeg-devel gd-devel
 
 Windows:
- download shared libraries (http://www.ffmpeg.org, http://libgd.org)
+ download shared libraries 
+ - http://www.ffmpeg.org, 
+ - http://gnuwin32.sourceforge.net/downlinks/gd-dep-zip.php
 
 
 == Build ==
