@@ -1681,7 +1681,7 @@ void make_thumbnail(char *file)
     // Find the first video stream
     // int av_find_default_stream_index(AVFormatContext *s)
     int video_index = -1;
-    for (uint j = 0; j < pFormatCtx->nb_streams; j++) {
+    for (uint8_t j = 0; j < pFormatCtx->nb_streams; j++) {
         if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
             video_index = j;
             break;
@@ -1925,7 +1925,7 @@ void make_thumbnail(char *file)
     }
     int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
 //    rgb_buffer = av_malloc(rgb_bufsize);
-    rgb_buffer = (u_int8_t*)malloc(rgb_bufsize*sizeof(u_int8_t));
+    rgb_buffer = (uint8_t*)malloc(rgb_bufsize*sizeof(uint8_t));
 
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
