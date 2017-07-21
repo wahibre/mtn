@@ -1,3 +1,7 @@
+version 3.0 2017/m/d
+- removed old and deprecated piece of code (replacing with new FFmpeg's API)
+- add -X option to include video extension in output filename
+
 version 200808a
 - release year and month is now used as the version number.
 - fix aspect ratio bugs. mtn now should behave the same as vlc's snapshot.

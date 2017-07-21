@@ -1,6 +1,6 @@
 /*  mtn - movie thumbnailer http://moviethumbnail.sourceforge.net/
 
-    Copyright (C) 2007-2008 tuit <tuitfun@yahoo.co.th>, et al.
+    Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -14,11 +14,6 @@
         http://ffmpeg.mplayerhq.hu/
     and gd.c in libGD
         http://cvs.php.net/viewvc.cgi/php-src/ext/gd/libgd/gd.c?revision=1.111&view=markup
-
-    please excuse the mess, i am a very rusty programmer!
-    helps, comments or patches are very welcomed. :)
-
-    tested with ffmpeg-r14005 and gd-2.0.34
 
     This program is free software; you can redistribute it and/or
     modify it under the terms of the GNU General Public License
@@ -222,7 +217,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.0.0 copyright (c) 2007-2017 tuit, et al.";
+char *gb_version = "3.0 copyright (c) 2007-2017 tuit, et al.";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -1605,7 +1600,7 @@ void make_thumbnail(char *file)
     }
     char *suffix = strrchr(tn.out_filename, '.');
 
-    if (gb_filename_use_full)
+    if (gb_filename_use_full==1)
         strcat(tn.out_filename, gb_o_suffix);
     else
     {
