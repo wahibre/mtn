@@ -145,6 +145,8 @@ double gb_B_begin = GB_B_BEGIN; // skip this seconds from the beginning
 int gb_c_column = GB_C_COLUMN;
 #define GB_C_CUT -1
 double gb_C_cut = GB_C_CUT; // cut movie; <=0 off
+#define GB_D_DEPTH -1
+int gb_d_depth = GB_D_DEPTH; //directory depth
 #define GB_D_EDGE 12
 int gb_D_edge = GB_D_EDGE; // edge detection; 0 off; >0 on
 #define GB_E_EXT NULL
@@ -2411,12 +2413,17 @@ int check_extension(char *filename)
     return 1;
 }
 
-void process_loop(int n, char **files);
+void process_loop(int n, char **files, int current_depth);
 
 /* modified from glibc's scandir -- mingw doesn't have scandir
 */
-void process_dir(char *dir)
+void process_dir(char *dir, int current_depth)
 {
+    if(gb_d_depth >= 0 && current_depth>gb_d_depth)
+        return;
+
+    current_depth++;
+
 #if defined(WIN32) && defined(_UNICODE)
     wchar_t dir_w[FILENAME_MAX];
     UTF8_2_WC(dir_w, dir, FILENAME_MAX);
@@ -2490,7 +2497,7 @@ void process_dir(char *dir)
     qsort(v, cnt, sizeof(*v), myalphasort);
 
     /* process dirs & files */
-    process_loop(cnt, v);
+    process_loop(cnt, v, current_depth);
 
   cleanup:
     while (cnt > 0)
@@ -2501,7 +2508,7 @@ void process_dir(char *dir)
 
 /*
 */
-void process_loop(int n, char **files)
+void process_loop(int n, char **files, int current_depth)
 {
     int i;
     for (i = 0; i < n; i++) {
@@ -2510,7 +2517,7 @@ void process_loop(int n, char **files)
 
         if (is_dir(files[i])) { // directory
             //av_log(NULL, LOG_INFO, "process_loop: %s is a DIR\n", files[i]); // DEBUG
-            process_dir(files[i]);
+                process_dir(files[i], current_depth);
         } else { // not a directory
             //av_log(NULL, LOG_INFO, "process_loop: %s is not a DIR\n", files[i]); // DEBUG
             make_thumbnail(files[i]);
@@ -2786,7 +2793,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -B %.1f : omit this seconds from the beginning\n", GB_B_BEGIN);
     av_log(NULL, AV_LOG_ERROR, "  -c %d : # of column\n", GB_C_COLUMN);
     av_log(NULL, AV_LOG_ERROR, "  -C %d : cut movie and thumbnails not more than the specified seconds; <=0:off\n", GB_C_CUT);
-    //av_log(NULL, AV_LOG_ERROR, "  -d : this option shouldn't be needed anymore\n");
+    av_log(NULL, AV_LOG_ERROR, "  -d %d: recursion depth; 0:immediate children files only\n", GB_D_DEPTH);
     av_log(NULL, AV_LOG_ERROR, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
     //av_log(NULL, AV_LOG_ERROR, "  -e : to be done\n"); // extension of movie files
     av_log(NULL, AV_LOG_ERROR, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
@@ -2863,7 +2870,7 @@ int main(int argc, char *argv[])
     /* get & check options */
     int parse_error = 0;
     int c;
-    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
+    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 'a':
@@ -2892,6 +2899,9 @@ int main(int argc, char *argv[])
             break;
         case 'C':
             parse_error += get_double_opt('C', &gb_C_cut, optarg, 1);
+            break;
+        case 'd':
+            parse_error += get_int_opt('d', &gb_d_depth, optarg, 0);
             break;
         case 'D':
             parse_error += get_int_opt('D', &gb_D_edge, optarg, 0);
@@ -3062,7 +3072,7 @@ int main(int argc, char *argv[])
     //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
     /* process movie files */
-    process_loop(argc - optind, argv + optind);
+    process_loop(argc - optind, argv + optind, 0);
 
   exit:
     // clean up
