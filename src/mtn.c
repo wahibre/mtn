@@ -199,6 +199,8 @@ int gb_q_quiet = GB_Q_QUIET; // 1 on; 0 off
 int gb_r_row = GB_R_ROW; // 0 = as many rows as needed
 #define GB_S_STEP 120
 int gb_s_step = GB_S_STEP; // less than 0 = every frame; 0 = step evenly to get column x row
+#define GB_S_SELECT_VIDEO_STREAM 0
+int gb_S_select_video_stream = GB_S_SELECT_VIDEO_STREAM;
 #define GB_T_TIME 1
 int gb_t_timestamp = GB_T_TIME; // 1 on; 0 off
 #define GB_T_TEXT NULL
@@ -1021,9 +1023,9 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
 //        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
 
-        //TODO MF remove [PAR DAR] from string, it's not very useful.
+        // remove [SAR DAR] from string, it's not very useful.
         char *begin = NULL, *end = NULL;
-        if ((begin=strstr(codec_buf, " [PAR")) != NULL
+        if ((begin=strstr(codec_buf, " [SAR")) != NULL
             && (end=strchr(begin, ']')) != NULL) {
             while (*++end != '\0') {
                 *begin++ = *end;
@@ -1688,12 +1690,25 @@ void make_thumbnail(char *file)
     int video_index = -1;
     for (uint8_t j = 0; j < pFormatCtx->nb_streams; j++) {
         if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
-            video_index = j;
-            break;
+            if (!gb_S_select_video_stream) {
+                video_index = j;
+                break;
+            } else {
+              if (j == gb_S_select_video_stream) {
+                video_index = gb_S_select_video_stream;
+                av_log(NULL, LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
+                break;
+              }
+            }
         }
     }
-    if (video_index == -1) {
-        av_log(NULL, AV_LOG_ERROR, "  couldn't find a video stream\n");
+    if (video_index == -1)
+    {
+        if(!gb_S_select_video_stream)
+            av_log(NULL, AV_LOG_ERROR, "  couldn't find a video stream\n");
+        else
+            av_log(NULL, AV_LOG_ERROR, "  couldn't find selected video stream (-S %d)\n\
+Available number of video streams: %d\n", gb_S_select_video_stream, pFormatCtx->nb_streams);
         goto cleanup;
     }
 
@@ -1733,7 +1748,7 @@ void make_thumbnail(char *file)
         goto cleanup;
     }
     pCodecCtx->get_buffer2 = our_get_buffer;
-    //FIXME neexistuje nahrada: pCodecCtx->release_buffer = our_release_buffer;
+    //FIXME not exists: pCodecCtx->release_buffer = our_release_buffer;
 
     // Allocate video frame
     pFrame = av_frame_alloc();
@@ -2372,7 +2387,7 @@ int check_extension(char *filename)
         "3gp", "3g2", "asf", "avi", "avs", "dat", "divx", "dsm", "evo", "flv", 
         "m1v", "m2ts", "m2v", "m4a", "mj2", "mjpg", "mjpeg", "mkv", "mov", 
         "moov", "mp4", "mpg", "mpeg", "mpv", "nut", "ogg", "ogm", "qt", "rm", 
-        "rmvb", "swf", "ts", "vob", "wmv", "xvid"
+        "rmvb", "swf", "ts", "vob", "webm", "wmv", "xvid"
     }; // FIXME: static
     static int sorted = 0; // 1 = sorted
 
@@ -2793,6 +2808,7 @@ void usage()
     //av_log(NULL, AV_LOG_ERROR, "  -q : to be done\n"); // quiet mode
     av_log(NULL, AV_LOG_ERROR, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
     av_log(NULL, AV_LOG_ERROR, "  -s %d : time step between each shot\n", GB_S_STEP);
+    av_log(NULL, AV_LOG_ERROR, "  -S #: select specific stream number");
     av_log(NULL, AV_LOG_ERROR, "  -t : time stamp off\n");
     av_log(NULL, AV_LOG_ERROR, "  -T text : add text above output image\n");
     av_log(NULL, AV_LOG_ERROR, "  -v : verbose mode (debug)\n");
@@ -2847,7 +2863,7 @@ int main(int argc, char *argv[])
     /* get & check options */
     int parse_error = 0;
     int c;
-    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:tT:vVw:WXzZ"))) {
+    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 'a':
@@ -2947,6 +2963,9 @@ int main(int argc, char *argv[])
             break;
         case 's':
             parse_error += get_int_opt('s', &gb_s_step, optarg, 0);
+            break;
+        case 'S':
+            parse_error += get_int_opt('S', &gb_S_select_video_stream, optarg, 0);
             break;
         case 't':
             gb_t_timestamp = 0; // off
