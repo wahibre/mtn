@@ -179,10 +179,10 @@ int gb_L_time_location = GB_L_TIME_LOCATION;
 int gb_n_normal = GB_N_NORMAL; // normal priority; 1 normal; 0 lower
 #define GB_N_SUFFIX NULL
 char *gb_N_suffix = GB_N_SUFFIX; // info text file suffix
-#define GB_O_SUFFIX "_s.jpg"
-char *gb_o_suffix = GB_O_SUFFIX;
 #define GB_FILENAME_USE_FULL 0
 int gb_filename_use_full = GB_FILENAME_USE_FULL; // use full input filename (include extension)
+#define GB_O_SUFFIX "_s.jpg"
+char *gb_o_suffix = GB_O_SUFFIX;
 #define GB_O_OUTDIR NULL
 char *gb_O_outdir = GB_O_OUTDIR;
 #ifdef WIN32
@@ -979,7 +979,7 @@ modified from libavformat's dump_format
 */
 void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf, AVRational sample_aspect_ratio)
 {
-    //char sub_buf[1024] = ""; // FIXME
+    char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
     unsigned int i;
     AVCodecContext *pCodexCtx;
 
@@ -987,27 +987,23 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         char codec_buf[256];
         int flags = ic->iformat->flags;
         AVStream *st = ic->streams[i];
+        AVDictionaryEntry *language = av_dict_get(ic->metadata, "language", NULL, 0);
 
         if (type != st->codecpar->codec_type) {
             continue;
         }
 
-
         pCodexCtx = get_codecContext_from_codecParams(st->codecpar);
 
-
-        //TODO MF subtitles
-        /* language NOT SUPPORTED ANY MORE
         if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
-            if (strlen(st->language) > 0) {
-                sprintf(sub_buf + strlen(sub_buf), "%s ", st->language);
-            } else {
+            if (language != NULL)
+                sprintf(sub_buf + strlen(sub_buf), "%s ", language->value);
+            else {
                 // FIXME: ignore for now; language seem to be missing in .vob files
                 //sprintf(sub_buf + strlen(sub_buf), "? ");
             }
             continue;
         }
-        */
 
         if (gb_v_verbose > 0) {
             sprintf(buf + strlen(buf), "Stream %d", i);
@@ -1061,19 +1057,16 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                 sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
             }
         }
-        /* language NOT SUPPORTED ANY MORE
-        if (strlen(st->language) > 0) {
-            sprintf(buf + strlen(buf), " (%s)", st->language);
+        if (language != NULL) {
+            sprintf(buf + strlen(buf), " (%s)", language->value);
         }
         sprintf(buf + strlen(buf), NEWLINE);
-        */
     }
 
-    /* language NOT SUPPORTED ANY MORE
     if (0 < strlen(sub_buf)) {
         sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
     }
-    */
+
     strcat(buf, NEWLINE);
 
     if(pCodexCtx)
@@ -1134,13 +1127,11 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
     get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
     get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio);
-    /*TODO MF docasne vyhodene
     get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio);
-    */
     // CODEC_TYPE_DATA FIXME: what is this type?
     // CODEC_TYPE_NB FIXME: what is this type?
 
-    //strfmon(buf + strlen(buf), 100, "strfmon: %!i\n", ic->file_size);
+    //strfmon(buf + strlen(buf), 100, "strfmon: %!i\n", avio_size(ic->pb));
     return buf;
 }
 
@@ -1156,24 +1147,34 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64", file_size: %"PRId64"\n",
         p->start_time, p->duration, (long int)-1);
-//    av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
-//        (double) p->start_time / AV_TIME_BASE, (double) p->duration / AV_TIME_BASE);
-//    if (p->track != 0)
-//        av_log(NULL, LOG_INFO, "  Track: %d\n", p->track);
-//    if (p->title[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Title: %s\n", p->title);
-//    if (p->author[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Author: %s\n", p->author);
-//    if (p->copyright[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Copyright: %s\n", p->copyright);
-//    if (p->comment[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Comment: %s\n", p->comment);
-//    if (p->album[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Album: %s\n", p->album);
-//    if (p->year != 0)
-//        av_log(NULL, LOG_INFO, "  Year: %d\n", p->year);
-//    if (p->genre[0] != '\0')
-//        av_log(NULL, LOG_INFO, "  Genre: %s\n", p->genre);
+    av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
+        (double) p->start_time / AV_TIME_BASE, (double) p->duration / AV_TIME_BASE);
+
+    AVDictionaryEntry* track    = av_dict_get(p->metadata, "track",     NULL, 0);
+    AVDictionaryEntry* title    = av_dict_get(p->metadata, "title",     NULL, 0);
+    AVDictionaryEntry* author   = av_dict_get(p->metadata, "author",    NULL, 0);
+    AVDictionaryEntry* copyright= av_dict_get(p->metadata, "copyright", NULL, 0);
+    AVDictionaryEntry* comment  = av_dict_get(p->metadata, "comment",   NULL, 0);
+    AVDictionaryEntry* album    = av_dict_get(p->metadata, "album",     NULL, 0);
+    AVDictionaryEntry* year     = av_dict_get(p->metadata, "year",      NULL, 0);
+    AVDictionaryEntry* genre    = av_dict_get(p->metadata, "genre",     NULL, 0);
+
+    if (track != NULL)
+        av_log(NULL, LOG_INFO, "  Track: %s\n",     track->value);
+    if (title != NULL)
+        av_log(NULL, LOG_INFO, "  Title: %s\n",     title->value);
+    if (author != NULL)
+        av_log(NULL, LOG_INFO, "  Author: %s\n",    author->value);
+    if (copyright != NULL)
+        av_log(NULL, LOG_INFO, "  Copyright: %s\n", copyright->value);
+    if (comment != NULL)
+        av_log(NULL, LOG_INFO, "  Comment: %s\n",   comment->value);
+    if (album != NULL)
+        av_log(NULL, LOG_INFO, "  Album: %s\n",     album->value);
+    if (year != NULL)
+        av_log(NULL, LOG_INFO, "  Year: %s\n",      year->value);
+    if (genre != NULL)
+        av_log(NULL, LOG_INFO, "  Genre: %s\n",     genre->value);
 }
 
 /*
