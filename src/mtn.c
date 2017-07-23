@@ -2032,6 +2032,14 @@ void make_thumbnail(char *file)
 
         /* for some formats, previous seek might over shoot pass this seek_target; is this a bug in libavcodec? */
         if (prevshot_pts > eff_target && 0 == evade_try) {
+            // restart in seek mode of skipping shots (FIXME)
+            if (seek_mode == 1) {
+              av_log(NULL, LOG_INFO, "  *** previous seek overshot target %s; switching to non-seek mode\n", time_tmp);
+              av_seek_frame(pFormatCtx, video_index, 0, 0);
+              avcodec_flush_buffers(pCodecCtx);
+              seek_mode = 0;
+              goto restart;
+            }
             av_log(NULL, LOG_INFO, "  skipping shot at %s because of previous seek or evasions\n", time_tmp);
             idx--;
             thumb_nb--;
