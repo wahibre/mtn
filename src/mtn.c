@@ -1690,16 +1690,17 @@ void make_thumbnail(char *file)
     // Find the first video stream
     // int av_find_default_stream_index(AVFormatContext *s)
     int video_index = -1;
+    int n_video_stream = 0;
     for (uint8_t j = 0; j < pFormatCtx->nb_streams; j++) {
         if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
             if (!gb_S_select_video_stream) {
                 video_index = j;
                 break;
             } else {
-              if (j == gb_S_select_video_stream) {
-                video_index = gb_S_select_video_stream;
-                av_log(NULL, LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
-                break;
+                 if (++n_video_stream == gb_S_select_video_stream) {
+                   video_index = j;
+                   av_log(NULL, LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
+                   break;
               }
             }
         }
@@ -1709,8 +1710,7 @@ void make_thumbnail(char *file)
         if(!gb_S_select_video_stream)
             av_log(NULL, AV_LOG_ERROR, "  couldn't find a video stream\n");
         else
-            av_log(NULL, AV_LOG_ERROR, "  couldn't find selected video stream (-S %d)\n\
-Available number of video streams: %d\n", gb_S_select_video_stream, pFormatCtx->nb_streams);
+            av_log(NULL, AV_LOG_ERROR, "  couldn't find selected video stream (-S %d)\n", gb_S_select_video_stream);
         goto cleanup;
     }
 
@@ -2815,7 +2815,7 @@ void usage()
     //av_log(NULL, AV_LOG_ERROR, "  -q : to be done\n"); // quiet mode
     av_log(NULL, AV_LOG_ERROR, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
     av_log(NULL, AV_LOG_ERROR, "  -s %d : time step between each shot\n", GB_S_STEP);
-    av_log(NULL, AV_LOG_ERROR, "  -S #: select specific stream number");
+    av_log(NULL, AV_LOG_ERROR, "  -S #: select specific stream number\n");
     av_log(NULL, AV_LOG_ERROR, "  -t : time stamp off\n");
     av_log(NULL, AV_LOG_ERROR, "  -T text : add text above output image\n");
     av_log(NULL, AV_LOG_ERROR, "  -v : verbose mode (debug)\n");
