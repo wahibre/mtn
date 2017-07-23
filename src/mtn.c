@@ -2793,7 +2793,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -B %.1f : omit this seconds from the beginning\n", GB_B_BEGIN);
     av_log(NULL, AV_LOG_ERROR, "  -c %d : # of column\n", GB_C_COLUMN);
     av_log(NULL, AV_LOG_ERROR, "  -C %d : cut movie and thumbnails not more than the specified seconds; <=0:off\n", GB_C_CUT);
-    av_log(NULL, AV_LOG_ERROR, "  -d %d: recursion depth; 0:immediate children files only\n", GB_D_DEPTH);
+    av_log(NULL, AV_LOG_ERROR, "  -d #: recursion depth; 0:immediate children files only\n");
     av_log(NULL, AV_LOG_ERROR, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
     //av_log(NULL, AV_LOG_ERROR, "  -e : to be done\n"); // extension of movie files
     av_log(NULL, AV_LOG_ERROR, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
