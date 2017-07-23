@@ -1025,6 +1025,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
 //        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
 
+/* re-enable SAR & DAR
         // remove [SAR DAR] from string, it's not very useful.
         char *begin = NULL, *end = NULL;
         if ((begin=strstr(codec_buf, " [SAR")) != NULL
@@ -1034,6 +1035,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             }
             *begin = '\0';
         }
+*/
         sprintf(buf + strlen(buf), codec_buf);
 
         /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
@@ -1605,10 +1607,10 @@ void make_thumbnail(char *file)
     }
     char *suffix = strrchr(tn.out_filename, '.');
 
-    if (gb_filename_use_full==1)
+    if (gb_filename_use_full) {
         strcat(tn.out_filename, gb_o_suffix);
-    else
-    {
+        strcat(tn.info_filename, gb_o_suffix);
+    } else {
         if (NULL == suffix) {
             strcat(tn.out_filename, gb_o_suffix);
         } else {
