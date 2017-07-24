@@ -2793,7 +2793,13 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
 void usage()
 {
     av_log(NULL, AV_LOG_ERROR, "\nMovie Thumbnailer (mtn) %s\n\n", gb_version);
-    av_log(NULL, AV_LOG_ERROR, "Compiled with: %s %s %s %s GD%s\n\n", LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VERSION_STRING);
+    av_log(NULL, AV_LOG_ERROR, "Compiled with: %s %s %s %s GD:%s\n\n", LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT,
+       #ifdef WIN32
+           GD2_ID
+       #else
+           GD_VERSION_STRING
+        #endif
+           );
     av_log(NULL, AV_LOG_ERROR, "Mtn saves thumbnails of specified movie files or directories to jpeg files.\n");
     av_log(NULL, AV_LOG_ERROR, "For directories, it will recursively search inside for movie files.\n\n");
     av_log(NULL, AV_LOG_ERROR, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
