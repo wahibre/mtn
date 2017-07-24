@@ -12,7 +12,7 @@ http://sourceforge.net/forum/?group_id=201133 .
      - ffmpeg
      - gd
 
-    Fedora:
+    Fedora 25:
         $dnf install ffmpeg-devel gd-devel
     Ubuntu 17.4
         $sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
