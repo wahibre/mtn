@@ -60,8 +60,6 @@
 #include "gd.h"
 
 #define UTF8_FILENAME_SIZE (FILENAME_MAX*4)
-
-//TODO MF Just a guess
 #define LINESIZE_ALIGN 1
 
 #ifdef WIN32
@@ -541,7 +539,7 @@ int save_jpg(gdImagePtr ip, char *outname)
     }
 
     errno = 0;
-    gdImageJpeg(ip, fp, gb_j_quality);  /* how to check if write was successful? */
+    gdImageJpeg(ip, fp, gb_j_quality);  /* NOTE: gdImageJpeg: how to check if write was successful? */
     if (0 != errno) { // FIXME: valid check?
         goto cleanup;
     }
@@ -1730,9 +1728,8 @@ void make_thumbnail(char *file)
     }
 
     AVStream *pStream = pFormatCtx->streams[video_index];
- //TODO   pCodecCtx = pStream->codec;
-// not working yet, avcodec_open2 says "[h264 @ 0x65cc80] No start code is found"
     pCodecCtx = get_codecContext_from_codecParams(pStream->codecpar);
+
     if(!pCodecCtx)
         goto cleanup;
 
