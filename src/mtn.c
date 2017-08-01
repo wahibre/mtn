@@ -986,6 +986,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
     char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
     unsigned int i;
     AVCodecContext *pCodexCtx;
+    int multiple_streams=0;
 
     for(i=0; i<ic->nb_streams; i++) {
         char codec_buf[256];
@@ -1001,13 +1002,18 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
         if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
             if (language != NULL)
-                sprintf(sub_buf + strlen(sub_buf), "%s ", language->value);
+                sprintf(sub_buf + strlen(sub_buf), "%s "/*NO NEWLINE*/, language->value);
             else {
                 // FIXME: ignore for now; language seem to be missing in .vob files
                 //sprintf(sub_buf + strlen(sub_buf), "? ");
             }
             continue;
         }
+
+        if(multiple_streams)
+            strcat(buf, NEWLINE);
+        multiple_streams++;
+
 
         if (gb_v_verbose > 0) {
             sprintf(buf + strlen(buf), "Stream %d", i);
@@ -1066,8 +1072,8 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         if (language != NULL) {
             sprintf(buf + strlen(buf), " (%s)", language->value);
         }
-        sprintf(buf + strlen(buf), NEWLINE);
-    }
+//            sprintf(buf + strlen(buf), NEWLINE);
+    } //for
 
     if (0 < strlen(sub_buf)) {
         sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
