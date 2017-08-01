@@ -987,12 +987,13 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
     unsigned int i;
     AVCodecContext *pCodexCtx;
     int multiple_streams=0;
+    char subtitles_separator[3] = {'\0',};
 
     for(i=0; i<ic->nb_streams; i++) {
         char codec_buf[256];
         int flags = ic->iformat->flags;
         AVStream *st = ic->streams[i];
-        AVDictionaryEntry *language = av_dict_get(ic->metadata, "language", NULL, 0);
+        AVDictionaryEntry *language = av_dict_get(st->metadata, "language", NULL, 0);
 
         if (type != st->codecpar->codec_type) {
             continue;
@@ -1001,8 +1002,15 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         pCodexCtx = get_codecContext_from_codecParams(st->codecpar);
 
         if (AVMEDIA_TYPE_SUBTITLE  == st->codecpar->codec_type) {
-            if (language != NULL)
-                sprintf(sub_buf + strlen(sub_buf), "%s "/*NO NEWLINE*/, language->value);
+            if (language != NULL) {
+                AVDictionaryEntry *subentry_title = av_dict_get(st->metadata, "title", NULL, 0);
+                if(subentry_title && strcasecmp(subentry_title->value, "sub"))
+                    sprintf(sub_buf + strlen(sub_buf), "%s%s (%s)", subtitles_separator, language->value, subentry_title->value);
+                else
+                    sprintf(sub_buf + strlen(sub_buf), "%s%s", subtitles_separator, language->value);
+
+                strcpy(subtitles_separator, ", ");
+            }
             else {
                 // FIXME: ignore for now; language seem to be missing in .vob files
                 //sprintf(sub_buf + strlen(sub_buf), "? ");
@@ -1013,7 +1021,6 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         if(multiple_streams)
             strcat(buf, NEWLINE);
         multiple_streams++;
-
 
         if (gb_v_verbose > 0) {
             sprintf(buf + strlen(buf), "Stream %d", i);
