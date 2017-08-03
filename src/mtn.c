@@ -61,6 +61,8 @@
 
 #define UTF8_FILENAME_SIZE (FILENAME_MAX*4)
 #define LINESIZE_ALIGN 1
+#define MAX_PACKETS_WITHOUT_PICTURE 1000
+
 
 #ifdef WIN32
     unsigned int _CRT_fmode = _O_BINARY;  // default binary file including stdin, stdout, stderr
@@ -179,8 +181,8 @@ int gb_L_time_location = GB_L_TIME_LOCATION;
 int gb_n_normal = GB_N_NORMAL; // normal priority; 1 normal; 0 lower
 #define GB_N_SUFFIX NULL
 char *gb_N_suffix = GB_N_SUFFIX; // info text file suffix
-#define GB_FILENAME_USE_FULL 0
-int gb_filename_use_full = GB_FILENAME_USE_FULL; // use full input filename (include extension)
+#define GB_X_FILENAME_USE_FULL 0
+int gb_X_filename_use_full = GB_X_FILENAME_USE_FULL; // use full input filename (include extension)
 #define GB_O_SUFFIX "_s.jpg"
 char *gb_o_suffix = GB_O_SUFFIX;
 #define GB_O_OUTDIR NULL
@@ -540,7 +542,7 @@ int save_jpg(gdImagePtr ip, char *outname)
 
     errno = 0;
     gdImageJpeg(ip, fp, gb_j_quality);  /* NOTE: gdImageJpeg: how to check if write was successful? */
-    if (0 != errno) { // FIXME: valid check?
+    if (0 != errno) {
         goto cleanup;
     }
     done = 0; // 0 = ok
@@ -1010,7 +1012,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                 strcpy(subtitles_separator, ", ");
             }
             else {
-                // FIXME: ignore for now; language seem to be missing in .vob files
+                //ignore for now; language seem to be missing in .vob files
                 //sprintf(sub_buf + strlen(sub_buf), "? ");
             }
             continue;
@@ -1162,8 +1164,8 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
     av_log(NULL, LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO));
 
-    av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64", file_size: %"PRId64"\n",
-        p->start_time, p->duration, (long int)-1);
+    av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
+        p->start_time, p->duration);
     av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
         (double) p->start_time / AV_TIME_BASE, (double) p->duration / AV_TIME_BASE);
 
@@ -1253,128 +1255,174 @@ void our_release_buffer(AVFrame *pic) {
   av_frame_unref(pic);
 }
 
-/*
-set first to 1 when calling this for the first time of a file
-return >0 if can read packet(s) & decode a frame, *pPts is set to packet's pts
-return  0 if end of file
-return <0 if error
-*/
-int read_and_decode(AVFormatContext *pFormatCtx, int video_index, 
-    AVCodecContext *pCodecCtx, AVFrame *pFrame, int64_t *pPts, int key_only, int first)
-{
-    //double pts = -99999;
-    AVPacket packet;
-    AVStream *pStream = pFormatCtx->streams[video_index];
-    int decoded_frame = 0;
-    static int run = 0; // # of times read_and_decode has been called for a file
-    static double avg_decoded_frame = 0; // average # of decoded frame
-    static int skip_non_key = 0;
-    int decoded;
 
-    if (first) {
-        // reset stats
-        run = 0;
-        avg_decoded_frame = 0;
-        skip_non_key = 0;
+/**
+ * Convert an error code into a text message.
+ * @param error Error code to be converted
+ * @return Corresponding error text (not thread-safe)
+ */
+static const char *get_error_text(const int error)
+{
+    static char error_buffer[255];
+    av_strerror(error, error_buffer, sizeof(error_buffer));
+    return error_buffer;
+}
+
+int get_frame_from_packet(AVCodecContext *pCodecCtx,
+                      AVPacket       *pkt,
+                      AVFrame        *pFrame)
+{
+    int fret;
+
+    /// send packet for decoding
+    fret = avcodec_send_packet(pCodecCtx, pkt);
+    if (fret < 0) {
+        av_log(NULL, AV_LOG_ERROR,  "Error sending a packet for decoding - %s\n", get_error_text(fret));
+        exit(1);
     }
 
-    int got_picture;
-    int pkt_without_pic = 0; // # of video packet read without getting a picture
-    //for (got_picture = 0; 0 == got_picture; av_free_packet(&packet)) {
-    // keep decoding until we get a key frame
-    for (got_picture = 0; 0 == got_picture 
-        //|| (1 == key_only && !(1 == pFrame->key_frame && FF_I_TYPE == pFrame->pict_type)); // same as version 0.61
-        || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)); // same as version 2.42
-        //|| (1 == key_only && 1 != pFrame->key_frame); // is there a reason why not use this? t_warhawk_review_gt_h264.mov (svq3) seems to set only pict_type
-        av_packet_unref(&packet)) {
+    fret = avcodec_receive_frame(pCodecCtx, pFrame);
 
-        if (0 != av_read_frame(pFormatCtx, &packet)) {
-            if (pFormatCtx->pb->error != 0) { // from ffplay - not documented
-                return -1;
-            }
-            return 0;
-        }
+    if (fret == AVERROR(EAGAIN))
+        return fret;
 
-        // Is this a packet from the video stream?
-        if (packet.stream_index != video_index) {
+    if(fret == AVERROR_EOF)
+    {
+        av_log(NULL, AV_LOG_ERROR, "No more frames: recieved AVERROR_EOF\n");
+        return -1;
+    }
+    if (fret == AVERROR(EINVAL))
+    {
+        av_log(NULL, AV_LOG_ERROR, "Codec not opened: recieved AVERROR(EINVAL)\n");
+        return -1;
+    }
+    if (fret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Error during decoding packet\n");
+        exit(1);
+    }
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 58, 100)
+    av_log(NULL, AV_LOG_INFO, "Got picture, Frame pts=%"PRId64"\n", pFrame->pts);
+#else
+    av_log(NULL, AV_LOG_INFO, "Got picture, Frame pkt_pts=%"PRId64"\n", pFrame->pkt_pts);
+#endif
+    return 0;
+}
+
+/**
+ * @brief read packet and decode it into a frame
+ * @param pFormatCtx - input
+ * @param pCodecCtx - input
+ * @param pFrame - decoded video frame
+ * @param video_index - input
+ * @param key_only - input
+ * @param pPts - on succes it is set to packet's pts
+ * @return >0 if can read packet(s) & decode a frame
+ *          0 if end of file
+ *         <0 if error
+ */
+int get_videoframe(AVFormatContext *pFormatCtx,
+                   AVCodecContext  *pCodecCtx,
+                   AVFrame         *pFrame,     /* OUTPUT */
+                   int              video_index,
+                   int              key_only,
+                   int64_t         *pPts        /* OUTPUT */
+                   )
+{
+    assert(pFrame);
+    assert(pPts);
+
+    AVPacket*   pkt;
+    AVStream*   pStream = pFormatCtx->streams[video_index];
+    int         fret;       //function return code
+    int         got_picture=0;
+    uint64_t    pkt_without_pic=0;
+    int         decoded_frame = 0;
+
+    static int    run = 0;               // # of times read_and_decode has been called for a file
+    static double avg_decoded_frame = 0; // average # of decoded frame
+    static int    skip_non_key = 0;
+
+    pkt = av_packet_alloc();
+    if (!pkt)
+    {
+        av_log(NULL, AV_LOG_ERROR ,"Could not allocate packet\n");
+        return -1;
+    }
+
+
+    while(got_picture == 0 || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)))
+    {
+        /// read packet
+        do
+        {
+            av_packet_unref(pkt);
+            fret = av_read_frame(pFormatCtx, pkt);
+        } while(fret!=0 || pkt->stream_index != video_index);
+
+        pkt_without_pic++;
+
+        if (1 == skip_non_key && 1 == key_only && !(pkt->flags & AV_PKT_FLAG_KEY))
             continue;
-        }
-        
-        // skip all non-key packet? would this work? // FIXME
-        // this seems to slow down nike files. why?
-        // so we'll use it only when a key frame is difficult to find.
-        // hope this wont break anything. :)
-        // this seems to help a lot for files with vorbis audio
-        if (1 == skip_non_key && 1 == key_only && !(packet.flags & AV_PKT_FLAG_KEY)) {
-            continue;
-        }
-        
-        dump_packet(&packet, pStream);
-        //dump_codec_context(pCodecCtx);
+
+        dump_packet(pkt, pStream);
 
         // Save global pts to be stored in pFrame in first call
-        av_log(NULL, AV_LOG_VERBOSE, "*saving gb_video_pkt_pts: %"PRId64"\n", packet.pts);
-        gb_video_pkt_pts = packet.pts;
+        av_log(NULL, AV_LOG_VERBOSE, "*saving gb_video_pkt_pts: %"PRId64"\n", pkt->pts);
+        gb_video_pkt_pts = pkt->pts;
 
-        // Decode video frame
-        decoded = avcodec_decode_video2(pCodecCtx, pFrame, &got_picture, &packet);
-        if(decoded < 0)
+        /// try to decode packet
+        fret = get_frame_from_packet(pCodecCtx, pkt, pFrame);
+
+        // need more video packet(s)
+        if(fret == AVERROR(EAGAIN))
         {
-            av_log(NULL, AV_LOG_ERROR, "coul'd not decode frame (ret=%d)\n", decoded);
-            return -1;
-        }
-        // error is ignored. perhaps packets read are not enough.
-        av_log(NULL, AV_LOG_VERBOSE, "*avcodec_decode_video2: got_picture: %d, key_frame: %d, pict_type: %d, decoded: %d Bytes\n", got_picture, pFrame->key_frame, pFrame->pict_type, decoded);
+            if(pkt_without_pic%50 == 0)
+                av_log(NULL, LOG_INFO, "  no picture in %"PRId64" packets\n", pkt_without_pic);
 
-        // FIXME: with some .dat files, got_picture is never set, why??
-
-        if (0 == got_picture) {
-            pkt_without_pic++;
-            if (0 == pkt_without_pic%50) {
-                av_log(NULL, LOG_INFO, "  no picture in %d packets\n", pkt_without_pic);
-            }
-            if (1000 == pkt_without_pic) { // is 1000 enough? // FIXME
-                av_log(NULL, AV_LOG_ERROR, "  * avcodec_decode_video2 couldn't decode picture\n");
-                av_packet_unref(&packet);
+            if (pkt_without_pic >= MAX_PACKETS_WITHOUT_PICTURE) {
+                av_log(NULL, AV_LOG_ERROR, "  * av_read_frame couldn't decode picture in %d packets\n", MAX_PACKETS_WITHOUT_PICTURE);
+                av_packet_unref(pkt);
+                av_packet_free(&pkt);
                 return -1;
             }
-        } else {
-            pkt_without_pic = 0;
+            continue;
+        }
+
+        /// got picture
+        if(fret == 0)
+        {
+            pkt_without_pic=0;
+            got_picture=1;
             decoded_frame++;
+
+            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %d\n", pFrame->key_frame, pFrame->pict_type);
+
             // some codecs, e.g avisyth, dont seem to set key_frame
             if (1 == key_only && 0 == decoded_frame%200) {
                 av_log(NULL, LOG_INFO, "  a key frame is not found in %d frames\n", decoded_frame);
             }
             if (1 == key_only && 400 == decoded_frame) {
-                // is there a way to know when a frame has no missing pieces 
+                // is there a way to know when a frame has no missing pieces
                 // even though it's not a key frame?? // FIXME
-                av_log(NULL, LOG_INFO, "  * using a non-key frame; file problem? ffmpeg's codec problem?\n");
+                av_log(NULL, LOG_INFO, "  * using a non-key frame; File problem? FFmpeg's codec problem?\n");
                 break;
             }
         }
-
-        // WTH?? why copy pts from dts?
-        /*
-        if(AV_NOPTS_VALUE == packet.dts 
-            && NULL != pFrame->opaque 
-            && AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
-            pts = *(uint64_t *)pFrame->opaque;
-        } else if(packet.dts != AV_NOPTS_VALUE) {
-            pts = packet.dts;
-        } else {
-            pts = 0;
+        // error decoding packet
+        else
+        {
+            av_packet_unref(pkt);
+            av_packet_free(&pkt);
+            return -1;
         }
-        pts *= av_q2d(pStream->time_base);
-        //av_log(NULL, AV_LOG_VERBOSE, "*after avcodec_decode_video pts: %.2f\n", pts);
-        */
-    }
-    av_packet_unref(&packet);
+    }  //while
 
-    // stats & enable skipping of non key packets
+    av_packet_unref(pkt);
+    av_packet_free(&pkt);
+
     run++;
     avg_decoded_frame = (avg_decoded_frame*(run-1) + decoded_frame) / run;
-    //av_log(NULL, LOG_INFO, "  decoded frames: %d, avg. decoded frames: %.2f, pict_type: %d\n", 
-    //    decoded_frame, avg_decoded_frame, pFrame->pict_type); // DEBUG
+
     if (0 == skip_non_key && run >= 3 && avg_decoded_frame > 30) {
         skip_non_key = 1;
         av_log(NULL, LOG_INFO, "  skipping non key packets for this file\n");
@@ -1389,10 +1437,10 @@ int read_and_decode(AVFormatContext *pFormatCtx, int video_index,
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
 
-    //    *pPts = packet.pts;  -> unreferenced after av_packet_unref(&packet)!
     *pPts = gb_video_pkt_pts;
     return 1;
 }
+
 
 /* calculate timestamp to display to users
 */
@@ -1618,7 +1666,7 @@ void make_thumbnail(char *file)
     }
     char *suffix = strrchr(tn.out_filename, '.');
 
-    if (gb_filename_use_full) {
+    if (gb_X_filename_use_full) {
         strcat(tn.out_filename, gb_o_suffix);
         strcat(tn.info_filename, gb_o_suffix);
     } else {
@@ -1811,7 +1859,7 @@ void make_thumbnail(char *file)
     // for .flv files. bug reported by: dragonbook 
     int64_t found_pts = -1;
     int64_t first_pts = -1; // pts of first frame
-    ret = read_and_decode(pFormatCtx, video_index, pCodecCtx, pFrame, &first_pts, 0, 1);
+    ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 0/*key_only*/, &first_pts);
     if (0 == ret) { // end of file
         goto eof;
     } else if (ret < 0) { // error
@@ -1965,7 +2013,7 @@ void make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
     }
-    //FIXME DEPRECATED avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
+    //DEPRECATED avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
     // Returns: the size in bytes required for src, a negative error code in case of failure
     ret = av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
     if(ret <0 )
@@ -2076,7 +2124,7 @@ void make_thumbnail(char *file)
             }
             avcodec_flush_buffers(pCodecCtx);
 
-            ret = read_and_decode(pFormatCtx, video_index, pCodecCtx, pFrame, &found_pts, 1, 0);
+            ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 1/*key_only*/, &found_pts);
             if (0 == ret) { // end of file
                 goto eof;
             } else if (ret < 0) { // error
@@ -2088,7 +2136,7 @@ void make_thumbnail(char *file)
             found_pts = 0;
             while (found_pts < eff_target) {
                 // we should check if it's taking too long for this loop. FIXME
-                ret = read_and_decode(pFormatCtx, video_index, pCodecCtx, pFrame, &found_pts, 0, 0);
+                ret =  get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 0/*key_only*/, &found_pts);
                 if (0 == ret) { // end of file
                     goto eof;
                 } else if (ret < 0) { // error
@@ -2139,7 +2187,7 @@ void make_thumbnail(char *file)
         av_log(NULL, AV_LOG_VERBOSE, "shot %d: found_: %"PRId64" (%.2fs), eff_: %"PRId64" (%.2fs), dtime: %.3f\n", 
             idx, found_pts, calc_time(found_pts, pStream->time_base, start_time), 
             eff_target, calc_time(eff_target, pStream->time_base, start_time), decode_time);
-        av_log(NULL, AV_LOG_VERBOSE, "approx. decoded frames/s %.2f\n", tn.step * 30 / decode_time); // DEBUG
+        av_log(NULL, AV_LOG_VERBOSE, "approx. decoded frames/s: %.2f\n", tn.step * 30 / decode_time); //TODO W: decode_time allways==0
         /*
         char debug_filename[2048]; // DEBUG
         sprintf(debug_filename, "%s_decoded%05d.jpg", tn.out_filename, nb_shots - 1);
@@ -2269,8 +2317,7 @@ void make_thumbnail(char *file)
             strcpy(individual_filename, tn.out_filename);
             char *suffix = strstr(individual_filename, gb_o_suffix);
             assert(NULL != suffix);
-            //sprintf(suffix, "_shot%05d.jpg", idx); // FIXME: hopefully 5 digits will be enough
-            sprintf(suffix, "_%s_%05d.jpg", time_str, idx); // FIXME: hopefully 5 digits will be enough
+            sprintf(suffix, "_%s_%05d.jpg", time_str, idx);
             ret = save_jpg(ip, individual_filename);
             if (0 != ret) { // error
                 av_log(NULL, AV_LOG_ERROR, "  saving individual shot #%05d to %s failed\n", idx, individual_filename);
@@ -3023,7 +3070,7 @@ int main(int argc, char *argv[])
             gb_W_overwrite = 0;
             break;
         case 'X':
-            gb_filename_use_full = 1;
+            gb_X_filename_use_full = 1;
             break;
         case 'z':
             gb_z_seek = 1; // always seek mode

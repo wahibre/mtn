@@ -1,5 +1,5 @@
 version 3.0 2017/m/d
-- removed old and deprecated piece of code (replacing with new FFmpeg's API)
+- removed old and deprecated piece of code and replaced with new FFmpeg's (3.1.8) API
 - add -X option to include video extension in output filename
 - add -S option to select video stream
 - add -d option to set recursion depth

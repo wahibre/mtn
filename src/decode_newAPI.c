@@ -27,6 +27,11 @@
 #include "gd.h"
 
 
+/**
+  based on https://blogs.gentoo.org/lu_zero/2016/03/29/new-avcodec-api/
+* */
+
+
 
 #define LOG_INFO 0
 
@@ -58,7 +63,7 @@ static void pgm_save(unsigned char *buf, int linesize, int xsize, int ysize,
 
 
 
-static void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt,
+static int decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt,
                    const char *filename)
 {
     char buf[1024];
@@ -70,32 +75,32 @@ static void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt,
         exit(1);
     }
 
-    while (ret >= 0) {
-        ret = avcodec_receive_frame(dec_ctx, frame);
-        if (ret == AVERROR(EAGAIN) )
-        {
-            av_log(NULL, AV_LOG_ERROR, "recieved AVERROR(EAGAIN)\n");
-            return;
-        }
-        if(ret == AVERROR_EOF)
-        {
-            av_log(NULL, AV_LOG_ERROR, "recieved AVERROR_EOF\n");
-            return;
-        }
-        if (ret < 0) {
-            av_log(NULL, AV_LOG_ERROR, "Error during decoding\n");
-            exit(1);
-        }
-
-
-        /* the picture is allocated by the decoder. no need to free it */
-        snprintf(buf, sizeof(buf), "%s-%d.pgm", filename, dec_ctx->frame_number%5); //TODO remove %5
-        printf("saving frame %3d to %s\n", dec_ctx->frame_number, buf);
-
-        fflush(stdout);
-        pgm_save(frame->data[0], frame->linesize[0],
-                 frame->width, frame->height, buf);
+    ret = avcodec_receive_frame(dec_ctx, frame);
+    if (ret == AVERROR(EAGAIN) )
+    {
+        av_log(NULL, AV_LOG_ERROR, "recieved AVERROR(EAGAIN)\n");
+        return AVERROR(EAGAIN);
     }
+    if(ret == AVERROR_EOF)
+    {
+        av_log(NULL, AV_LOG_ERROR, "recieved AVERROR_EOF\n");
+        return -1;
+    }
+    if (ret < 0) {
+        av_log(NULL, AV_LOG_ERROR, "Error during decoding\n");
+        exit(1);
+    }
+
+
+    /* the picture is allocated by the decoder. no need to free it */
+    snprintf(buf, sizeof(buf), "%s-%d.pgm", filename, dec_ctx->frame_number);
+    printf("saving frame %3d to %s\n", dec_ctx->frame_number, buf);
+
+    fflush(stdout);
+    pgm_save(frame->data[0], frame->linesize[0],
+             frame->width, frame->height, buf);
+
+    return 0;
 }
 
 
@@ -103,7 +108,7 @@ static void decode(AVCodecContext *dec_ctx, AVFrame *frame, AVPacket *pkt,
 
 int main(int __attribute__((unused)) argc, char __attribute__((unused)) *argv[])
 {
-    const char* filename = "/home/vm/Desktop/video.mp4";
+    const char* filename = "/media/zdielane/video/video.mp4";
 //    const char* filename = "/media/zdielane/video/tdv-din.avi";
 
     AVFormatContext *pFormatCtx = NULL;
@@ -121,6 +126,7 @@ int main(int __attribute__((unused)) argc, char __attribute__((unused)) *argv[])
 
 
     /** Open the input file to read from it. */
+    av_log(NULL, AV_LOG_INFO, "Opening file %s\n", filename);
     if (avformat_open_input(&pFormatCtx, filename, NULL, NULL) < 0)
     {
         av_log(NULL, AV_LOG_ERROR, "open_input_file error\n");
@@ -197,18 +203,29 @@ int main(int __attribute__((unused)) argc, char __attribute__((unused)) *argv[])
 
 
     int fret;
+    int got_frame;
     for (int j=0; j<12;j++)
     {
-        do
+        got_frame=0;
+
+        while(got_frame==0)
         {
-            av_packet_unref(pkt);
-            fret = av_read_frame(pFormatCtx, pkt);
-            if(pkt->stream_index != video_stream_index)
-                fret=-1;
+            do
+            {
+                av_packet_unref(pkt);
+                fret = av_read_frame(pFormatCtx, pkt);
 
-        } while(fret!=0);
+            } while(fret!=0 || pkt->stream_index != video_stream_index);
 
-        decode(avctx, frame, pkt, "/home/vm/Desktop/obr" /*filename*/);
+            fret = decode(avctx, frame, pkt, "/home/vm/Desktop/obr" /*filename*/);
+
+            if(fret == AVERROR(EAGAIN))
+                continue;
+            if(fret == 0)
+                got_frame = 1;
+            if(fret < 0)
+                return -1;
+        }
     }
 
 
