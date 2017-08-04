@@ -131,9 +131,6 @@ typedef struct thumbnail
     int64_t *ppts; // array of pts value of each shot
 } thumbnail; // thumbnail data & info
 
-/* LIBAVUTIL_VERSION_INT is too low for VERBOSE & INFO, so we'll define our own */
-#define LOG_INFO 0
-
 /* command line options & default values */
 #define GB_A_RATIO (AVRational){0, 1}
 AVRational gb_a_ratio = GB_A_RATIO;
@@ -1160,7 +1157,7 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     //dump_format(p, index, url, is_output);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO));
+    av_log(NULL, AV_LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO));
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -1177,21 +1174,21 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     AVDictionaryEntry* genre    = av_dict_get(p->metadata, "genre",     NULL, 0);
 
     if (track != NULL)
-        av_log(NULL, LOG_INFO, "  Track: %s\n",     track->value);
+        av_log(NULL, AV_LOG_INFO, "  Track: %s\n",     track->value);
     if (title != NULL)
-        av_log(NULL, LOG_INFO, "  Title: %s\n",     title->value);
+        av_log(NULL, AV_LOG_INFO, "  Title: %s\n",     title->value);
     if (author != NULL)
-        av_log(NULL, LOG_INFO, "  Author: %s\n",    author->value);
+        av_log(NULL, AV_LOG_INFO, "  Author: %s\n",    author->value);
     if (copyright != NULL)
-        av_log(NULL, LOG_INFO, "  Copyright: %s\n", copyright->value);
+        av_log(NULL, AV_LOG_INFO, "  Copyright: %s\n", copyright->value);
     if (comment != NULL)
-        av_log(NULL, LOG_INFO, "  Comment: %s\n",   comment->value);
+        av_log(NULL, AV_LOG_INFO, "  Comment: %s\n",   comment->value);
     if (album != NULL)
-        av_log(NULL, LOG_INFO, "  Album: %s\n",     album->value);
+        av_log(NULL, AV_LOG_INFO, "  Album: %s\n",     album->value);
     if (year != NULL)
-        av_log(NULL, LOG_INFO, "  Year: %s\n",      year->value);
+        av_log(NULL, AV_LOG_INFO, "  Year: %s\n",      year->value);
     if (genre != NULL)
-        av_log(NULL, LOG_INFO, "  Genre: %s\n",     genre->value);
+        av_log(NULL, AV_LOG_INFO, "  Genre: %s\n",     genre->value);
 }
 
 /*
@@ -1357,7 +1354,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         if(fret == AVERROR(EAGAIN))
         {
             if(pkt_without_pic%50 == 0)
-                av_log(NULL, LOG_INFO, "  no picture in %"PRId64" packets\n", pkt_without_pic);
+                av_log(NULL, AV_LOG_INFO, "  no picture in %"PRId64" packets\n", pkt_without_pic);
 
             if (pkt_without_pic >= MAX_PACKETS_WITHOUT_PICTURE) {
                 av_log(NULL, AV_LOG_ERROR, "  * av_read_frame couldn't decode picture in %d packets\n", MAX_PACKETS_WITHOUT_PICTURE);
@@ -1379,12 +1376,12 @@ int get_videoframe(AVFormatContext *pFormatCtx,
 
             // some codecs, e.g avisyth, dont seem to set key_frame
             if (1 == key_only && 0 == decoded_frame%200) {
-                av_log(NULL, LOG_INFO, "  a key frame is not found in %d frames\n", decoded_frame);
+                av_log(NULL, AV_LOG_INFO, "  a key frame is not found in %d frames\n", decoded_frame);
             }
             if (1 == key_only && 400 == decoded_frame) {
                 // is there a way to know when a frame has no missing pieces
                 // even though it's not a key frame?? // FIXME
-                av_log(NULL, LOG_INFO, "  * using a non-key frame; File problem? FFmpeg's codec problem?\n");
+                av_log(NULL, AV_LOG_INFO, "  * using a non-key frame; File problem? FFmpeg's codec problem?\n");
                 break;
             }
         }
@@ -1405,7 +1402,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
 
     if (0 == skip_non_key && run >= 3 && avg_decoded_frame > 30) {
         skip_non_key = 1;
-        av_log(NULL, LOG_INFO, "  skipping non key packets for this file\n");
+        av_log(NULL, AV_LOG_INFO, "  skipping non key packets for this file\n");
     }
 
     av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %d\n", pFrame->repeat_pict,
@@ -1533,7 +1530,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     /* then we try seeking to any (non key) frame AVSEEK_FLAG_ANY */
     ret = av_seek_frame(pFormatCtx, index, timestamp, flags | AVSEEK_FLAG_ANY);
     if (ret >= 0) { // success
-        av_log(NULL, LOG_INFO, "AVSEEK_FLAG_ANY: timestamp: %"PRId64"\n", timestamp); // DEBUG
+        av_log(NULL, AV_LOG_INFO, "AVSEEK_FLAG_ANY: timestamp: %"PRId64"\n", timestamp); // DEBUG
         return ret;
     }
 
@@ -1557,7 +1554,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     }
     if (duration > 0) {
         int64_t byte_pos = av_rescale(timestamp, file_size, duration_tb);
-        av_log(NULL, LOG_INFO, "AVSEEK_FLAG_BYTE: byte_pos: %"PRId64", timestamp: %"PRId64", file_size: %"PRId64", duration_tb: %"PRId64"\n", byte_pos, timestamp, file_size, duration_tb);
+        av_log(NULL, AV_LOG_INFO, "AVSEEK_FLAG_BYTE: byte_pos: %"PRId64", timestamp: %"PRId64", file_size: %"PRId64", duration_tb: %"PRId64"\n", byte_pos, timestamp, file_size, duration_tb);
         return av_seek_frame(pFormatCtx, index, byte_pos, AVSEEK_FLAG_BYTE);
     }
 
@@ -1632,7 +1629,7 @@ void make_thumbnail(char *file)
     int t_timestamp = gb_t_timestamp; // local timestamp; can be turned off; 0 = off
     int ret;
 
-    av_log(NULL, LOG_INFO, "\n");
+    av_log(NULL, AV_LOG_INFO, "\n");
 
     /* check if output file already exists & open output file */
     if (NULL != gb_O_outdir && strlen(gb_O_outdir) > 0) {
@@ -1670,19 +1667,19 @@ void make_thumbnail(char *file)
     int unum = 0;
     if (is_reg_newer(tn.out_filename, gb_st_start)) {
         unum = make_unique_name(tn.out_filename, gb_o_suffix, unum);
-        av_log(NULL, LOG_INFO, "%s: output file already exists. using: %s\n", gb_argv0, tn.out_filename);
+        av_log(NULL, AV_LOG_INFO, "%s: output file already exists. using: %s\n", gb_argv0, tn.out_filename);
     }
     if (NULL != gb_N_suffix && is_reg_newer(tn.info_filename, gb_st_start)) {
         unum = make_unique_name(tn.info_filename, gb_N_suffix, unum);
-        av_log(NULL, LOG_INFO, "%s: info file already exists. using: %s\n", gb_argv0, tn.info_filename);
+        av_log(NULL, AV_LOG_INFO, "%s: info file already exists. using: %s\n", gb_argv0, tn.info_filename);
     }
     if (0 == gb_W_overwrite) { // dont overwrite mode
         if (is_reg(tn.out_filename)) {
-            av_log(NULL, LOG_INFO, "%s: output file %s already exists. omitted.\n", gb_argv0, tn.out_filename);
+            av_log(NULL, AV_LOG_INFO, "%s: output file %s already exists. omitted.\n", gb_argv0, tn.out_filename);
             goto cleanup;
         }
         if (NULL != gb_N_suffix && is_reg(tn.info_filename)) {
-            av_log(NULL, LOG_INFO, "%s: info file %s already exists. omitted.\n", gb_argv0, tn.info_filename);
+            av_log(NULL, AV_LOG_INFO, "%s: info file %s already exists. omitted.\n", gb_argv0, tn.info_filename);
             goto cleanup;
         }
     }
@@ -1740,7 +1737,7 @@ void make_thumbnail(char *file)
             } else {
                  if (++n_video_stream == gb_S_select_video_stream) {
                    video_index = j;
-                   av_log(NULL, LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
+                   av_log(NULL, AV_LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
                    break;
               }
             }
@@ -1844,20 +1841,20 @@ void make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  read_and_decode first failed!\n");
         goto cleanup;
     }
-    //av_log(NULL, LOG_INFO, "first_pts: %"PRId64" (%.2f s)\n", first_pts, calc_time(first_pts, pStream->time_base, start_time)); // DEBUG
+    //av_log(NULL, AV_LOG_INFO, "first_pts: %"PRId64" (%.2f s)\n", first_pts, calc_time(first_pts, pStream->time_base, start_time)); // DEBUG
 
     // set sample_aspect_ratio
     // assuming sample_y = display_y
     if (gb_a_ratio.num != 0) { // use cmd line arg if specified
         sample_aspect_ratio.num = (double) pCodecCtx->height * av_q2d(gb_a_ratio) / pCodecCtx->width * 10000;
         sample_aspect_ratio.den = 10000;
-        av_log(NULL, LOG_INFO, "  *** using sample_aspect_ratio: %d/%d because of -a %.4f option\n", sample_aspect_ratio.num, sample_aspect_ratio.den, av_q2d(gb_a_ratio));
+        av_log(NULL, AV_LOG_INFO, "  *** using sample_aspect_ratio: %d/%d because of -a %.4f option\n", sample_aspect_ratio.num, sample_aspect_ratio.den, av_q2d(gb_a_ratio));
     } else {
         if (sample_aspect_ratio.num != 0 && pCodecCtx->sample_aspect_ratio.num != 0
             && av_q2d(sample_aspect_ratio) != av_q2d(pCodecCtx->sample_aspect_ratio)) {
-            av_log(NULL, LOG_INFO, "  *** conflicting sample_aspect_ratio: %.2f vs %.2f: using %.2f\n",
+            av_log(NULL, AV_LOG_INFO, "  *** conflicting sample_aspect_ratio: %.2f vs %.2f: using %.2f\n",
                 av_q2d(sample_aspect_ratio), av_q2d(pCodecCtx->sample_aspect_ratio), av_q2d(sample_aspect_ratio));
-            av_log(NULL, LOG_INFO, "      to use sample_aspect_ratio %.2f use: -a %.4f option\n",
+            av_log(NULL, AV_LOG_INFO, "      to use sample_aspect_ratio %.2f use: -a %.4f option\n",
                 av_q2d(pCodecCtx->sample_aspect_ratio), av_q2d(pCodecCtx->sample_aspect_ratio) * pCodecCtx->width / pCodecCtx->height);
             // we'll continue with existing value. is this ok? FIXME
             // this is the same as mpc's and vlc's. 
@@ -1890,7 +1887,7 @@ void make_thumbnail(char *file)
     calc_scale_src(pCodecCtx->width, pCodecCtx->height, sample_aspect_ratio,
         &scaled_src_width, &scaled_src_height);
     if (scaled_src_width != pCodecCtx->width || scaled_src_height != pCodecCtx->height) {
-        av_log(NULL, LOG_INFO, "  * scaling input * %dx%d => %dx%d according to sample_aspect_ratio %d/%d\n", 
+        av_log(NULL, AV_LOG_INFO, "  * scaling input * %dx%d => %dx%d according to sample_aspect_ratio %d/%d\n",
             pCodecCtx->width, pCodecCtx->height, scaled_src_width, scaled_src_height, 
             sample_aspect_ratio.num, sample_aspect_ratio.den);
     }
@@ -1942,10 +1939,10 @@ void make_thumbnail(char *file)
         goto cleanup;
     }
     if (tn.column != gb_c_column) {
-        av_log(NULL, LOG_INFO, "  changing # of column to %d to meet minimum height of %d; see -h option\n", tn.column, gb_h_height);
+        av_log(NULL, AV_LOG_INFO, "  changing # of column to %d to meet minimum height of %d; see -h option\n", tn.column, gb_h_height);
     }
     if (gb_w_width > 0 && gb_w_width != tn.width) {
-        av_log(NULL, LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.width, scaled_src_width, tn.column);
+        av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.width, scaled_src_width, tn.column);
     }
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
     if (NULL != info_fp) {
@@ -1962,7 +1959,7 @@ void make_thumbnail(char *file)
     }
     tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
     tn.height = tn.shot_height*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
-    av_log(NULL, LOG_INFO, "  step: %d s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n", 
+    av_log(NULL, AV_LOG_INFO, "  step: %d s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
         tn.step, tn.column, tn.row, tn.shot_width, tn.shot_height, tn.width, tn.height);
 
     // jpeg seems to have max size of 65500 pixels
@@ -1974,7 +1971,7 @@ void make_thumbnail(char *file)
     int evade_step = MIN(10, tn.step / 14); // seconds to evade blank screen ; max 10 s
     // FIXME: what's the min value? 1?
     if (evade_step <= 0) {
-        av_log(NULL, LOG_INFO, "  step is less than 14 s; blank & blur evasion is turned off.\n");
+        av_log(NULL, AV_LOG_INFO, "  step is less than 14 s; blank & blur evasion is turned off.\n");
     }
 
     /* prepare for resize & conversion to AV_PIX_FMT_RGB24 */
@@ -2038,14 +2035,14 @@ void make_thumbnail(char *file)
     }
     if (1 == gb_Z_nonseek) {
         seek_mode = 0;
-        av_log(NULL, LOG_INFO, "  *** using non-seek mode -- slower but more accurate timing.\n");
+        av_log(NULL, AV_LOG_INFO, "  *** using non-seek mode -- slower but more accurate timing.\n");
     }
 
     /* decode & fill in the shots */
   restart:
     seek_mode = seek_mode; // target for restart
     if (0 == seek_mode && gb_B_begin > 10) {
-        av_log(NULL, LOG_INFO, "  -B %.2f with non-seek mode will take some time.\n", gb_B_begin);
+        av_log(NULL, AV_LOG_INFO, "  -B %.2f with non-seek mode will take some time.\n", gb_B_begin);
     }
 
     int64_t seek_target, seek_evade = 0; // in time_base unit
@@ -2070,13 +2067,13 @@ void make_thumbnail(char *file)
         if (prevshot_pts > eff_target && 0 == evade_try) {
             // restart in seek mode of skipping shots (FIXME)
             if (seek_mode == 1) {
-              av_log(NULL, LOG_INFO, "  *** previous seek overshot target %s; switching to non-seek mode\n", time_tmp);
+              av_log(NULL, AV_LOG_INFO, "  *** previous seek overshot target %s; switching to non-seek mode\n", time_tmp);
               av_seek_frame(pFormatCtx, video_index, 0, 0);
               avcodec_flush_buffers(pCodecCtx);
               seek_mode = 0;
               goto restart;
             }
-            av_log(NULL, LOG_INFO, "  skipping shot at %s because of previous seek or evasions\n", time_tmp);
+            av_log(NULL, AV_LOG_INFO, "  skipping shot at %s because of previous seek or evasions\n", time_tmp);
             idx--;
             thumb_nb--;
             goto skip_shot;
@@ -2109,7 +2106,7 @@ void make_thumbnail(char *file)
                 av_log(NULL, AV_LOG_ERROR, "  read_and_decode failed!\n");
                 goto cleanup;
             }
-            //av_log(NULL, LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
+            //av_log(NULL, AV_LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
         } else { // non-seek mode -- we keep decoding until we get to the next shot
             found_pts = 0;
             while (found_pts < eff_target) {
@@ -2121,7 +2118,7 @@ void make_thumbnail(char *file)
                     av_log(NULL, AV_LOG_ERROR, "  read_and_decode failed!\n");
                     goto cleanup;
                 }
-                //av_log(NULL, LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
+                //av_log(NULL, AV_LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
             }
         }
         //struct timeval dfinish; // DEBUG
@@ -2130,7 +2127,7 @@ void make_thumbnail(char *file)
         double decode_time = 0;
 
         double found_diff = (found_pts - eff_target) * av_q2d(pStream->time_base);
-        //av_log(NULL, LOG_INFO, "  found_diff: %.2f\n", found_diff); // DEBUG
+        //av_log(NULL, AV_LOG_INFO, "  found_diff: %.2f\n", found_diff); // DEBUG
         // if found frame is too far off from target, we'll disable seeking and start over
         if (idx < 5 && 1 == seek_mode && 0 == gb_z_seek 
             // usually movies have key frames every 10 s
@@ -2147,7 +2144,7 @@ void make_thumbnail(char *file)
                 shot_dtime = tn.step * 30 / 500.0;
             }
             if (shot_dtime > 2 || shot_dtime * tn.column * tn.row > 120) {
-                av_log(NULL, LOG_INFO, "  *** seeking off target %.2f s, increase time step or use non-seek mode.\n", found_diff);
+                av_log(NULL, AV_LOG_INFO, "  *** seeking off target %.2f s, increase time step or use non-seek mode.\n", found_diff);
                 goto non_seek_too_long;
             }
 
@@ -2155,8 +2152,8 @@ void make_thumbnail(char *file)
             av_seek_frame(pFormatCtx, video_index, 0, 0);
             avcodec_flush_buffers(pCodecCtx);
             seek_mode = 0;
-            av_log(NULL, LOG_INFO, "  *** switching to non-seek mode because seeking was off target by %.2f s.\n", found_diff);
-            av_log(NULL, LOG_INFO, "  non-seek mode is slower. increase time step or use -z if you dont want this.\n");
+            av_log(NULL, AV_LOG_INFO, "  *** switching to non-seek mode because seeking was off target by %.2f s.\n", found_diff);
+            av_log(NULL, AV_LOG_INFO, "  non-seek mode is slower. increase time step or use -z if you dont want this.\n");
             goto restart;
         }
       non_seek_too_long:
@@ -2194,7 +2191,7 @@ void make_thumbnail(char *file)
 
         // got same picture as previous shot, we'll skip it
         if (prevshot_pts == found_pts && 0 == evade_try) {
-            av_log(NULL, LOG_INFO, "  skipping shot at %s because got previous shot\n", time_tmp);
+            av_log(NULL, AV_LOG_INFO, "  skipping shot at %s because got previous shot\n", time_tmp);
             idx--;
             thumb_nb--;
             goto skip_shot;
@@ -2242,7 +2239,7 @@ void make_thumbnail(char *file)
             // not found -- skip shot
             char time_tmp[15]; // FIXME
             format_time(calc_time(seek_target, pStream->time_base, start_time), time_tmp, ':');
-            av_log(NULL, LOG_INFO, "  * blank %.2f or no edge * skipping shot at %s after %d tries\n", blank, time_tmp, evade_try);
+            av_log(NULL, AV_LOG_INFO, "  * blank %.2f or no edge * skipping shot at %s after %d tries\n", blank, time_tmp, evade_try);
             thumb_nb--; // reduce # shots
             goto skip_shot;
         }
@@ -2340,7 +2337,7 @@ void make_thumbnail(char *file)
         gdImagePtr new_out_ip = crop_image(tn.out_ip, tn.width, cropped_height);
         if (new_out_ip != tn.out_ip) {
             tn.out_ip = new_out_ip;
-            av_log(NULL, LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", tn.column, tn.row - skipped_rows, tn.width, cropped_height);
+            av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", tn.column, tn.row - skipped_rows, tn.width, cropped_height);
         }
     }
 
@@ -2359,8 +2356,8 @@ void make_thumbnail(char *file)
     gettimeofday(&tfinish, NULL); // calendar time; effected by load & io & etc.
     double diff_time = (tfinish.tv_sec + tfinish.tv_usec/1000000.0) - (tstart.tv_sec + tstart.tv_usec/1000000.0);
     // previous version reported # of decoded shots/s; now we report the # of final shots/s
-    //av_log(NULL, LOG_INFO, "  avg. %.2f shots/s; output file: %s\n", nb_shots / diff_time, tn.out_filename);
-    av_log(NULL, LOG_INFO, "  %.2f s, %.2f shots/s; output: %s\n", 
+    //av_log(NULL, AV_LOG_INFO, "  avg. %.2f shots/s; output file: %s\n", nb_shots / diff_time, tn.out_filename);
+    av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f shots/s; output: %s\n",
         diff_time, (tn.idx + 1) / diff_time, tn.out_filename);
 
   cleanup:
@@ -2537,7 +2534,7 @@ void process_dir(char *dir, int current_depth)
         }
         strcpy(vnew, child_utf8);
         v[cnt++] = vnew;
-        //av_log(NULL, LOG_INFO, "process_dir added: %s\n", v[cnt-1]); // DEBUG
+        //av_log(NULL, AV_LOG_INFO, "process_dir added: %s\n", v[cnt-1]); // DEBUG
     }
     qsort(v, cnt, sizeof(*v), myalphasort);
 
@@ -2561,10 +2558,10 @@ void process_loop(int n, char **files, int current_depth)
         rem_trailing_slash(files[i]); //
 
         if (is_dir(files[i])) { // directory
-            //av_log(NULL, LOG_INFO, "process_loop: %s is a DIR\n", files[i]); // DEBUG
+            //av_log(NULL, AV_LOG_INFO, "process_loop: %s is a DIR\n", files[i]); // DEBUG
                 process_dir(files[i], current_depth);
         } else { // not a directory
-            //av_log(NULL, LOG_INFO, "process_loop: %s is not a DIR\n", files[i]); // DEBUG
+            //av_log(NULL, AV_LOG_INFO, "process_loop: %s is not a DIR\n", files[i]); // DEBUG
             make_thumbnail(files[i]);
         }
     }
@@ -2697,7 +2694,7 @@ int parse_color(rgb_color *rgb, color_str str)
         str[i] = upper;
     }
     *rgb = color_str2rgb_color(str);
-    //av_log(NULL, LOG_INFO, "parse_color: %s=>%d,%d,%d\n", str, rgb->r, rgb->g, rgb->b); //DEBUG
+    //av_log(NULL, AV_LOG_INFO, "parse_color: %s=>%d,%d,%d\n", str, rgb->r, rgb->g, rgb->b); //DEBUG
     return 0;
 }
 
@@ -2772,9 +2769,9 @@ int get_format_opt(char c, char *optarg)
     ret = 0;
 
   cleanup:
-    //av_log(NULL, LOG_INFO, "%s:%.1f:", format_color(gb_F_info_color), gb_F_info_font_size); // DEBUG
-    //av_log(NULL, LOG_INFO, "%s:%s:", gb_F_ts_fontname, format_color(gb_F_ts_color)); // DEBUG
-    //av_log(NULL, LOG_INFO, "%s:%.1f\n", format_color(gb_F_ts_shadow), gb_F_ts_font_size); // DEBUG
+    //av_log(NULL, AV_LOG_INFO, "%s:%.1f:", format_color(gb_F_info_color), gb_F_info_font_size); // DEBUG
+    //av_log(NULL, AV_LOG_INFO, "%s:%s:", gb_F_ts_fontname, format_color(gb_F_ts_color)); // DEBUG
+    //av_log(NULL, AV_LOG_INFO, "%s:%.1f\n", format_color(gb_F_ts_shadow), gb_F_ts_font_size); // DEBUG
     if (0 != ret) {
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s'\n", gb_argv0, c, bak);
         av_log(NULL, AV_LOG_ERROR, "examples:\n");
@@ -2935,7 +2932,7 @@ int main(int argc, char *argv[])
         case 'b':
             parse_error += get_double_opt('b', &gb_b_blank, optarg, 0);
             if (gb_b_blank < .2) {
-                av_log(NULL, LOG_INFO, "%s: -b %.2f might be too extreme; try -b .5\n", gb_argv0, gb_b_blank);
+                av_log(NULL, AV_LOG_INFO, "%s: -b %.2f might be too extreme; try -b .5\n", gb_argv0, gb_b_blank);
             }
             if (gb_b_blank > 1) {
                 // turn edge detection off cuz it requires blank detection
@@ -2958,7 +2955,7 @@ int main(int argc, char *argv[])
             parse_error += get_int_opt('D', &gb_D_edge, optarg, 0);
             if (gb_D_edge > 0 
                 && (gb_D_edge < 4 || gb_D_edge > 12)) {
-                av_log(NULL, LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
+                av_log(NULL, AV_LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
             }
             break;
         case 'e':
@@ -3039,7 +3036,7 @@ int main(int argc, char *argv[])
             break;
         case 'V':
             gb_V = 1; // DEBUG
-            av_log(NULL, LOG_INFO, "%s: -V is only used for debugging\n", gb_argv0);
+            av_log(NULL, AV_LOG_INFO, "%s: -V is only used for debugging\n", gb_argv0);
             break;
         case 'w':
             parse_error += get_int_opt('w', &gb_w_width, optarg, 0);
@@ -3118,7 +3115,7 @@ int main(int argc, char *argv[])
     if (gb_v_verbose > 0) {
         av_log_set_level(AV_LOG_VERBOSE);
     } else {
-        av_log_set_level(LOG_INFO);
+        av_log_set_level(AV_LOG_INFO);
     }
     //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
