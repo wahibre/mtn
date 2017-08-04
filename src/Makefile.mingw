@@ -1,0 +1,18 @@
+CC=gcc
+#CFLAGS=-Wall -DWIN32 -static 
+CFLAGS=-Wall -DWIN32 -O3
+LDFLAGS=-Lc:\MinGW\lib
+INCLUDE=-Ic:\MinGW\include
+LIBS=-llibgd -lavutil -lavdevice -lavformat -lavcodec  -lswscale -lm
+
+mtn: mtn.c 
+	$(CC) -o mtn mtn.c $(CFLAGS) $(LDFLAGS) $(INCLUDE) $(LIBS)
+
+mtnd: mtn.c 
+	$(CC) -o mtn mtn.c -g $(CFLAGS) $(LDFLAGS) $(INCLUDE) $(LIBS)
+	
+mtns: mtn.c Makefile
+	$(CC) -o mtns mtn.c -static $(CFLAGS) $(LDFLAGS) $(LIBS)
+
+clean:
+	rm -f mtn.exe mtns.exe

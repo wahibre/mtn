@@ -985,7 +985,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 {
     char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
     unsigned int i;
-    AVCodecContext *pCodexCtx;
+    AVCodecContext *pCodexCtx=NULL;
     int multiple_streams=0;
     char subtitles_separator[3] = {'\0',};
 
@@ -1147,8 +1147,6 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
     get_stream_info_type(ic, AVMEDIA_TYPE_VIDEO,   buf, sample_aspect_ratio);
     get_stream_info_type(ic, AVMEDIA_TYPE_SUBTITLE,buf, sample_aspect_ratio);
-    // CODEC_TYPE_DATA FIXME: what is this type?
-    // CODEC_TYPE_NB FIXME: what is this type?
 
     //strfmon(buf + strlen(buf), 100, "strfmon: %!i\n", avio_size(ic->pb));
     return buf;
@@ -1236,24 +1234,6 @@ double blank_frame(AVFrame *pFrame, int width, int height)
 
 /* global */
 uint64_t gb_video_pkt_pts = AV_NOPTS_VALUE;
-/* These are called whenever we allocate a frame
- * buffer. We use this to store the global_pts in
- * a frame at the time it is allocated.
- */
-int our_get_buffer(struct AVCodecContext *c, AVFrame *pic, int __attribute__((unused))flags) {
-  int ret = avcodec_default_get_buffer2(c, pic, 0);
-  uint64_t *pts = av_malloc(sizeof(uint64_t));
-  *pts = gb_video_pkt_pts;
-  pic->opaque = pts;
-  av_log(NULL, AV_LOG_VERBOSE, "*coping gb_video_pkt_pts: %"PRId64" to opaque\n", gb_video_pkt_pts);
-  return ret;
-}
-
-void our_release_buffer(AVFrame *pic) {
-  if(pic) av_freep(&pic->opaque);
-//  avcodec_default_release_buffer(c, pic);
-  av_frame_unref(pic);
-}
 
 
 /**
@@ -1301,9 +1281,9 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
         exit(1);
     }
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 58, 100)
-    av_log(NULL, AV_LOG_INFO, "Got picture, Frame pts=%"PRId64"\n", pFrame->pts);
+    av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pts=%"PRId64"\n", pFrame->pts);
 #else
-    av_log(NULL, AV_LOG_INFO, "Got picture, Frame pkt_pts=%"PRId64"\n", pFrame->pkt_pts);
+    av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pkt_pts=%"PRId64"\n", pFrame->pkt_pts);
 #endif
     return 0;
 }
@@ -1430,10 +1410,10 @@ int get_videoframe(AVFormatContext *pFormatCtx,
 
     av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %d\n", pFrame->repeat_pict,
         (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, pFrame->pict_type);
-    if(NULL != pFrame->opaque && (uint64_t)AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
-        //av_log(NULL, AV_LOG_VERBOSE, "*pts: %.2f, value in opaque: %"PRId64"\n", pts, *(uint64_t *) pFrame->opaque);
-        av_log(NULL, AV_LOG_VERBOSE, "*value in opaque: %"PRId64"\n", *(uint64_t *) pFrame->opaque);
-    }
+//    if(NULL != pFrame->opaque && (uint64_t)AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
+//        //av_log(NULL, AV_LOG_VERBOSE, "*pts: %.2f, value in opaque: %"PRId64"\n", pts, *(uint64_t *) pFrame->opaque);
+//        av_log(NULL, AV_LOG_VERBOSE, "*value in opaque: %"PRId64"\n", *(uint64_t *) pFrame->opaque);
+//    }
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
 
@@ -1809,8 +1789,6 @@ void make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  couldn't open codec %s id %d: %d\n", pCodec->name, pCodec->id, ret);
         goto cleanup;
     }
-    pCodecCtx->get_buffer2 = our_get_buffer;
-    //FIXME not exists: pCodecCtx->release_buffer = our_release_buffer;
 
     // Allocate video frame
     pFrame = av_frame_alloc();

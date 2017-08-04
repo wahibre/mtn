@@ -6,12 +6,14 @@ by FFmpeg libraries. For documents, please see in the doc directory and at
 http://sourceforge.net/forum/?group_id=201133 .
 
 
+===  Dependency  ===
+ - ffmpeg
+ - gd
+
+
 ====  Linux  ====
 
-    == Dependency ==
-     - ffmpeg
-     - gd
-
+    Install dependency:
     Fedora 25:
         $dnf install ffmpeg-devel gd-devel
     Ubuntu 17.4
@@ -27,12 +29,14 @@ http://sourceforge.net/forum/?group_id=201133 .
 
 ==== Windows ====
 
-    == Dependency ==
-     - MinGW    (http://www.mingw.org/)
-     - ffmpeg   (http://www.ffmpeg.org)
-     - gd       (https://libgd.github.io, libraries: http://gnuwin32.sourceforge.net/downlinks/gd-dep-zip.php)
-
-
     == Build ==
     1. update paths in Make.MinGW.bat
     2. run Make.MinGW.bat
+
+
+==== References ====
+ * https://github.com/libgd/libgd
+ * http://www.ffmpeg.org
+ * http://www.mingw.org/
+ * http://gnuwin32.sourceforge.net/downlinks/gd-dep-zip.php
+ * https://libgd.github.io
