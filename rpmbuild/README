@@ -1,0 +1,9 @@
+spec file for building RPM package on Fedora25
+
+
+build:
+    rpmbuild -ba mtn.spec
+
+
+references:
+  https://fedoraproject.org/wiki/How_to_create_an_RPM_package

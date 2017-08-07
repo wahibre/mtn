@@ -7,6 +7,7 @@ Group:		Amusements/Graphics
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
 Source0:	%{name}.%{version}.tar.gz
+                #wget -O %{name}.%{version}.tar.gz https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
 BuildRequires:	gd-devel >= 2.2.2
 BuildRequires:	ffmpeg-compat-devel >= 0.6.7
@@ -18,9 +19,7 @@ Requires:	ffmpeg-compat
 Movie thumbnail generator
 
 %prep
-wget -O %{name}.%{version}.tar.gz https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
-tar -xzf %{name}.%{version}.tar.gz
-#tar -xzf %SOURCE0
+tar -xzf %SOURCE0
 
 %build
 cd mtn*/src
