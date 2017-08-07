@@ -14,8 +14,8 @@ http://sourceforge.net/forum/?group_id=201133 .
 ====  Linux  ====
 
     Install dependency:
-    Fedora 25:
-        $dnf install ffmpeg-devel gd-devel
+    Fedora 25 (with repo RPMFUSION-FREE enabled)
+        $dnf install ffmpeg-compat-devel gd-devel
     Ubuntu 17.4
         $sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
 
@@ -40,3 +40,4 @@ http://sourceforge.net/forum/?group_id=201133 .
  * http://www.mingw.org/
  * http://gnuwin32.sourceforge.net/downlinks/gd-dep-zip.php
  * https://libgd.github.io
+ * https://rpmfusion.org/

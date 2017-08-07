@@ -3,6 +3,7 @@
 CFLAGS=-W -Wall
 INCPATH=-I/usr/include/ffmpeg
 DEBUGFLAG=-g
+DESTDIR=
 #LDFLAGS= -lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
 LIBS=-L/usr/lib64/ffmpeg -lavcodec -lavformat -lswscale -lavutil -lm -lgd
 
@@ -22,4 +23,12 @@ clean:
 rebuild: clean mtn
 
 install: mtn
-	install -o root -g root -m 755 mtn /usr/bin/
+	mkdir -p $(DESTDIR)/usr/bin/
+	install -m 755 mtn $(DESTDIR)/usr/bin/
+	mkdir -p $(DESTDIR)/usr/share/doc/mtn
+	cp -Rp ../doc/* $(DESTDIR)/usr/share/doc/mtn
+	cp -p ../gpl-2.0.txt $(DESTDIR)/usr/share/doc/mtn
+
+uninstall:
+	rm -f  $(DESTDIR)/usr/bin/mtn
+	rm -rf $(DESTDIR)/usr/share/doc/mtn
