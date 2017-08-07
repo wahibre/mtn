@@ -1590,8 +1590,9 @@ int make_unique_name(char *name, char *suffix, int unum)
 
 /*
 */
-void make_thumbnail(char *file)
+int make_thumbnail(char *file)
 {
+    int return_code = -1;
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
     static int nb_file = 0; // FIXME: static
     nb_file++;
@@ -1676,10 +1677,12 @@ void make_thumbnail(char *file)
     if (0 == gb_W_overwrite) { // dont overwrite mode
         if (is_reg(tn.out_filename)) {
             av_log(NULL, AV_LOG_INFO, "%s: output file %s already exists. omitted.\n", gb_argv0, tn.out_filename);
+            return_code = 0;
             goto cleanup;
         }
         if (NULL != gb_N_suffix && is_reg(tn.info_filename)) {
             av_log(NULL, AV_LOG_INFO, "%s: info file %s already exists. omitted.\n", gb_argv0, tn.info_filename);
+            return_code = 0;
             goto cleanup;
         }
     }
@@ -2360,6 +2363,8 @@ void make_thumbnail(char *file)
     av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f shots/s; output: %s\n",
         diff_time, (tn.idx + 1) / diff_time, tn.out_filename);
 
+    return_code = 0;
+
   cleanup:
     if (NULL != ip)
         gdImageDestroy(ip);
@@ -2404,6 +2409,7 @@ void make_thumbnail(char *file)
     thumb_cleanup_dynamic(&tn);
     
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: done\n");
+    return return_code;
 }
 
 /* modified from glibc
@@ -2455,14 +2461,18 @@ int check_extension(char *filename)
     return 1;
 }
 
-void process_loop(int n, char **files, int current_depth);
+int process_loop(int n, char **files, int current_depth);
 
-/* modified from glibc's scandir -- mingw doesn't have scandir
-*/
-void process_dir(char *dir, int current_depth)
+/**
+ * @brief modified from glibc's scandir -- mingw doesn't have scandir
+ * @return 0- success, otherwise - failed
+ */
+int process_dir(char *dir, int current_depth)
 {
+    int return_code = -1;
+
     if(gb_d_depth >= 0 && current_depth>gb_d_depth)
-        return;
+        return 0;
 
     current_depth++;
 
@@ -2476,7 +2486,7 @@ void process_dir(char *dir, int current_depth)
     _TDIR *dp = _topendir(dir_w);
     if (NULL == dp) {
         av_log(NULL, AV_LOG_ERROR, "\n%s: opendir failed: %s\n", dir, strerror(errno));
-        return;
+        return -1;
     }
 
     /* read directory & sort */
@@ -2539,32 +2549,44 @@ void process_dir(char *dir, int current_depth)
     qsort(v, cnt, sizeof(*v), myalphasort);
 
     /* process dirs & files */
-    process_loop(cnt, v, current_depth);
+    return_code = process_loop(cnt, v, current_depth);
 
   cleanup:
     while (cnt > 0)
         free(v[--cnt]);
     free(v);
     _tclosedir(dp);
+
+    return return_code;
 }
 
-/*
-*/
-void process_loop(int n, char **files, int current_depth)
+/**
+ * @return 0- success, otherwise - failed
+ */
+int process_loop(int n, char **files, int current_depth)
 {
     int i;
+    int files_done=0;
+
     for (i = 0; i < n; i++) {
         av_log(NULL, AV_LOG_VERBOSE, "process_loop: %s\n", files[i]);
         rem_trailing_slash(files[i]); //
 
         if (is_dir(files[i])) { // directory
             //av_log(NULL, AV_LOG_INFO, "process_loop: %s is a DIR\n", files[i]); // DEBUG
-                process_dir(files[i], current_depth);
+            if(process_dir(files[i], current_depth) == 0)
+                files_done++;
         } else { // not a directory
             //av_log(NULL, AV_LOG_INFO, "process_loop: %s is not a DIR\n", files[i]); // DEBUG
-            make_thumbnail(files[i]);
+            if(make_thumbnail(files[i]) == 0)
+                files_done++;
         }
     }
+
+    if(files_done == n)
+        return 0;
+
+    return -1;
 }
 
 // copied & modified from mingw-runtime-3.13's init.c
@@ -2897,8 +2919,13 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "gpl-2.0.txt.\n");
 }
 
+/**
+ * @return 0- success, otherwise - failed
+ */
 int main(int argc, char *argv[])
 {
+    int return_code = -1;
+
     gb_argv0 = path_2_file(argv[0]);
     setvbuf(stderr, NULL, _IONBF, 0); // turn off buffering in mingw
 
@@ -3120,7 +3147,7 @@ int main(int argc, char *argv[])
     //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
     /* process movie files */
-    process_loop(argc - optind, argv + optind, 0);
+    return_code = process_loop(argc - optind, argv + optind, 0);
 
   exit:
     // clean up
@@ -3138,5 +3165,5 @@ int main(int argc, char *argv[])
         fflush(stderr);
         getchar();
     }
-    return 0;
+    return return_code;
 }

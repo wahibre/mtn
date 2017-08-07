@@ -3,6 +3,7 @@ version 3.0 2017/m/d
 - add -X option to include video extension in output filename
 - add -S option to select video stream
 - add -d option to set recursion depth
+- return code -1 on failure
 
 version 200808a
 - release year and month is now used as the version number.
