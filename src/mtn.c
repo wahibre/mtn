@@ -1046,7 +1046,8 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             *begin = '\0';
         }
 */
-        sprintf(buf + strlen(buf), codec_buf);
+//        sprintf(buf + strlen(buf), codec_buf);
+strcat(buf, codec_buf);
 
         /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
         if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
@@ -1157,7 +1158,7 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     //dump_format(p, index, url, is_output);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, AV_LOG_INFO, get_stream_info(p, url, 0, GB_A_RATIO));
+    av_log(NULL, AV_LOG_INFO, "%s", get_stream_info(p, url, 0, GB_A_RATIO));
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -1277,7 +1278,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
         av_log(NULL, AV_LOG_ERROR, "Error during decoding packet\n");
         exit(1);
     }
-#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 58, 100)
+#if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 34, 100)
     av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pts=%"PRId64"\n", pFrame->pts);
 #else
     av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pkt_pts=%"PRId64"\n", pFrame->pkt_pts);
@@ -1949,7 +1950,7 @@ int make_thumbnail(char *file)
     }
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
     if (NULL != info_fp) {
-        fprintf(info_fp, all_text);
+        fprintf(info_fp, "%s", all_text);
     }
     if (0 == gb_i_info) { // off
         *all_text = '\0';
