@@ -1,0 +1,13 @@
+control file for building DEB package on Ubuntu 14.7
+
+
+
+build:
+	mkdir DEBS
+	dpkg-deb --build rootdirectory DEBS
+
+
+
+
+references:
+	http://man7.org/linux/man-pages/man5/deb-control.5.html

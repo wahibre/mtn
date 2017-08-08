@@ -1,0 +1,14 @@
+Package: mtn
+Priority: extra
+Section: utils
+Maintainer: wahibre <wahibre@gmx.com>
+Architecture: amd64
+Version: 3.0-1
+Homepage: https://gitlab.com/movie_thumbnailer/mtn/wikis
+Depends: libavutil55 (>= 7:3.2.4), libavcodec57 (>= 7:3.2.4), libavformat57 (>= 7:3.2.4), libswscale4 (>= 7:3.2.4), libgd3 (>= 2.2.2)
+Provides: mtn
+Origin:	gitlab.com
+Source: gitlab.com
+Installed-Size:	676
+Description: Movie Thumbnailer (mtn) saves thumbnails (screenshots) of movie or video files to jpeg files. It uses FFmpeg's libavcodec as its engine, so it supports all popular codecs.
+
