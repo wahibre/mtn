@@ -1942,6 +1942,20 @@ int make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  step is zero; movie is too short?\n");
         goto cleanup;
     }
+
+    if(tn.column == 0)
+    {
+        int suggested_width, suggested_height;
+        // guess new width and height to create thumbnails
+        suggested_width = ceil(gb_h_height * scaled_src_width/scaled_src_height + 2*(double)gb_g_gap);
+        suggested_width+= suggested_width%2;
+        suggested_height = floor((gb_w_width - 2*gb_g_gap) * scaled_src_height/scaled_src_width);
+        suggested_height-= suggested_height%2;
+
+        av_log(NULL, AV_LOG_ERROR, "  thumbnail to small; increase image width to %d (-w) or decrease min. image height to %d (-h)%s" ,
+               suggested_width, suggested_height, NEWLINE);
+        goto cleanup;
+    }
     if (tn.column != gb_c_column) {
         av_log(NULL, AV_LOG_INFO, "  changing # of column to %d to meet minimum height of %d; see -h option\n", tn.column, gb_h_height);
     }
