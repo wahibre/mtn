@@ -271,11 +271,11 @@ char *format_size(int64_t size, char *unit)
     if (size < 1024) {
         sprintf(buf, "%"PRId64" %s", size, unit);
     } else if (size < 1024*1024) {
-        sprintf(buf, "%.2f Ki%s", size/1024.0, unit);
+        sprintf(buf, "%.0f Ki%s", size/1024.0, unit);
     } else if (size < 1024*1024*1024) {
-        sprintf(buf, "%.2f Mi%s", size/1024.0/1024, unit);
+        sprintf(buf, "%.0f Mi%s", size/1024.0/1024, unit);
     } else {
-        sprintf(buf, "%.2f Gi%s", size/1024.0/1024/1024, unit);
+        sprintf(buf, "%.1f Gi%s", size/1024.0/1024/1024, unit);
     }
     return buf;
 }
@@ -1107,8 +1107,14 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     int64_t file_size = avio_size(ic->pb);
 
     sprintf(buf, "File: %s", file_name);
-    //sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);
-    sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size, "B"));
+    /* file format
+    sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
+    /* File size i bytes and MiB
+    sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size, "B"));*/
+
+    /* File size only in MiB */
+    sprintf(buf + strlen(buf), "%sSize: %s", NEWLINE, format_size(file_size, "B"));
+
     if (ic->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs;
         duration = secs = ic->duration / AV_TIME_BASE;
