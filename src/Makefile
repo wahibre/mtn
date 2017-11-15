@@ -8,7 +8,7 @@ OUT=../bin
 LIBSDIR=../lib
 LIBS=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
-S_LIBS=$(LIBSDIR)/libpng16.a $(LIBSDIR)/libgd/Bin/libgd.a $(LIBSDIR)/FFmpeg/libavformat/libavformat.a $(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a $(LIBSDIR)/FFmpeg/libswscale/libswscale.a $(LIBSDIR)/FFmpeg/libavutil/libavutil.a $(LIBSDIR)/libz.a \
+S_LIBS=$(LIBSDIR)/libpng.a $(LIBSDIR)/libgd.a $(LIBSDIR)/libavformat.a $(LIBSDIR)/libavcodec.a $(LIBSDIR)/libswscale.a $(LIBSDIR)/libavutil.a $(LIBSDIR)/libz.a \
 -lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
@@ -17,21 +17,27 @@ mtn: mtn.c outdir
 outdir:
 	mkdir -p $(OUT)
 
-all: mtn mtns
-
 mtns: mtn.c outdir
-	$(CC) -o $(OUT)/mtns mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS)
 
 mtnd: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -g $(LIBS)
 
 clean:
-	rm -f $(OUT)/mtn $(OUT)/mtns
+	rm -f $(OUT)/mtn
 
 distclean:
 	rm -rf $(OUT)
 
-rebuild: clean mtn
+rebuild:  clean mtn
+rebuilds: clean mtns
+
+test_bin:
+	$(OUT)/mtn -f /usr/share/fonts/aajohan-comfortaa/Comfortaa-Regular.ttf -O /tmp /home/sample.avi
+	test -e /tmp/sample_s.jpg
+
+test:  rebuild  mtn  test_bin
+tests: rebuilds mtns test_bin
 
 install: mtn
 	mkdir -p $(DESTDIR)/usr/bin/
