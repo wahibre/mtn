@@ -983,7 +983,6 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
     char sub_buf[1024] = {'\0',}; //FIXME char sub_buf[1024]
     unsigned int i;
     AVCodecContext *pCodexCtx=NULL;
-    int multiple_streams=0;
     char subtitles_separator[3] = {'\0',};
 
     for(i=0; i<ic->nb_streams; i++) {
@@ -1015,9 +1014,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             continue;
         }
 
-        if(multiple_streams)
-            strcat(buf, NEWLINE);
-        multiple_streams++;
+        strcat(buf, NEWLINE);
 
         if (gb_v_verbose > 0) {
             sprintf(buf + strlen(buf), "Stream %d", i);
@@ -1046,8 +1043,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             *begin = '\0';
         }
 */
-//        sprintf(buf + strlen(buf), codec_buf);
-strcat(buf, codec_buf);
+        strcat(buf, codec_buf);
 
         /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
         if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
@@ -1081,14 +1077,13 @@ strcat(buf, codec_buf);
     } //for
 
     if (0 < strlen(sub_buf)) {
-        sprintf(buf + strlen(buf), "Subtitles: %s\n", sub_buf);
+        sprintf(buf + strlen(buf), "\nSubtitles: %s", sub_buf);
     }
-
-    strcat(buf, NEWLINE);
 
     if(pCodexCtx)
         avcodec_free_context(&pCodexCtx);
 }
+
 
 /*
 modified from libavformat's dump_format
@@ -1141,11 +1136,11 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 
 
     if (duration > 0) {
-        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s%s", (double) file_size * 8.0 / duration / 1000, NEWLINE);
+        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s", (double) file_size * 8.0 / duration / 1000);
     } else if (ic->bit_rate) {
-        sprintf(buf + strlen(buf), ", bitrate: %"PRId64" kb/s%s", ic->bit_rate / 1000, NEWLINE);
+        sprintf(buf + strlen(buf), ", bitrate: %"PRId64" kb/s", ic->bit_rate / 1000);
     } else {
-        sprintf(buf + strlen(buf), ", bitrate: N/A%s", NEWLINE);
+        strcat(buf, ", bitrate: N/A");
     }
 
     get_stream_info_type(ic, AVMEDIA_TYPE_AUDIO,   buf, sample_aspect_ratio);
@@ -1164,7 +1159,7 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
     //dump_format(p, index, url, is_output);
 
     // dont show scaling info at this time because we dont have the proper sample_aspect_ratio
-    av_log(NULL, AV_LOG_INFO, "%s", get_stream_info(p, url, 0, GB_A_RATIO));
+    av_log(NULL, AV_LOG_INFO, "%s%s", get_stream_info(p, url, 0, GB_A_RATIO), NEWLINE);
 
     av_log(NULL, AV_LOG_VERBOSE, "start_time av: %"PRId64", duration av: %"PRId64"\n",
         p->start_time, p->duration);
@@ -1708,6 +1703,7 @@ int make_thumbnail(char *file)
         goto cleanup;
     }
     if (NULL != gb_N_suffix) {
+        av_log(NULL, AV_LOG_INFO, "\nCreating info file %s\n", tn.info_filename);
         info_fp = _tfopen(info_filename_w, _TEXT("wb"));
         if (NULL == info_fp) {
             av_log(NULL, AV_LOG_ERROR, "\n%s: creating info file '%s' failed: %s\n", gb_argv0, tn.info_filename, strerror(errno));
@@ -1970,13 +1966,13 @@ int make_thumbnail(char *file)
     }
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
     if (NULL != info_fp) {
-        fprintf(info_fp, "%s", all_text);
+        fprintf(info_fp, "%s%s", all_text, NEWLINE);
     }
     if (0 == gb_i_info) { // off
         *all_text = '\0';
     }
     if (NULL != gb_T_text) {
-        all_text = strcat(all_text, gb_T_text);
+        sprintf(all_text+strlen(all_text), "%s%s", NEWLINE, gb_T_text);
         if (NULL != info_fp) {
             fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
         }
