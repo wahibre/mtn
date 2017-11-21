@@ -1336,7 +1336,13 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         {
             av_packet_unref(pkt);
             fret = av_read_frame(pFormatCtx, pkt);
-        } while(fret!=0 || pkt->stream_index != video_index);
+            if(fret != 0)
+            {
+                av_log(NULL, AV_LOG_VERBOSE, "av_read_frame returned %d - considering as the end of file\n", fret);
+                av_log(NULL, AV_LOG_ERROR, "Error reading from video file\n");
+                return 0;
+            }
+        } while(pkt->stream_index != video_index);
 
         pkt_without_pic++;
 
