@@ -1,0 +1,80 @@
+.\" Manpage for mtn.
+.\" Contact wahibre@gmx.com to correct errors or typos.
+
+.TH man 8 "21 Jun 2017" "1.0" "mtn man page"
+.SH NAME
+mtn \- generate thumbnail grid of a movie file(s)
+.SH SYNOPSIS
+mtn [OPTIONS] filename[, filename, ...]
+.SH DESCRIPTION
+Mtn saves thumbnails of specified movie files or directories to jpeg files.
+
+.SH OPTIONS
+  -a aspect_ratio : override input file's display aspect ratio
+  -b 0,80 : skip if % blank is higher; 0:skip all 1:skip really blank >1:off
+  -B 0,0 : omit this seconds from the beginning
+  -c 3 : # of column
+  -C -1 : cut movie and thumbnails not more than the specified seconds; <=0:off
+  -d #: recursion depth; 0:immediate children files only
+  -D 12 : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8
+  -E 0,0 : omit this seconds at the end
+  -f tahomabd.ttf : font file; use absolute path if not in usual places
+  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]
+     info_color:info_size[:time_font:time_color:time_shadow:time_size]
+  -g 0 : gap between each shot
+  -h 150 : minimum height of each shot; will reduce # of column to fit
+  -i : info text off
+  -I : save individual shots too
+  -j 90 : jpeg quality
+  -k RRGGBB : background color (in hex)
+  -L info_location[:time_location] : location of text
+     1=lower left, 2=lower right, 3=upper right, 4=upper left
+  -n : run at normal priority
+  -N info_suffix : save info text to a file with suffix
+  -o _s.jpg : output suffix
+  -O directory : save output files in the specified directory
+  -p : pause before exiting; default on in win32
+  -P : dont pause before exiting; override -p
+  -r 0 : # of rows; >0:override -s
+  -s 120 : time step between each shot
+  -S #: select specific stream number
+  -t : time stamp off
+  -T text : add text above output image
+  -v : verbose mode (debug)
+  -w 1024 : width of output image; 0:column * movie width
+  -W : dont overwrite existing files, i.e. update mode
+  -X : use full input filename (include extension)
+  -z : always use seek mode
+  -Z : always use non-seek mode - slower but more accurate timing
+
+  Filename - name of the movie file or directory containing movie files
+
+  You'll probably need to change the truetype font path (-f fontfile).
+  the default is set to tahomabd.ttf which might not exist in non-windows
+  systems. if you dont have a truetype font, you can turn the text off by
+  using -i -t.
+
+.SH EXAMPLES
+  to save thumbnails to file infile_s.jpg with default options:
+    mtn infile.avi
+  to change time step to 65 seconds & change total width to 900:
+    mtn -s 65 -w 900 infile.avi
+  to step evenly to get 3 columns x 10 rows:
+    mtn -c 3 -r 10 infile.avi
+  to save output files to writeable directory:
+    mtn -O writeable /read/only/dir/infile.avi
+  to get 2 columns in original movie size:
+    mtn -c 2 -w 0 infile.avi
+  to skip uninteresting shots, try:
+    mtn -D 6 infile.avi
+
+.SH SEE ALSO
+https://gitlab.com/movie_thumbnailer/mtn
+
+.SH AUTHOR
+wahibre (wahibre@gmx.com)
+
+
+.SH COPYRIGHT
+Copyright © 2017 Free Software Foundation, Inc.  License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>.
+This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.

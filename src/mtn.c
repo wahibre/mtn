@@ -2418,14 +2418,12 @@ int make_thumbnail(char *file)
 int myalphasort(const void *a, const void *b)
 {
     return strcoll(*(const char **) a, *(const char **) b);
-    //return strcasecmp(*(const char **) a, *(const char **) b);
 }
 
 /* modified from glibc
 */
 int myalphacasesort(const void *a, const void *b)
 {
-    //return strcoll(*(const char **) a, *(const char **) b);
     return strcasecmp(*(const char **) a, *(const char **) b);
 }
 

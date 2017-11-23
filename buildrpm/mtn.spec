@@ -10,10 +10,10 @@ Source0:	%{name}.%{version}.tar.gz
                 #wget -O %{name}.%{version}.tar.gz https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
 BuildRequires:	gd-devel >= 2.2.2
-BuildRequires:	ffmpeg-compat-devel >= 0.6.7
+BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd
-Requires:	ffmpeg-compat
+Requires:	ffmpeg-libs
 
 %description
 Movie thumbnail generator
