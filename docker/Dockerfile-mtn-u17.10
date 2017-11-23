@@ -1,0 +1,23 @@
+FROM ubuntu:17.10
+
+RUN apt-get -y update
+RUN apt-get -y install \
+	curl \
+	libgd-dev \
+	libavutil-dev \
+	libavcodec-dev \
+	libavformat-dev \
+	libswscale-dev
+RUN apt-get -y clean
+
+# used source and libraries for static build
+#ADD https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz /home/
+
+# test video file
+ADD https://bitbucket.org/wahibre/mtn/downloads/sample.avi /home/
+
+CMD /bin/bash
+
+############################### build image ########################################
+# docker build --tag=docker.io/wahibre/mtn:u17.10 -f Dockerfile-mtn-u17.10 . #
+####################################################################################

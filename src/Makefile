@@ -33,7 +33,7 @@ rebuild:  clean mtn
 rebuilds: clean mtns
 
 test_bin:
-	$(OUT)/mtn -f /usr/share/fonts/aajohan-comfortaa/Comfortaa-Regular.ttf -O /tmp /home/sample.avi
+	$(OUT)/mtn -f ../test/font.ttf -O /tmp /home/sample.avi
 	test -e /tmp/sample_s.jpg
 
 test:  rebuild  mtn  test_bin

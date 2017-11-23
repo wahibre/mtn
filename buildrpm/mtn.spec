@@ -6,7 +6,7 @@ Summary:	Movie thumbnailer
 Group:		Amusements/Graphics
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
-Source0:	%{name}.%{version}.tar.gz
+Source0:	%{name}.tar
                 #wget -O %{name}.%{version}.tar.gz https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
 BuildRequires:	gd-devel >= 2.2.2
@@ -19,14 +19,14 @@ Requires:	ffmpeg-libs
 Movie thumbnail generator
 
 %prep
-tar -xzf %SOURCE0
+tar -xf %SOURCE0
 
 %build
-cd mtn*/src
+cd src
 %make_build
 
 %install
-cd mtn*/src
+cd src
 %make_install
 
 %files
@@ -38,7 +38,7 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
-* Thr Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
+* Thu Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
 - propose new image size in case of too small thumbnails
 - file size only in human readable format
 - fixed blank lines between media info and additional title

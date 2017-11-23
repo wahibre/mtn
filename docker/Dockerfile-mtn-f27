@@ -1,0 +1,39 @@
+FROM fedora:27
+
+# for building behind proxy
+#RUN cp /etc/dnf/dnf.conf /etc/dnf/dnf.conf.backup; \
+#RUN echo proxy=http://172.24.72.10:8080>>/etc/dnf/dnf.conf
+
+# rpmfree for FFmpeg library
+RUN dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+
+# dependencies for shared build
+RUN dnf -y install \
+	make \
+	gcc \
+	ffmpeg-devel \
+	gd-devel \
+	zlib-static \
+	libpng-static \
+	mingw32-gcc.x86_64 \
+	rpm-build
+RUN dnf clean all
+
+# used source and libraries for static build
+ADD https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz /home/
+
+
+# test video file
+ADD https://bitbucket.org/wahibre/mtn/downloads/sample.avi /home/
+
+RUN mkdir -p /home/mtn-a; \
+    ln -s /lib64/libpng.a /home/mtn-a; \
+    ln -s /lib64/libz.a   /home/mtn-a; 
+
+#RUN mv -f /etc/dnf/dnf.conf.backup /etc/dnf/dnf.conf
+
+CMD /usr/bin/bash
+
+########################## build image #################################
+# docker build --tag=docker.io/wahibre/mtn:f27 -f Dockerfile-mtn-f27 . #
+########################################################################
