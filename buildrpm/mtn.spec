@@ -1,5 +1,5 @@
 Name:		mtn	
-Version: 	3.0
+Version: 	3.1
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
@@ -38,6 +38,12 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Thr Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
+- propose new image size in case of too small thumbnails
+- file size only in human readable format
+- fixed blank lines between media info and additional title
+- fixed freezing after reading file error
+
 * Mon Aug 7 2017 wahibre  <wahibre@gmx.com> - 3.0
 - removed old and deprecated piece of code and replaced with new FFmpeg's (3.1.8) API
 - add -X option to include video extension in output filename

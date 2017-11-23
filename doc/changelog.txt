@@ -1,4 +1,10 @@
-version 3.0 2017/m/d
+version 3.1 2017/11/23
+- propose new image size in case of too small thumbnails
+- file size only in human readable format
+- fixed blank lines between media info and additional title
+- fixed freezing after reading file error
+
+version 3.0 2017/08/07
 - removed old and deprecated piece of code and replaced with new FFmpeg's (3.1.8) API
 - add -X option to include video extension in output filename
 - add -S option to select video stream

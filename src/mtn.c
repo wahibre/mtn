@@ -218,7 +218,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.0 copyright (c) 2007-2017 tuit, et al.";
+char *gb_version = "3.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */

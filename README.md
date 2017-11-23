@@ -3,7 +3,7 @@ fork from http://moviethumbnail.sourceforge.net/
 
 mtn was originaly developed by tuit (tuitfun); though most of its magic is actually done 
 by FFmpeg libraries. For documents, please see in the doc directory and at
-https://gitlab.com/movie_thumbnailer/mtn/tree/master/doc .
+https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 
 
 Dependency
