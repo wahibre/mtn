@@ -91,6 +91,8 @@
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
 
+typedef char TIME_STR[15];
+
 typedef struct rgb_color
 {   // GD uses int, so we'll use int too
     int r; // red
@@ -249,7 +251,7 @@ char *format_color(rgb_color col)
     return buf; // FIXME
 }
 
-void format_time(double duration, char *str, char sep)
+void format_time(double duration, TIME_STR str, char sep)
 {
     if (duration < 0) {
         sprintf(str, "N/A");
@@ -260,7 +262,8 @@ void format_time(double duration, char *str, char sep)
         secs %= 60;
         hours = mins / 60;
         mins %= 60;
-        sprintf(str, "%02d%c%02d%c%02d", hours, sep, mins, sep, secs);
+
+        snprintf(str, sizeof(TIME_STR), "%02d%c%02d%c%02d", hours, sep, mins, sep, secs);
     }
 }
 
@@ -2086,7 +2089,7 @@ int make_thumbnail(char *file)
 
         int64_t eff_target = seek_target + seek_evade; // effective target
         eff_target = MAX(eff_target, start_time_tb); // make sure eff_target > start_time
-        char time_tmp[15]; // FIXME
+        TIME_STR time_tmp;
         format_time(calc_time(eff_target, pStream->time_base, start_time), time_tmp, ':');
 
         /* for some formats, previous seek might over shoot pass this seek_target; is this a bug in libavcodec? */
@@ -2263,7 +2266,7 @@ int make_thumbnail(char *file)
             }
 
             // not found -- skip shot
-            char time_tmp[15]; // FIXME
+            TIME_STR time_tmp;
             format_time(calc_time(seek_target, pStream->time_base, start_time), time_tmp, ':');
             av_log(NULL, AV_LOG_INFO, "  * blank %.2f or no edge * skipping shot at %s after %d tries\n", blank, time_tmp, evade_try);
             thumb_nb--; // reduce # shots
@@ -2292,7 +2295,7 @@ int make_thumbnail(char *file)
         /* timestamping */
         // FIXME: this frame might not actually be at the requested position. is pts correct?
         if (1 == t_timestamp) { // on
-            char time_str[15]; // FIXME
+            TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, ':');
             char *str_ret = image_string(ip, 
                 gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size, 
@@ -2312,7 +2315,7 @@ int make_thumbnail(char *file)
 
         /* save individual shots */
         if (1 == gb_I_individual) {
-            char time_str[15]; // FIXME
+            TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, '_');
             char individual_filename[UTF8_FILENAME_SIZE]; // FIXME
             strcpy(individual_filename, tn.out_filename);
@@ -2349,9 +2352,7 @@ int make_thumbnail(char *file)
     }
     av_log(NULL, AV_LOG_VERBOSE, "  *** avg_evade_try: %.2f\n", avg_evade_try); // DEBUG
 
-  eof:
-    idx = idx; // target for eof:
-
+  eof: ;
     /* crop if we dont get enough shots */
     int skipped_rows = tn.row - ceil((double)idx / tn.column);
     if (skipped_rows == tn.row) {
