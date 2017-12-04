@@ -164,6 +164,7 @@ double gb_F_ts_font_size = 8; // time stamp font size
 int gb_g_gap = GB_G_GAP;
 #define GB_H_HEIGHT 150
 int gb_h_height = GB_H_HEIGHT; // mininum height of each shot; will reduce # of column to meet this height
+int gb_H_human_filesize = 0; // filesize only in human readable size (KiB, MiB, GiB)
 #define GB_I_INFO 1
 int gb_i_info = GB_I_INFO; // 1 on; 0 off
 #define GB_I_INDIVIDUAL 0
@@ -220,7 +221,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.1";
+char *gb_version = "3.2";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -267,9 +268,10 @@ void format_time(double duration, TIME_STR str, char sep)
     }
 }
 
-char *format_size(int64_t size, char *unit)
+char *format_size(int64_t size)
 {
     static char buf[20]; // FIXME
+    char unit[]="B";
 
     if (size < 1024) {
         sprintf(buf, "%"PRId64" %s", size, unit);
@@ -1107,11 +1109,14 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     sprintf(buf, "File: %s", file_name);
     /* file format
     sprintf(buf + strlen(buf), " (%s)", ic->iformat->name);*/
-    /* File size i bytes and MiB
-    sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size, "B"));*/
 
-    /* File size only in MiB */
-    sprintf(buf + strlen(buf), "%sSize: %s", NEWLINE, format_size(file_size, "B"));
+    if(gb_H_human_filesize)
+        /* File size only in MiB, GiB, ... */
+        sprintf(buf + strlen(buf), "%sSize: %s", NEWLINE, format_size(file_size));
+    else
+        /* File size i bytes and MiB */
+        sprintf(buf + strlen(buf), "%sSize: %"PRId64" bytes (%s)", NEWLINE, file_size, format_size(file_size));
+
 
     if (ic->duration != AV_NOPTS_VALUE) {
         int hours, mins, secs;
@@ -2893,6 +2898,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
     av_log(NULL, AV_LOG_ERROR, "  -g %d : gap between each shot\n", GB_G_GAP);
     av_log(NULL, AV_LOG_ERROR, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
+    av_log(NULL, AV_LOG_ERROR, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes to\n");
     av_log(NULL, AV_LOG_ERROR, "  -i : info text off\n");
     av_log(NULL, AV_LOG_ERROR, "  -I : save individual shots too\n");
     av_log(NULL, AV_LOG_ERROR, "  -j %d : jpeg quality\n", GB_J_QUALITY);
@@ -2967,7 +2973,7 @@ int main(int argc, char *argv[])
     /* get & check options */
     int parse_error = 0;
     int c;
-    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:iIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
+    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:HiIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 'a':
@@ -3027,6 +3033,9 @@ int main(int argc, char *argv[])
             break;
         case 'h':
             parse_error += get_int_opt('h', &gb_h_height, optarg, 0);
+            break;
+        case 'H':
+            gb_H_human_filesize = 1;
             break;
         case 'i':
             gb_i_info = 0;

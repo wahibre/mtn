@@ -46,8 +46,8 @@ Build
 
 References
 ==========
- * [FFmpeg project]                 (http://www.ffmpeg.org)
- * [libgd project]                  (https://libgd.github.io)
- * [libgd library and dependecies]  (http://gnuwin32.sourceforge.net/packages/gd.htm)
- * [MinGW]                          (http://www.mingw.org/)
- * [RPM Fusion repository]          (https://rpmfusion.org/)
+ * [FFmpeg project](http://www.ffmpeg.org)
+ * [libgd project](https://libgd.github.io)
+ * [libgd library and dependecies](http://gnuwin32.sourceforge.net/packages/gd.htm)
+ * [MinGW](http://www.mingw.org/)
+ * [RPM Fusion repository](https://rpmfusion.org/)

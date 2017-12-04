@@ -1,3 +1,6 @@
+version 3.2 <next>
+- add -H option to disable filesize in bytes in media info
+
 version 3.1 2017/11/23
 - propose new image size in case of too small thumbnails
 - file size only in human readable format
