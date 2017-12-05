@@ -32,6 +32,7 @@ cd src
 %files
 %{_bindir}/mtn
 %{_defaultdocdir}/mtn/*
+/usr/share/man/man1/mtn.1.gz
 
 %clean
 rm -rf %{buildroot}

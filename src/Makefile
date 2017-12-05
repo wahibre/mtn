@@ -45,6 +45,9 @@ install: mtn
 	mkdir -p $(DESTDIR)/usr/share/doc/mtn
 	cp -Rp ../doc/* $(DESTDIR)/usr/share/doc/mtn
 	cp -p ../gpl-2.0.txt $(DESTDIR)/usr/share/doc/mtn
+	gzip --keep ../man/mtn.1
+	mkdir -p $(DESTDIR)/usr/share/man/man1
+	cp -p ../man/mtn.1.gz $(DESTDIR)/usr/share/man/man1/
 
 uninstall:
 	rm -f  $(DESTDIR)/usr/bin/mtn
