@@ -1,0 +1,92 @@
+stages:
+    - build
+
+fc26:
+    image: fedora:26
+    stage: build
+    only:
+    - master
+    - devel
+    script:
+    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-static libpng-static mingw32-gcc.x86_64 zip
+    - curl --output /home/mtn-deps.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz
+    - curl --output /home/mingw32.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mingw32.tgz
+    - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
+    - tar cf mtn.tar *
+    - mkdir -p buildroot/SOURCES
+    - mv mtn.tar buildroot/SOURCES/
+    - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
+    - mkdir -p lib
+    - pushd lib
+    - tar xzf /home/mingw32.tgz
+    - tar xzf /home/mtn-deps.tgz
+    - popd
+    - pushd src
+    # linux static
+    - make tests
+    # windows shared
+    - make -f Makefile.mingw
+    - popd
+    - tar czhf mtn-static.tgz bin/mtn lib/FFmpeg lib/libgd lib/libpng.a lib/libz.a
+    - mv lib/mingw32/bin lib/mingw32/mtn-win32
+    - mv bin/mtn.exe lib/mingw32/mtn-win32/
+    - pushd lib/mingw32
+    - zip -r mtn-win32.zip mtn-win32
+    - mv mtn-win32.zip $CI_PROJECT_DIR
+    - popd
+    - mv buildroot/RPMS/x86_64/*.rpm .
+#    when: manual
+    artifacts:
+        name: mtn-fc26+static+win32
+        expire_in: 30 week
+        paths:
+        - ./*.rpm
+        - mtn-static.tgz
+        - mtn-win32.zip
+fc27:
+    image: fedora:27
+    stage: build
+    only:
+    - master
+    - devel
+    script:
+    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build
+    - tar cf mtn.tar *
+    - mkdir -p buildroot/SOURCES
+    - mv mtn.tar buildroot/SOURCES/
+    - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
+    - mv buildroot/RPMS/x86_64/*.rpm .
+#    when: manual
+    artifacts:
+        name: mtn-fc27
+        expire_in: 30 week
+        paths:
+        - ./*.rpm
+ubuntu17:
+    image: ubuntu:17.10
+    stage: build
+    only:
+    - master
+    - devel
+    script:
+    - apt-get -y update
+    - apt-get -y install curl make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
+    - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
+    - pushd src
+    - make test
+    - popd
+    - mkdir -p builddeb/DEBS/usr/bin builddeb/DEBS/usr/share/doc/mtn
+    - mv bin/mtn builddeb/DEBS/usr/bin/
+    - mv doc README* *gpl*.txt builddeb/DEBS/usr/share/doc/mtn/
+    - cd builddeb
+    - chmod -R 755 rootdirectory
+    - dpkg-deb --build rootdirectory DEBS
+    - mv DEBS/mtn*.deb ../
+#    when: manual
+    artifacts:
+        name: mtn-u17.10
+        expire_in: 30 week
+        paths:
+        - ./*.deb
