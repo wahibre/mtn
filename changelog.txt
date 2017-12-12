@@ -1,4 +1,4 @@
-version 3.2 <next>
+version 3.2 2017/12/05
 - add -H option to disable filesize in bytes in media info
 
 version 3.1 2017/11/23

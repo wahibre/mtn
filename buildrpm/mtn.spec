@@ -39,6 +39,9 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Tue Dec 05 2017 wahibre  <wahibre@gmx.com> - 3.2
+- add -H option to disable filesize in bytes in media info
+
 * Thu Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
 - propose new image size in case of too small thumbnails
 - file size only in human readable format
