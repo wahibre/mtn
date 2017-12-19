@@ -1,7 +1,7 @@
 stages:
     - build
 
-fc26:
+fc26+static+win32:
     image: fedora:26
     stage: build
     only:
@@ -77,13 +77,13 @@ ubuntu17:
     - pushd src
     - make test
     - popd
-    - mkdir -p builddeb/DEBS/usr/bin builddeb/DEBS/usr/share/doc/mtn
-    - mv bin/mtn builddeb/DEBS/usr/bin/
-    - mv doc README* *gpl*.txt builddeb/DEBS/usr/share/doc/mtn/
+    - mkdir -p builddeb/rootdirectory/usr/bin builddeb/rootdirectory/usr/share/doc/mtn
+    - mv bin/mtn builddeb/rootdirectory/usr/bin/
+    - mv doc README* *gpl*.txt builddeb/rootdirectory/usr/share/doc/mtn/
     - cd builddeb
     - chmod -R 755 rootdirectory
-    - dpkg-deb --build rootdirectory DEBS
-    - mv DEBS/mtn*.deb ../
+    - dpkg-deb --build rootdirectory .
+    - mv mtn*.deb ../
 #    when: manual
     artifacts:
         name: mtn-u17.10
