@@ -1,3 +1,6 @@
+version 3.2.1 2018/01/02
+- fixed final cleaning memory crashing on windows
+
 version 3.2 2017/12/05
 - add -H option to disable filesize in bytes in media info
 

@@ -221,7 +221,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.2";
+char *gb_version = "3.2.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -2015,8 +2015,8 @@ int make_thumbnail(char *file)
         goto cleanup;
     }
     int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
-//    rgb_buffer = av_malloc(rgb_bufsize);
-    rgb_buffer = (uint8_t*)malloc(rgb_bufsize*sizeof(uint8_t));
+    rgb_buffer = av_malloc(rgb_bufsize);
+//    rgb_buffer = (uint8_t*)malloc(rgb_bufsize*sizeof(uint8_t));
 
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);

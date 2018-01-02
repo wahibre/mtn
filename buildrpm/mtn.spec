@@ -1,5 +1,5 @@
 Name:		mtn	
-Version: 	3.2
+Version: 	3.2.1
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
@@ -39,6 +39,9 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Tue Jan 02 2018 wahibre  <wahibre@gmx.com> - 3.2.1
+- fixed final cleaning memory crashing on windows
+
 * Tue Dec 05 2017 wahibre  <wahibre@gmx.com> - 3.2
 - add -H option to disable filesize in bytes in media info
 
