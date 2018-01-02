@@ -1,18 +1,28 @@
 #CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
 #CFLAGS=-W -Wall `pkg-config --cflags libavformat`
 
-CFLAGS=-W -Wall
-INCPATH=-I/usr/include/ffmpeg
 #DESTDIR - reserved for rpmbuild
+UNAME!=uname -s
+CFLAGS=-W -Wall
 OUT=../bin
 LIBSDIR=../lib
-LIBS=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
+
+ifeq ($(UNAME),FreeBSD)
+LIBS+=-L/usr/local/lib
+INCPATH+=-I/usr/local/include
+endif
+
+ifeq ($(UNAME),Linux)
+INCPATH=-I/usr/include/ffmpeg
+endif
+
+LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS=$(LIBSDIR)/libpng.a $(LIBSDIR)/libgd.a $(LIBSDIR)/libavformat.a $(LIBSDIR)/libavcodec.a $(LIBSDIR)/libswscale.a $(LIBSDIR)/libavutil.a $(LIBSDIR)/libz.a \
 -lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
-	 $(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
 
 outdir:
 	mkdir -p $(OUT)

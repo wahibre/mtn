@@ -3,8 +3,7 @@ control file for building DEB package on Ubuntu 17.4
 
 
 build:
-	mkdir DEBS
-	dpkg-deb --build rootdirectory DEBS
+        dpkg-deb --build rootdirectory .
 
 
 

@@ -9,21 +9,25 @@ https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 Dependency
 ==========
  - ffmpeg   (>=3.1)
- - gd       (>=2.2.4)
+ - gd       (>=2.0)
 
 
 Linux
 =====
 
-Install dependency:  
+Build dependencies:
 
-**Fedora** 25,26 (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
+**Fedora** 25,26,27 (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
 
     $dnf install ffmpeg-devel gd-devel
 
-**Ubuntu** 17.4, **Debian** 9.1
+**Ubuntu** 17, **Debian** 9
 
     $sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev  
+
+**FreeBSD** 11
+
+    $pkg install gmake ffmpeg libgd
 
 
 Build
