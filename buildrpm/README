@@ -2,7 +2,7 @@ spec file for building RPM package on Fedora25
 
 
 build:
-    rpmbuild -ba mtn.spec
+    rpmbuild --undefine=_disable_source_fetch -ba mtn.spec
 
 
 references:

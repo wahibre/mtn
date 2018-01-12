@@ -13,9 +13,9 @@ fc26+static+win32:
     - curl --output /home/mtn-deps.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz
     - curl --output /home/mingw32.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mingw32.tgz
     - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
-    - tar cf mtn.tar *
+    - tar czf archive.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
-    - mv mtn.tar buildroot/SOURCES/
+    - mv archive.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mkdir -p lib
     - pushd lib
@@ -53,9 +53,9 @@ fc27:
     script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build
-    - tar cf mtn.tar *
+    - tar czf archive.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
-    - mv mtn.tar buildroot/SOURCES/
+    - mv archive.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mv buildroot/RPMS/x86_64/*.rpm .
 #    when: manual
