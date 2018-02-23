@@ -3169,7 +3169,9 @@ int main(int argc, char *argv[])
     }
 
     /* init */
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();          // Register all formats and codecs
+#endif
     if (gb_v_verbose > 0) {
         av_log_set_level(AV_LOG_VERBOSE);
     } else {
