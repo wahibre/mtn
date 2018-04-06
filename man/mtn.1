@@ -1,7 +1,7 @@
 .\" Manpage for mtn.
 .\" Contact wahibre@gmx.com to correct errors or typos.
 
-.TH man 1 "5 Dec 2017" "1.0" "mtn man page"
+.TH man 1 "6 Apr 2018" "1.1" "mtn man page"
 .SH NAME
 mtn \- generate thumbnail grid of a movie file(s)
 .SH SYNOPSIS
@@ -36,6 +36,7 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -O directory : save output files in the specified directory
   -p : pause before exiting; default on in win32
   -P : dont pause before exiting; override -p
+  -q : quiet mode (print only error messages)
   -r 0 : # of rows; >0:override -s
   -s 120 : time step between each shot
   -S #: select specific stream number
@@ -68,7 +69,9 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
     mtn -c 2 -w 0 infile.avi
   to skip uninteresting shots, try:
     mtn -D 6 infile.avi
-
+  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:
+    mtn -q infile.avi
+    
 .SH SEE ALSO
 https://gitlab.com/movie_thumbnailer/mtn/wikis
 
@@ -77,5 +80,5 @@ wahibre (wahibre@gmx.com)
 
 
 .SH COPYRIGHT
-Copyright © 2017 Free Software Foundation, Inc.  License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>.
+Copyright © 2018 Free Software Foundation, Inc.  License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.

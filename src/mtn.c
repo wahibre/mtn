@@ -221,7 +221,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.2.1";
+char *gb_version = "3.2.2";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -2910,7 +2910,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -O directory : save output files in the specified directory\n");
     av_log(NULL, AV_LOG_ERROR, "  -p : pause before exiting; default on in win32\n");
     av_log(NULL, AV_LOG_ERROR, "  -P : dont pause before exiting; override -p\n");
-    //av_log(NULL, AV_LOG_ERROR, "  -q : to be done\n"); // quiet mode
+    av_log(NULL, AV_LOG_ERROR, "  -q : quiet mode (print only error messages)\n");
     av_log(NULL, AV_LOG_ERROR, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
     av_log(NULL, AV_LOG_ERROR, "  -s %d : time step between each shot\n", GB_S_STEP);
     av_log(NULL, AV_LOG_ERROR, "  -S #: select specific stream number\n");
@@ -2930,6 +2930,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to skip uninteresting shots, try:\n    %s -D 6 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_ERROR, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
 #ifdef WIN32
     av_log(NULL, AV_LOG_ERROR, "\nIn windows, you can run %s from command prompt or drag files/dirs from\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "windows explorer and drop them on %s. you can change the default options\n", gb_argv0);
@@ -3172,11 +3173,16 @@ int main(int argc, char *argv[])
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();          // Register all formats and codecs
 #endif
-    if (gb_v_verbose > 0) {
-        av_log_set_level(AV_LOG_VERBOSE);
-    } else {
-        av_log_set_level(AV_LOG_INFO);
-    }
+	if(gb_q_quiet>0)
+		av_log_set_level(AV_LOG_ERROR);
+	else
+	{		
+		if (gb_v_verbose > 0)
+			av_log_set_level(AV_LOG_VERBOSE);
+		else
+			av_log_set_level(AV_LOG_INFO);
+	}
+		
     //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
     /* process movie files */

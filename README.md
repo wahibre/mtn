@@ -17,7 +17,7 @@ Linux
 
 Build dependencies:
 
-**Fedora** 25,26,27 (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
+**Fedora** 25-28 (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
 
     $dnf install ffmpeg-devel gd-devel
 

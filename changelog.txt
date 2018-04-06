@@ -1,16 +1,19 @@
-version 3.2.1 2018/01/02
+version 3.2.2 	2018/04/06
+- add -q switch to enable quiet mode (overrides -v)
+
+version 3.2.1 	2018/01/02
 - fixed final cleaning memory crashing on windows
 
-version 3.2 2017/12/05
+version 3.2 	2017/12/05
 - add -H option to disable filesize in bytes in media info
 
-version 3.1 2017/11/23
+version 3.1 	2017/11/23
 - propose new image size in case of too small thumbnails
 - file size only in human readable format
 - fixed blank lines between media info and additional title
 - fixed freezing after reading file error
 
-version 3.0 2017/08/07
+version 3.0 	2017/08/07
 - removed old and deprecated piece of code and replaced with new FFmpeg's (3.1.8) API
 - add -X option to include video extension in output filename
 - add -S option to select video stream
