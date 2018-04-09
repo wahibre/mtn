@@ -2871,16 +2871,26 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
     return 0;
 }
 
-void usage()
+char* mtn_identification()
 {
-    av_log(NULL, AV_LOG_ERROR, "\nMovie Thumbnailer (mtn) %s\n\n", gb_version);
-    av_log(NULL, AV_LOG_ERROR, "Compiled with: %s %s %s %s GD:%s\n\n", LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT,
-       #ifdef WIN32
+	const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled with: %s %s %s %s GD:%s";
+	const char GD_VER[] = 
+	   #ifdef WIN32
            GD2_ID
        #else
            GD_VERSION_STRING
         #endif
-           );
+	;
+	size_t s = snprintf(NULL, 0, txt, gb_version, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
+	char* msg = malloc(s);
+	           snprintf( msg, s, txt, gb_version, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
+	return msg;
+}
+
+void usage()
+{
+    av_log(NULL, AV_LOG_ERROR, "\n%s\n\n", mtn_identification());
+
     av_log(NULL, AV_LOG_ERROR, "Mtn saves thumbnails of specified movie files or directories to jpeg files.\n");
     av_log(NULL, AV_LOG_ERROR, "For directories, it will recursively search inside for movie files.\n\n");
     av_log(NULL, AV_LOG_ERROR, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
@@ -3182,6 +3192,9 @@ int main(int argc, char *argv[])
 		else
 			av_log_set_level(AV_LOG_INFO);
 	}
+		
+	// display mtn+libraries versions for bug reporting
+	av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
 		
     //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
