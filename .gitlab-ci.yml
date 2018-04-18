@@ -77,9 +77,11 @@ ubuntu17:
     - pushd src
     - make test
     - popd
-    - mkdir -p builddeb/rootdirectory/usr/bin builddeb/rootdirectory/usr/share/doc/mtn
+    - mkdir -p builddeb/rootdirectory/usr/{bin,share/doc/mtn,share/man/man1}
     - mv bin/mtn builddeb/rootdirectory/usr/bin/
     - mv doc README* *gpl*.txt builddeb/rootdirectory/usr/share/doc/mtn/
+    - gzip man/mtn.1
+    - mv man/mtn.1* builddeb/rootdirectory/usr/share/man/man1
     - cd builddeb
     - chmod -R 755 rootdirectory
     - dpkg-deb --build rootdirectory .
