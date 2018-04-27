@@ -58,14 +58,14 @@ fc28:
     - mv archive.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mv buildroot/RPMS/x86_64/*.rpm .
-#    when: manual
     artifacts:
         name: mtn-fc28
         expire_in: 30 week
         paths:
         - ./*.rpm
-ubuntu17:
-    image: ubuntu:17.10
+
+# template
+.ubu: &ubuntu
     stage: build
     only:
     - master
@@ -86,9 +86,21 @@ ubuntu17:
     - chmod -R 755 rootdirectory
     - dpkg-deb --build rootdirectory .
     - mv mtn*.deb ../
-#    when: manual
+
+ubuntu17:
+    image: ubuntu:17.10
+    <<: *ubuntu
     artifacts:
         name: mtn-u17.10
+        expire_in: 30 week
+        paths:
+        - ./*.deb
+
+ubuntu18:
+    image: ubuntu:18.04
+    <<: *ubuntu
+    artifacts:
+        name: mtn-u18.04
         expire_in: 30 week
         paths:
         - ./*.deb
