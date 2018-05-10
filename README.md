@@ -9,7 +9,7 @@ https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 Dependency
 ==========
  - ffmpeg   (>=3.1)
- - gd       (>=2.0)
+ - gd       (>=2.1.1)
 
 
 Linux

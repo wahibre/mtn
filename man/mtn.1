@@ -48,9 +48,22 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -X : use full input filename (include extension)
   -z : always use seek mode
   -Z : always use non-seek mode - slower but more accurate timing
+  
+.IP --shadow[=N]
+draw shadows beneath thumbnails with radius 
+.IR N
+pixels if
+.IR N
+>0. Radius is calculated if  
+.IR N \=0
+or 
+.IR N 
+is omitted.
 
-  Filename - name of the movie file or directory containing movie files
+.IP Filename
+name of the movie file or directory containing movie files
 
+.SH " "
   You'll probably need to change the truetype font path (-f fontfile).
   the default is set to tahomabd.ttf which might not exist in non-windows
   systems. if you dont have a truetype font, you can turn the text off by
@@ -69,6 +82,8 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
     mtn -c 2 -w 0 infile.avi
   to skip uninteresting shots, try:
     mtn -D 6 infile.avi
+  to draw shadows of the individual shots, try:
+    mtn --shadow=3 -g 7 infile.avi
   to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:
     mtn -q infile.avi
     

@@ -9,7 +9,7 @@ URL:		http://gitlab.com/movie_thumbnailer/mtn/
 Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
-BuildRequires:	gd-devel >= 2.2.2
+BuildRequires:	gd-devel >= 2.1.1
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd

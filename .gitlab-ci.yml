@@ -11,16 +11,19 @@ fc27+static+win32:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-static libpng-static mingw32-gcc.x86_64 zip
     - curl --output /home/mtn-deps.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz
-    - curl --output /home/mingw32.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mingw32.tgz
+    - curl --output /home/deps-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
+    - curl --output /home/deps-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
     - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
     - tar czf archive.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
     - mv archive.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
-    - mkdir -p lib
+    - mkdir -p lib/windows
     - pushd lib
-    - tar xzf /home/mingw32.tgz
     - tar xzf /home/mtn-deps.tgz
+    - cd windows
+    - tar xzf /home/deps-libgd.tgz
+    - tar xzf /home/deps-FFmpeg.tgz
     - popd
     - pushd src
     # linux static
@@ -29,9 +32,12 @@ fc27+static+win32:
     - make -f Makefile.mingw
     - popd
     - tar czhf mtn-static.tgz bin/mtn lib/FFmpeg lib/libgd lib/libpng.a lib/libz.a
-    - mv lib/mingw32/bin lib/mingw32/mtn-win32
-    - mv bin/mtn.exe lib/mingw32/mtn-win32/
-    - pushd lib/mingw32
+    - mkdir -p mtn-win32/bin
+    - mv lib/windows/bin/* mtn-win32/bin/
+    - mv bin/mtn.exe mtn-win32/bin/
+    - cp -r src mtn-win32/
+    - cp ./*.txt mtn-win32/
+    - cp ./*.md mtn-win32/
     - zip -r mtn-win32.zip mtn-win32
     - mv mtn-win32.zip $CI_PROJECT_DIR
     - popd

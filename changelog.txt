@@ -1,5 +1,6 @@
-version 3.2.2 	2018/04/06
+version 3.2.2 	<next>
 - add -q switch to enable quiet mode (overrides -v)
+- add --shadow switch to draw shadows beneath thumbnails
 
 version 3.2.1 	2018/01/02
 - fixed final cleaning memory crashing on windows

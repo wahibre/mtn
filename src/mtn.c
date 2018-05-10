@@ -1,6 +1,7 @@
-/*  mtn - movie thumbnailer http://moviethumbnail.sourceforge.net/
+/*  mtn - movie thumbnailer
 
-    Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.
+    Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
+    Copyright (C) 2017-2018 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -50,6 +51,7 @@
 #include <sys/time.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #include "libavutil/imgutils.h"
 #include "libavutil/avutil.h"
@@ -79,6 +81,14 @@
     #include "fake_tchar.h"
     #define UTF8_2_WC(dst, src, size) ((dst) = (src)) // cant be used to check required size
     #define WC_2_UTF8(dst, src, size) ((dst) = (src))
+#endif
+
+
+#ifndef MIN
+#define MIN(a,b) ((a)<(b)?(a):(b))
+#endif
+#ifndef MAX
+#define MAX(a,b) ((a)<(b)?(b):(a))
 #endif
 
 // newline character for info file
@@ -148,8 +158,8 @@ double gb_C_cut = GB_C_CUT; // cut movie; <=0 off
 int gb_d_depth = GB_D_DEPTH; //directory depth
 #define GB_D_EDGE 12
 int gb_D_edge = GB_D_EDGE; // edge detection; 0 off; >0 on
-#define GB_E_EXT NULL
-char *gb_e_ext = GB_E_EXT;
+//#define GB_E_EXT NULL
+//char *gb_e_ext = GB_E_EXT;
 #define GB_E_END 0.0
 double gb_E_end = GB_E_END; // skip this seconds at the end
 #define GB_F_FONTNAME "tahomabd.ttf"
@@ -218,6 +228,10 @@ int gb_W_overwrite = GB_W_OVERWRITE; // 1 = overwrite; 0 = dont overwrite
 int gb_z_seek = GB_Z_SEEK; // always use seek mode; 1 on; 0 off
 #define GB_Z_NONSEEK 0
 int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
+
+/* long command line options */
+int gb__shadow=-1;				// -1 off, 0 auto, >0 manual
+
 
 /* more global variables */
 char *gb_argv0 = NULL;
@@ -627,27 +641,78 @@ void thumb_cleanup_dynamic(thumbnail *ptn)
     }
 }
 
+/* returns blured shadow on success, NULL otherwise	*/
+gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int height)
+{
+    gdImagePtr shadow;
+    int shW, shH, radius=*INOUTradius;
+
+	if(radius >= 0)
+	{
+		if(radius == 0)
+			*INOUTradius = radius = MAX((int)(((double)MIN(width, height)) * 0.03), 3);
+		
+		int shadowOffset = 2*radius+1;
+		shW = width +(shadowOffset);
+		shH = height+(shadowOffset);
+
+		shadow = gdImageCreateTrueColor(shW, shH);
+		if(shadow != NULL)
+		{
+			gdImageFilledRectangle(shadow, 0, 0, shW, shH, background);				//fill with background colour
+			gdImageFilledRectangle(shadow, radius+1, radius+1, width, height, 0);	//fill black rectangle as a shadow
+#ifdef GD_MAJOR_VERSION
+			//GaussianBlurred since libgd-2.1.1
+			if((GD_MAJOR_VERSION*1e6 + GD_MINOR_VERSION*1e3 + GD_RELEASE_VERSION) >= 2001001)
+			{
+				gdImagePtr blurredShadow = gdImageCopyGaussianBlurred(shadow, radius, 0);			//blur shadow
+
+				if(blurredShadow != NULL)
+				{
+					gdImageDestroy(shadow);
+					av_log(NULL, AV_LOG_INFO, "  thumbnail shadow radius: %dpx %s", radius, NEWLINE);
+					if(gb_g_gap < shadowOffset)
+						av_log(NULL, AV_LOG_INFO, "  thumbnail shadow might be invisible. Consider increase gap between individual shots (-g %d).%s", shadowOffset, NEWLINE);
+					return blurredShadow;
+				}
+				else
+					av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!%s", NEWLINE);
+			}
+			else
+#endif			
+			{
+				av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.%s", NEWLINE);
+				return shadow;
+			}
+		}
+		else
+			av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!%s", shW, shH, NEWLINE);
+	}
+	else
+		av_log(NULL, AV_LOG_ERROR, "Shadow can't have negative value! (see option --shadow) %s", NEWLINE);
+
+    return NULL;
+}
+
 /* 
 add shot
 because ptn->idx is the last index, this function assumes that shots will be added 
 in increasing order.
 */
-void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, int idx, int64_t pts)
+void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int idx, int64_t pts)
 {
     int dstX = idx%ptn->column * (ptn->shot_width+gb_g_gap) + gb_g_gap + ptn->center_gap;
     int dstY = idx/ptn->column * (ptn->shot_height+gb_g_gap) + gb_g_gap
         + ((3 == gb_L_info_location || 4 == gb_L_info_location) ? ptn->txt_height : 0);
+
+    if(gb__shadow > 0 && thumbShadowIm!=NULL)
+		gdImageCopy(ptn->out_ip, thumbShadowIm, dstX+gb__shadow+1, dstY+gb__shadow+1, 0, 0, gdImageSX(thumbShadowIm), gdImageSY(thumbShadowIm));
+    
     gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width, ptn->shot_height);
     ptn->idx = idx;
     ptn->ppts[idx] = pts;
 }
 
-#ifndef MIN
-#define MIN(a,b) ((a)<(b)?(a):(b))
-#endif
-#ifndef MAX
-#define MAX(a,b) ((a)<(b)?(b):(a))
-#endif
 /*
 perform convolution on pFrame and store result in ip
 pFrame must be a AV_PIX_FMT_RGB24 frame
@@ -1618,6 +1683,7 @@ int make_thumbnail(char *file)
 
     thumbnail tn; // thumbnail data & info
     thumb_new(&tn);
+    gdImagePtr thumbShadowIm=NULL;
     // shot sh; // shot info
 
     /* warning: variable ‘fill_buffer’ set but not used [-Wunused-but-set-variable]
@@ -2058,6 +2124,12 @@ int make_thumbnail(char *file)
         }
     }
 
+	/* if needed create shadow image used for every shot	*/
+	if(gb__shadow >= 0){
+		if((thumbShadowIm = create_shadow_image(background, &gb__shadow, tn.shot_width, tn.shot_height)) == NULL)
+			goto cleanup;
+	}
+
     /* alloc dynamic thumb data */
     if (-1 == thumb_alloc_dynamic(&tn)) {
         av_log(NULL, AV_LOG_ERROR, "  thumb_alloc_dynamic failed\n");
@@ -2334,7 +2406,7 @@ int make_thumbnail(char *file)
         }
 
         /* add picture to output image */
-        thumb_add_shot(&tn, ip, idx, found_pts);
+        thumb_add_shot(&tn, ip, thumbShadowIm, idx, found_pts);
         gdImageDestroy(ip);
         ip = NULL;
 
@@ -2397,6 +2469,8 @@ int make_thumbnail(char *file)
   cleanup:
     if (NULL != ip)
         gdImageDestroy(ip);
+    if (NULL != thumbShadowIm)
+        gdImageDestroy(thumbShadowIm);
     if (NULL != tn.out_ip)
         gdImageDestroy(tn.out_ip);
 
@@ -2833,19 +2907,19 @@ int get_format_opt(char c, char *optarg)
 
 /*
 */
-int get_int_opt(char c, int *opt, char *optarg, int sign)
+int get_int_opt(char *c, int *opt, char *optarg, int sign)
 {
     char *tailptr;
     int ret = strtol(optarg, &tailptr, 10);
     if ('\0' != *tailptr) { // error
-        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s'\n", gb_argv0, c, tailptr);
+        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%s is invalid at '%s'\n", gb_argv0, c, tailptr);
         return 1;
     }
     if (sign > 0 && ret <= 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c must be > 0\n", gb_argv0, c);
+        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%s must be > 0\n", gb_argv0, c);
         return 1;
     } else if (sign == 0 && ret < 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c must be >= 0\n", gb_argv0, c);
+        av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%s must be >= 0\n", gb_argv0, c);
         return 1;
     }
     *opt = ret;
@@ -2875,10 +2949,10 @@ char* mtn_identification()
 {
 	const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled with: %s %s %s %s GD:%s";
 	const char GD_VER[] = 
-	   #ifdef WIN32
-           GD2_ID
-       #else
+	   #ifdef GD_VERSION_STRING
            GD_VERSION_STRING
+       #else
+           GD2_ID
         #endif
 	;
 	size_t s = snprintf(NULL, 0, txt, gb_version, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
@@ -2932,6 +3006,8 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -X : use full input filename (include extension)\n");
     av_log(NULL, AV_LOG_ERROR, "  -z : always use seek mode\n");
     av_log(NULL, AV_LOG_ERROR, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
+    av_log(NULL, AV_LOG_ERROR, "  --shadow[=N]\n     draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
+    av_log(NULL, AV_LOG_ERROR, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
     av_log(NULL, AV_LOG_ERROR, "Examples:\n");
     av_log(NULL, AV_LOG_ERROR, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to change time step to 65 seconds & change total width to 900:\n    %s -s 65 -w 900 infile.avi\n", gb_argv0);
@@ -2940,6 +3016,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to skip uninteresting shots, try:\n    %s -D 6 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_ERROR, "  to draw shadows of the individual shots, try:\n    %s --shadow=3 -g 7 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
 #ifdef WIN32
     av_log(NULL, AV_LOG_ERROR, "\nIn windows, you can run %s from command prompt or drag files/dirs from\n", gb_argv0);
@@ -2982,11 +3059,25 @@ int main(int argc, char *argv[])
     //av_log(NULL, AV_LOG_VERBOSE, "locale: %s\n", locale);
 
     /* get & check options */
-    int parse_error = 0;
+    
+	struct option long_options[] = {		// no_argument, required_argument, optional_argument
+		{"shadow",  optional_argument, 0,  0 },	
+		{0,         0,                 0,  0 }
+	};    
+    int parse_error = 0, option_index = 0;
     int c;
-    while (-1 != (c = getopt(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:HiIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ"))) {
+    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ", long_options, &option_index))) {
         double tmp_a_ratio = 0;
         switch (c) {
+        case 0:
+			if(strcmp("shadow", long_options[option_index].name) == 0)
+			{
+				if(optarg)
+					parse_error += get_int_opt("-shadow", &gb__shadow, optarg, 0);
+				else
+					gb__shadow = 0;				
+			}
+			break;
         case 'a':
             if (0 == get_double_opt('a', &tmp_a_ratio, optarg, 1)) { // success
                 gb_a_ratio.num = tmp_a_ratio * 10000;
@@ -2995,6 +3086,7 @@ int main(int argc, char *argv[])
                 parse_error++;
             }
             break;
+//		case 'A':
         case 'b':
             parse_error += get_double_opt('b', &gb_b_blank, optarg, 0);
             if (gb_b_blank < .2) {
@@ -3009,24 +3101,24 @@ int main(int argc, char *argv[])
             parse_error += get_double_opt('B', &gb_B_begin, optarg, 0);
             break;
         case 'c':
-            parse_error += get_int_opt('c', &gb_c_column, optarg, 1);
+            parse_error += get_int_opt("c", &gb_c_column, optarg, 1);
             break;
         case 'C':
             parse_error += get_double_opt('C', &gb_C_cut, optarg, 1);
             break;
         case 'd':
-            parse_error += get_int_opt('d', &gb_d_depth, optarg, 0);
+            parse_error += get_int_opt("d", &gb_d_depth, optarg, 0);
             break;
         case 'D':
-            parse_error += get_int_opt('D', &gb_D_edge, optarg, 0);
+            parse_error += get_int_opt("D", &gb_D_edge, optarg, 0);
             if (gb_D_edge > 0 
                 && (gb_D_edge < 4 || gb_D_edge > 12)) {
                 av_log(NULL, AV_LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
             }
             break;
-        case 'e':
-            gb_e_ext = optarg;
-            break;
+//		case 'e':
+            //gb_e_ext = optarg;
+            //break;
         case 'E':
             parse_error += get_double_opt('E', &gb_E_end, optarg, 0);
             break;
@@ -3040,10 +3132,11 @@ int main(int argc, char *argv[])
             parse_error += get_format_opt('F', optarg);
             break;
         case 'g':
-            parse_error += get_int_opt('g', &gb_g_gap, optarg, 0);
+            parse_error += get_int_opt("g", &gb_g_gap, optarg, 0);
             break;
+//		case 'G':
         case 'h':
-            parse_error += get_int_opt('h', &gb_h_height, optarg, 0);
+            parse_error += get_int_opt("h", &gb_h_height, optarg, 0);
             break;
         case 'H':
             gb_H_human_filesize = 1;
@@ -3055,14 +3148,19 @@ int main(int argc, char *argv[])
             gb_I_individual = 1;
             break;
         case 'j':
-            parse_error += get_int_opt('j', &gb_j_quality, optarg, 1);
+            parse_error += get_int_opt("j", &gb_j_quality, optarg, 1);
             break;
+//		case 'J':
         case 'k': // background color
             parse_error += get_color_opt('k', &gb_k_bcolor, optarg);
             break;
+//		case 'K':
+//      case 'l':
         case 'L':
             parse_error += get_location_opt('L', optarg);
             break;
+//		case 'm':
+//		case 'M':
         case 'n':
             gb_n_normal = 1; // normal priority
             break;
@@ -3085,14 +3183,16 @@ int main(int argc, char *argv[])
         case 'q':
             gb_q_quiet = 1; //quiet
             break;
+//		case 'Q':
         case 'r':
-            parse_error += get_int_opt('r', &gb_r_row, optarg, 0);
+            parse_error += get_int_opt("r", &gb_r_row, optarg, 0);
             break;
+//		case 'R':
         case 's':
-            parse_error += get_int_opt('s', &gb_s_step, optarg, 0);
+            parse_error += get_int_opt("s", &gb_s_step, optarg, 0);
             break;
         case 'S':
-            parse_error += get_int_opt('S', &gb_S_select_video_stream, optarg, 0);
+            parse_error += get_int_opt("S", &gb_S_select_video_stream, optarg, 0);
             break;
         case 't':
             gb_t_timestamp = 0; // off
@@ -3100,6 +3200,8 @@ int main(int argc, char *argv[])
         case 'T':
             gb_T_text = optarg;
             break;
+//		case 'u':
+//		case 'U':
         case 'v':
             gb_v_verbose = 1; // verbose
             break;
@@ -3108,14 +3210,17 @@ int main(int argc, char *argv[])
             av_log(NULL, AV_LOG_INFO, "%s: -V is only used for debugging\n", gb_argv0);
             break;
         case 'w':
-            parse_error += get_int_opt('w', &gb_w_width, optarg, 0);
+            parse_error += get_int_opt("w", &gb_w_width, optarg, 0);
             break;
         case 'W':
             gb_W_overwrite = 0;
             break;
+//		case 'x':
         case 'X':
             gb_X_filename_use_full = 1;
             break;
+//		case 'y':
+//		case 'Y':
         case 'z':
             gb_z_seek = 1; // always seek mode
             break;
