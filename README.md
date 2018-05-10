@@ -17,15 +17,15 @@ Linux
 
 Build dependencies:
 
-**Fedora** 25-28 (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
+**Fedora** (with repo [RPMFUSION-FREE](https://rpmfusion.org/Configuration/) enabled)
 
     $dnf install ffmpeg-devel gd-devel
 
-**Ubuntu** 17, **Debian** 9
+**Ubuntu, Debian**
 
     $sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev  
 
-**FreeBSD** 11
+**FreeBSD**
 
     $pkg install gmake ffmpeg libgd
 
