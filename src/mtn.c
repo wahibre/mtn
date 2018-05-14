@@ -233,6 +233,7 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 
 /* long command line options */
 int gb__shadow=-1;				// -1 off, 0 auto, >0 manual
+int gb__transparent_bg=0;		//  0 off, 1 on
 
 
 /* more global variables */
@@ -555,7 +556,7 @@ int save_image(gdImagePtr ip, char *outname)
     FILE *fp = _tfopen(outname_w, _TEXT("wb"));
     if (fp != NULL) {
 
-        char* image_extension = strrchr(outname_w, '.');
+        char* image_extension = strrchr(outname, '.');
         if(image_extension && strcmp(image_extension, ".png") == 0 )
             gdImagePngEx(ip, fp, 9);  // 9-best png compression
         else
@@ -2121,8 +2122,23 @@ int make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed: width %d, height %d\n", tn.width, tn.height);
         goto cleanup;
     }
+
+    
+    /* setting alpha blending is not needed, using default mode:
+     * https://libgd.github.io/manuals/2.2.5/files/gd-h.html#Effects
+    gdImageAlphaBlending(tn.out_ip,	
+		//gdEffectReplace		//replace pixels
+		gdEffectAlphaBlend	   	//blend pixels, see gdAlphaBlend
+		//gdEffectNormal		//default mode; same as gdEffectAlphaBlend
+		//gdEffectOverlay		//overlay pixels, see gdLayerOverlay
+		//gdEffectMultiply	//overlay pixels with multiply effect, see gdLayerMultiply
+    );
+    */
     int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b); // set backgroud
     gdImageFilledRectangle(tn.out_ip, 0, 0, tn.width, tn.height, background);
+    
+    if(gb__transparent_bg)
+		gdImageColorTransparent (tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
     if (NULL != all_text && strlen(all_text) > 0) {
@@ -3023,6 +3039,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -z : always use seek mode\n");
     av_log(NULL, AV_LOG_ERROR, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
     av_log(NULL, AV_LOG_ERROR, "  --shadow[=N]\n     draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
+    av_log(NULL, AV_LOG_ERROR, "  --transparent\n    set background color (-k) to transparent; works with PNG image only \n");
     av_log(NULL, AV_LOG_ERROR, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
     av_log(NULL, AV_LOG_ERROR, "Examples:\n");
     av_log(NULL, AV_LOG_ERROR, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
@@ -3077,8 +3094,9 @@ int main(int argc, char *argv[])
     /* get & check options */
     
 	struct option long_options[] = {		// no_argument, required_argument, optional_argument
-		{"shadow",  optional_argument, 0,  0 },	
-		{0,         0,                 0,  0 }
+		{"shadow",      optional_argument, 	0,  0 },	
+		{"transparent", no_argument, 		0,  0 },	
+		{0,         	0,                 	0,  0 }
 	};    
     int parse_error = 0, option_index = 0;
     int c;
@@ -3092,6 +3110,11 @@ int main(int argc, char *argv[])
 					parse_error += get_int_opt("-shadow", &gb__shadow, optarg, 0);
 				else
 					gb__shadow = 0;				
+			}
+			else
+			{
+				if(strcmp("transparent", long_options[option_index].name) == 0)
+					gb__transparent_bg = 1;
 			}
 			break;
         case 'a':
