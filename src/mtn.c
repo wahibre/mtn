@@ -237,7 +237,7 @@ int gb__shadow=-1;				// -1 off, 0 auto, >0 manual
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.2.2";
+char *gb_version = "3.3";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */

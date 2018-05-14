@@ -1,12 +1,13 @@
 Name:		mtn	
-Version: 	3.2.1
+Version: 	3.3
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
 Group:		Amusements/Graphics
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
-Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
+Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn-master.tar.gz
+#Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
 BuildRequires:	gd-devel >= 2.1.1
@@ -41,6 +42,13 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Wed May 16 2018 wahibre  <wahibre@gmx.com> - 3.3
+- Added PNG image format
+- Added --shadow switch to draw shadows beneath thumbnails
+- Added --transparent switch to set background color as transparent
+- Added -q switch to enable quiet mode (overrides -v)
+- verbose mode prints MTN, GD and FFmpeg's version to output
+
 * Tue Jan 02 2018 wahibre  <wahibre@gmx.com> - 3.2.1
 - fixed final cleaning memory crashing on windows
 

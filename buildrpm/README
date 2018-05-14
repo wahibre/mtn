@@ -1,4 +1,4 @@
-spec file for building RPM package on Fedora25
+spec file for building RPM package on Fedora
 
 
 build:

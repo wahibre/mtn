@@ -1,6 +1,9 @@
-version 3.2.2 	<next>
-- add -q switch to enable quiet mode (overrides -v)
-- add --shadow switch to draw shadows beneath thumbnails
+version 3.3 	2018/05/16
+- Added PNG image format
+- Added --shadow switch to draw shadows beneath thumbnails
+- Added --transparent switch to set background color as transparent
+- Added -q switch to enable quiet mode (overrides -v)
+- verbose mode prints MTN, GD and FFmpeg's version to output
 
 version 3.2.1 	2018/01/02
 - fixed final cleaning memory crashing on windows
