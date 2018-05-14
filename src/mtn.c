@@ -115,6 +115,8 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 #define COLOR_GREY (rgb_color){128, 128, 128}
 #define COLOR_WHITE (rgb_color){255, 255, 255}
 #define COLOR_INFO (rgb_color){85, 85, 85}
+#define IMAGE_EXTENSION_JPG ".jpg"
+#define IMAGE_EXTENSION_PNG ".png"
 
 typedef struct shot
 {
@@ -539,9 +541,9 @@ char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int 
 }
 
 /*
-return 0 if can save jpg
+return 0 if image is saved
 */
-int save_jpg(gdImagePtr ip, char *outname)
+int save_image(gdImagePtr ip, char *outname)
 {
 #if defined(WIN32) && defined(_UNICODE)
     wchar_t outname_w[FILENAME_MAX];
@@ -550,26 +552,25 @@ int save_jpg(gdImagePtr ip, char *outname)
     char *outname_w = outname;
 #endif
 
-    int done = -1;
     FILE *fp = _tfopen(outname_w, _TEXT("wb"));
-    if (NULL == fp) {
-        goto cleanup;
-    }
+    if (fp != NULL) {
 
-    errno = 0;
-    gdImageJpeg(ip, fp, gb_j_quality);  /* NOTE: gdImageJpeg: how to check if write was successful? */
-    if (0 != errno) {
-        goto cleanup;
-    }
-    done = 0; // 0 = ok
+        char* image_extension = strrchr(outname_w, '.');
+        if(image_extension && strcmp(image_extension, ".png") == 0 )
+            gdImagePngEx(ip, fp, 9);  // 9-best png compression
+        else
+            gdImageJpeg (ip, fp, gb_j_quality);
 
-  cleanup:
-    if (NULL != fp && 0 != fclose(fp)) {
-      done = -1;
+        if(fclose(fp) == 0)
+            return 0;
+        else
+            av_log(NULL, AV_LOG_ERROR, "\n%s: closing output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
     }
-    return done;
+    else
+        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, outname, strerror(errno));
+
+    return -1;
 }
-
 /*
 pFrame must be a AV_PIX_FMT_RGB24 frame
 */
@@ -1705,7 +1706,7 @@ int make_thumbnail(char *file)
     uint8_t *rgb_buffer = NULL;
     struct SwsContext *pSwsCtx = NULL;
     tn.out_ip = NULL;
-    FILE *out_fp = NULL;
+    //FILE *out_fp = NULL;
     FILE *info_fp = NULL;
     gdImagePtr ip = NULL;
 
@@ -1724,7 +1725,7 @@ int make_thumbnail(char *file)
         if (NULL != gb_N_suffix)
             strcpy(tn.info_filename, file);
     }
-    char *suffix = strrchr(tn.out_filename, '.');
+    char *suffix = strrchr(tn.out_filename, '.');   //movie extension (.avi, .mkv, ...)
 
     if (gb_X_filename_use_full) {
         strcat(tn.out_filename, gb_o_suffix);
@@ -1733,7 +1734,7 @@ int make_thumbnail(char *file)
         if (NULL == suffix) {
             strcat(tn.out_filename, gb_o_suffix);
         } else {
-            strcpy(suffix, gb_o_suffix);
+            strcpy(suffix, gb_o_suffix);            //overwrite extension with suffix
         }
     }
 
@@ -1745,6 +1746,16 @@ int make_thumbnail(char *file)
             strcpy(suffix, gb_N_suffix);
         }
     }
+
+    // idenfity thumbnail image extension
+    char image_extension[5];
+    suffix = strrchr(tn.out_filename, '.');
+    if(suffix && strcasecmp(suffix, ".png")==0 )
+        strcpy(image_extension, IMAGE_EXTENSION_PNG);
+    else
+        strcpy(image_extension, IMAGE_EXTENSION_JPG);
+
+
     // if output files exist and modified time >= program start time,
     // we'll not overwrite and use a new name
     int unum = 0;
@@ -1769,19 +1780,19 @@ int make_thumbnail(char *file)
         }
     }
 #if defined(WIN32) && defined(_UNICODE)
-    wchar_t out_filename_w[FILENAME_MAX];
-    UTF8_2_WC(out_filename_w, tn.out_filename, FILENAME_MAX);
+//    wchar_t out_filename_w[FILENAME_MAX];
+//    UTF8_2_WC(out_filename_w, tn.out_filename, FILENAME_MAX);
     wchar_t info_filename_w[FILENAME_MAX];
     UTF8_2_WC(info_filename_w, tn.info_filename, FILENAME_MAX);
 #else
-    char *out_filename_w = tn.out_filename;
+//    char *out_filename_w = tn.out_filename;
     char *info_filename_w = tn.info_filename;
 #endif
-    out_fp = _tfopen(out_filename_w, _TEXT("wb"));
-    if (NULL == out_fp) {
-        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, tn.out_filename, strerror(errno));
-        goto cleanup;
-    }
+//    out_fp = _tfopen(out_filename_w, _TEXT("wb"));
+//    if (NULL == out_fp) {
+//        av_log(NULL, AV_LOG_ERROR, "\n%s: creating output image '%s' failed: %s\n", gb_argv0, tn.out_filename, strerror(errno));
+//        goto cleanup;
+//    }
     if (NULL != gb_N_suffix) {
         av_log(NULL, AV_LOG_INFO, "\nCreating info file %s\n", tn.info_filename);
         info_fp = _tfopen(info_filename_w, _TEXT("wb"));
@@ -2063,7 +2074,7 @@ int make_thumbnail(char *file)
         tn.step, tn.column, tn.row, tn.shot_width, tn.shot_height, tn.width, tn.height);
 
     // jpeg seems to have max size of 65500 pixels
-    if (tn.width > 65500 || tn.height > 65500) {
+    if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.width > 65500 || tn.height > 65500)) {
         av_log(NULL, AV_LOG_ERROR, "  jpeg only supports max size of 65500\n");
         goto cleanup;
     }
@@ -2398,8 +2409,8 @@ int make_thumbnail(char *file)
             strcpy(individual_filename, tn.out_filename);
             char *suffix = strstr(individual_filename, gb_o_suffix);
             assert(NULL != suffix);
-            sprintf(suffix, "_%s_%05d.jpg", time_str, idx);
-            ret = save_jpg(ip, individual_filename);
+            sprintf(suffix, "_%s_%05d%s", time_str, idx, image_extension);
+            ret = save_image(ip, individual_filename);
             if (0 != ret) { // error
                 av_log(NULL, AV_LOG_ERROR, "  saving individual shot #%05d to %s failed\n", idx, individual_filename);
             }
@@ -2448,13 +2459,18 @@ int make_thumbnail(char *file)
     /* fill in the last row if some shots were skipped */
 
     /* save output image */
-    errno = 0;
-    gdImageJpeg(tn.out_ip, out_fp, gb_j_quality);  /* FIXME: how to check if write was successful? */
-    if (0 != errno) { // FIXME: this should work?
-        av_log(NULL, AV_LOG_ERROR, "  saving output image failed: %s\n", strerror(errno));
+//    errno = 0;
+//    gdImageJpeg(tn.out_ip, out_fp, gb_j_quality);  /* FIXME: how to check if write was successful? */
+//    if (0 != errno) { // FIXME: this should work?
+//        av_log(NULL, AV_LOG_ERROR, "  saving output image failed: %s\n", strerror(errno));
+//        goto cleanup;
+//    }
+//    tn.out_saved = 1;
+    /* save output image */
+    if(save_image(tn.out_ip, tn.out_filename) == 0)
+        tn.out_saved  = 1;
+    else
         goto cleanup;
-    }
-    tn.out_saved = 1;
 
     struct timeval tfinish;
     gettimeofday(&tfinish, NULL); // calendar time; effected by load & io & etc.
@@ -2474,12 +2490,12 @@ int make_thumbnail(char *file)
     if (NULL != tn.out_ip)
         gdImageDestroy(tn.out_ip);
 
-    if (NULL != out_fp) {
-        fclose(out_fp);
-        if (1 != tn.out_saved) {
-            _tunlink(out_filename_w);
-        }
-    }
+//    if (NULL != out_fp) {
+//        fclose(out_fp);
+//        if (1 != tn.out_saved) {
+//            _tunlink(out_filename_w);
+//        }
+//    }
     if (NULL != info_fp) {
         fclose(info_fp);
         if (1 != tn.out_saved) {
@@ -2965,7 +2981,7 @@ void usage()
 {
     av_log(NULL, AV_LOG_ERROR, "\n%s\n\n", mtn_identification());
 
-    av_log(NULL, AV_LOG_ERROR, "Mtn saves thumbnails of specified movie files or directories to jpeg files.\n");
+    av_log(NULL, AV_LOG_ERROR, "Mtn saves thumbnails of specified movie files or directories to image files.\n");
     av_log(NULL, AV_LOG_ERROR, "For directories, it will recursively search inside for movie files.\n\n");
     av_log(NULL, AV_LOG_ERROR, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
     av_log(NULL, AV_LOG_ERROR, "Options: (and default values)\n");
@@ -2982,7 +2998,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
     av_log(NULL, AV_LOG_ERROR, "  -g %d : gap between each shot\n", GB_G_GAP);
     av_log(NULL, AV_LOG_ERROR, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
-    av_log(NULL, AV_LOG_ERROR, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes to\n");
+    av_log(NULL, AV_LOG_ERROR, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too\n");
     av_log(NULL, AV_LOG_ERROR, "  -i : info text off\n");
     av_log(NULL, AV_LOG_ERROR, "  -I : save individual shots too\n");
     av_log(NULL, AV_LOG_ERROR, "  -j %d : jpeg quality\n", GB_J_QUALITY);
@@ -2990,7 +3006,7 @@ void usage()
     av_log(NULL, AV_LOG_ERROR, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
     av_log(NULL, AV_LOG_ERROR, "  -n : run at normal priority\n");
     av_log(NULL, AV_LOG_ERROR, "  -N info_suffix : save info text to a file with suffix\n");
-    av_log(NULL, AV_LOG_ERROR, "  -o %s : output suffix\n", GB_O_SUFFIX);
+    av_log(NULL, AV_LOG_ERROR, "  -o %s : output suffix including image extension (.jpg or .png)\n", GB_O_SUFFIX);
     av_log(NULL, AV_LOG_ERROR, "  -O directory : save output files in the specified directory\n");
     av_log(NULL, AV_LOG_ERROR, "  -p : pause before exiting; default on in win32\n");
     av_log(NULL, AV_LOG_ERROR, "  -P : dont pause before exiting; override -p\n");
