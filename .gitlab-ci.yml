@@ -40,7 +40,6 @@ fc27+static+win32:
     - cp ./*.md mtn-win32/
     - zip -r mtn-win32.zip mtn-win32
     # mv mtn-win32.zip $CI_PROJECT_DIR
-    - popd
     - mv buildroot/RPMS/x86_64/*.rpm .
 #    when: manual
     artifacts:
