@@ -14,9 +14,9 @@ fc27+static+win32:
     - curl --output /home/deps-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
     - curl --output /home/deps-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
     - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
-    - tar czf archive.tar.gz * --transform="s%^%mtn-ci/%"
+    - tar czf mtn-master.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
-    - mv archive.tar.gz buildroot/SOURCES/
+    - mv mtn-master.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mkdir -p lib/windows
     - pushd lib
