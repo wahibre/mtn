@@ -6,7 +6,7 @@ Summary:	Movie thumbnailer
 Group:		Amusements/Graphics
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
-Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn-master.tar.gz
+Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 

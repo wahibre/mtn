@@ -18,8 +18,15 @@ endif
 
 LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
-S_LIBS=$(LIBSDIR)/libpng.a $(LIBSDIR)/libgd.a $(LIBSDIR)/libavformat.a $(LIBSDIR)/libavcodec.a $(LIBSDIR)/libswscale.a $(LIBSDIR)/libavutil.a $(LIBSDIR)/libz.a \
--lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
+S_LIBS=\
+	$(LIBSDIR)/libgd.a \
+	$(LIBSDIR)/libavformat.a \
+	$(LIBSDIR)/libavcodec.a \
+	$(LIBSDIR)/libswscale.a \
+	$(LIBSDIR)/libavutil.a \
+	$(LIBSDIR)/libz.a \
+	$(LIBSDIR)/libpng.a \
+	-lm -lpthread -lbz2 -ldl -ljpeg -lfreetype
 
 mtn: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)

@@ -10,20 +10,22 @@ fc27+static+win32:
     script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-static libpng-static mingw32-gcc.x86_64 zip
-    - curl --output /home/mtn-deps.tgz -L https://bitbucket.org/wahibre/mtn/downloads/mtn-deps.tgz
-    - curl --output /home/deps-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
-    - curl --output /home/deps-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
+    - curl --output /home/deps-f28-FFmpeg.tar.gz -L https://bitbucket.org/wahibre/mtn/downloads/deps-f28-FFmpeg-3.4-x64.tar.gz
+    - curl --output /home/deps-f28-libgd.tar.gz -L https://bitbucket.org/wahibre/mtn/downloads/deps-f28-libgd-2.1.1-x64.tar.gz
+    - curl --output /home/deps-win-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
+    - curl --output /home/deps-win-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
     - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
-    - tar czf mtn-master.tar.gz * --transform="s%^%mtn-ci/%"
+    - tar czf mtn.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
-    - mv mtn-master.tar.gz buildroot/SOURCES/
+    - mv mtn.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mkdir -p lib/windows
     - pushd lib
-    - tar xzf /home/mtn-deps.tgz
+    - tar xzf /home/deps-f28-FFmpeg.tar.gz
+    - tar xzf /home/deps-f28-libgd.tar.gz
     - cd windows
-    - tar xzf /home/deps-libgd.tgz
-    - tar xzf /home/deps-FFmpeg.tgz
+    - tar xzf /home/deps-win-libgd.tgz
+    - tar xzf /home/deps-win-FFmpeg.tgz
     - popd
     - pushd src
     # linux static
@@ -58,9 +60,9 @@ fc28:
     script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build
-    - tar czf archive.tar.gz * --transform="s%^%mtn-ci/%"
+    - tar czf mtn.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
-    - mv archive.tar.gz buildroot/SOURCES/
+    - mv mtn.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mv buildroot/RPMS/x86_64/*.rpm .
     artifacts:
