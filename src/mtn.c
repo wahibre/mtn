@@ -3065,7 +3065,10 @@ void usage()
 #endif
     av_log(NULL, AV_LOG_ERROR, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
     av_log(NULL, AV_LOG_ERROR, "welcome to redistribute it under certain conditions; for details see file\n");
-    av_log(NULL, AV_LOG_ERROR, "gpl-2.0.txt.\n");
+    av_log(NULL, AV_LOG_ERROR, "gpl-2.0.txt.\n\n");
+
+    av_log(NULL, AV_LOG_ERROR, "wahibre@gmx.com\n");
+    av_log(NULL, AV_LOG_ERROR, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
 }
 
 /**
