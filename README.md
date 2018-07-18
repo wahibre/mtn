@@ -23,41 +23,40 @@ Getting source
 Installing from source
 ======================
 
-**Fedora** 
+**[Fedora](https://getfedora.org/)** 26 
 
 	$dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     $dnf install ffmpeg-devel gd-devel make gcc-c++  
     $make
     $su -c 'make install'
 
-**Ubuntu, Debian**
+**[Ubuntu](https://www.ubuntu.com/)** 17.10, **[Debian](https://www.debian.org/)** 9, **[LinuxMint](https://linuxmint.com)** 19  
 
     $sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
     $make
     $sudo make install
 
-**Manjaro**  
+**[Manjaro](https://manjaro.org/)**  
 
     $pacman -S gd ffmpeg make gcc
     $make
     $su -c 'make install'
 
-**OpenSUSE**  
+**[OpenSUSE](http://opensuse.org/)** 15  
+(FFmpeg in repository is unfortunatelly compiled with only a few video codecs)
 
-*n/a*  
-*FFmpeg >=3.1 not available
+    $zypper install ffmpeg-private-devel libswscale-devel gd-devel freetype2-devel make gcc ffmpeg 
+    $make
+    $sudo make install
 
-**CentOS**  
+    
+
+**[CentOS](https://centos.org/)** 7  
 
 *n/a*  
 *FFmpeg >=3.1 not available in RPMFusion repository*  
 
-**Mint**  
-
-*n/a*  
-*FFmpeg >=3.1 not available in repository*  
-
-**FreeBSD**
+**[FreeBSD](https://www.freebsd.org/)** 10  
 
     $pkg install gmake ffmpeg libgd
     $gmake

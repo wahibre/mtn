@@ -2,28 +2,35 @@
 
 ./configure   \
 --pkg-config-flags="--static" \
---disable-x86asm \
---disable-encoders \
---disable-swresample \
---disable-postproc \
---disable-muxers \
---disable-programs \
---disable-bsfs \
 --disable-alsa \
---disable-outdevs \
+--disable-avdevice \
+--disable-avfilter \
 --disable-bsfs \
 --disable-doc \
---disable-shared \
---disable-network \
+--disable-encoders \
+--disable-filters \
 --disable-indevs \
+--disable-muxers \
+--disable-network \
+--disable-outdevs \
+--disable-parsers \
+--disable-postproc \
+--disable-programs \
+--disable-shared \
+--disable-swresample \
+--disable-x86asm \
 \
 
 exit
 
+
+format
+codec
+swscale
+util
+
 --disable-protocols \
 --disable-demuxers \
---disable-parsers \
---disable-filters \
 
 --disable-bzlib \
 --disable-iconv \
