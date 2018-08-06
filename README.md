@@ -36,14 +36,14 @@ Installing from source
     $make
     $sudo make install
 
-**[Manjaro](https://manjaro.org/)**  
+**[Archlinux](https://www.archlinux.org/), [Manjaro](https://manjaro.org/)**  
 
-    $pacman -S gd ffmpeg make gcc
+    $pacman -Sy ffmpeg gd make gcc
     $make
-    $su -c 'make install'
+    $sudo make install
 
 **[OpenSUSE](http://opensuse.org/)** 15  
-(FFmpeg in repository is unfortunatelly compiled with only a few video codecs)
+(FFmpeg in repository is unfortunately compiled with only a few video codecs)
 
     $zypper install ffmpeg-private-devel libswscale-devel gd-devel freetype2-devel make gcc ffmpeg 
     $make
@@ -73,3 +73,4 @@ References
  * [libgd library and dependecies](http://gnuwin32.sourceforge.net/packages/gd.htm)
  * [MinGW](http://www.mingw.org/)
  * [RPM Fusion repository](https://rpmfusion.org/)
+ * [GitLab yaml](https://docs.gitlab.com/ee/ci/yaml/README.html)

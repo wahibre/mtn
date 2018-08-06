@@ -274,7 +274,8 @@ void format_time(double duration, TIME_STR str, char sep)
     if (duration < 0) {
         sprintf(str, "N/A");
     } else {
-        int hours, mins, secs;
+        //int hours, mins, secs; // with -O3 results in  warning: '__builtin___snprintf_chk' output may be truncated before the last format character [-Wformat-truncation=]
+        unsigned char hours, mins, secs;
         secs = duration;
         mins = secs / 60;
         secs %= 60;
@@ -1827,7 +1828,8 @@ int make_thumbnail(char *file)
     // int av_find_default_stream_index(AVFormatContext *s)
     int video_index = -1;
     int n_video_stream = 0;
-    for (uint8_t j = 0; j < pFormatCtx->nb_streams; j++) {
+    uint8_t j;
+    for (j = 0; j < pFormatCtx->nb_streams; j++) {
         if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
             if (!gb_S_select_video_stream) {
                 video_index = j;
@@ -3308,8 +3310,11 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         SetPriorityClass(GetCurrentProcess(), IDLE_PRIORITY_CLASS);
 #else
-        nice(10); // mingw doesn't have nice??
+		errno = 0;
+        int nice_ret = nice(10); // mingw doesn't have nice??
         //setpriority (PRIO_PROCESS, 0, PRIO_MAX/2);
+		if(nice_ret == -1 && errno != 0)
+			av_log(NULL, AV_LOG_ERROR, "error setting process priority (nice=10)\n");
 #endif
     }
 
