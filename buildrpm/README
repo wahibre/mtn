@@ -1,5 +1,7 @@
 spec file for building RPM package on Fedora
 
+requires:
+    rpm-build
 
 build:
     rpmbuild --undefine=_disable_source_fetch -ba mtn.spec

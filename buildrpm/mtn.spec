@@ -10,6 +10,8 @@ Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
+BuildRequires:	gcc
+BuildRequires:	make
 BuildRequires:	gd-devel >= 2.1.1
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
