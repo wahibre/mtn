@@ -1,86 +1,60 @@
 stages:
     - build
 
-fc27+static+win32:
-    image: fedora:27
+variables:
+  MOVIE_URL: "https://bitbucket.org/wahibre/mtn/downloads/sample.avi"
+
+#obsolete
+.fedorarpm: &fcrpm
     stage: build
     only:
     - master
     - devel
     script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-static libpng-static mingw32-gcc.x86_64 zip
-    - curl --output /home/deps-f28-FFmpeg.tar.gz -L https://bitbucket.org/wahibre/mtn/downloads/deps-f28-FFmpeg-3.4-x64.tar.gz
-    - curl --output /home/deps-f28-libgd.tar.gz -L https://bitbucket.org/wahibre/mtn/downloads/deps-f28-libgd-2.1.1-x64.tar.gz
-    - curl --output /home/deps-win-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
-    - curl --output /home/deps-win-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
-    - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
-    - tar czf mtn.tar.gz * --transform="s%^%mtn-ci/%"
-    - mkdir -p buildroot/SOURCES
-    - mv mtn.tar.gz buildroot/SOURCES/
-    - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
-    - mkdir -p lib/windows
-    - pushd lib
-    - tar xzf /home/deps-f28-FFmpeg.tar.gz
-    - tar xzf /home/deps-f28-libgd.tar.gz
-    - cd windows
-    - tar xzf /home/deps-win-libgd.tgz
-    - tar xzf /home/deps-win-FFmpeg.tgz
-    - popd
-    - pushd src
-    # linux static
-    - make tests
-    # windows shared
-    - make -f Makefile.mingw
-    - popd
-    - tar czhf mtn-static.tgz bin/mtn lib/FFmpeg lib/libgd lib/libpng.a lib/libz.a
-    - mkdir -p mtn-win32/bin
-    - mv lib/windows/bin/* mtn-win32/bin/
-    - mv bin/mtn.exe mtn-win32/bin/
-    - cp -r src mtn-win32/
-    - cp ./*.txt mtn-win32/
-    - cp ./*.md mtn-win32/
-    - zip -r mtn-win32.zip mtn-win32
-    # mv mtn-win32.zip $CI_PROJECT_DIR
-    - mv buildroot/RPMS/x86_64/*.rpm .
-#    when: manual
-    artifacts:
-        name: mtn-fc27+static+win32
-        expire_in: 30 week
-        paths:
-        - ./*.rpm
-        - mtn-static.tgz
-        - mtn-win32.zip
-fc28:
-    image: fedora:28
-    stage: build
-    only:
-    - master
-    - devel
-    script:
-    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build
+    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-devel libpng-devel
     - tar czf mtn.tar.gz * --transform="s%^%mtn-ci/%"
     - mkdir -p buildroot/SOURCES
     - mv mtn.tar.gz buildroot/SOURCES/
     - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
     - mv buildroot/RPMS/x86_64/*.rpm .
     artifacts:
-        name: mtn-fc28
-        expire_in: 30 week
+        name: mtn-$CI_JOB_NAME
+        expire_in: 4 week
         paths:
         - ./*.rpm
 
-# template
+.fedora: &fc
+    stage: build
+    only:
+    - master
+    - devel
+    before_script:
+    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-devel libpng-devel
+    - curl --output /home/sample.avi -L $MOVIE_URL
+    script:
+# 	  build & test
+    - cd src
+    - make test
+    - mv /tmp/*.jpg ..
+    artifacts:
+        name: mtn-$CI_JOB_NAME
+        expire_in: 4 week
+        paths:
+        - ./bin/*
+        - ./*.jpg
+
 .ubu: &ubuntu
     stage: build
     only:
     - master
     - devel
-    script:
+    before_script:
     - apt-get -y update
     - apt-get -y install curl make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
-    - curl --output /home/sample.avi -L https://bitbucket.org/wahibre/mtn/downloads/sample.avi
+    - curl --output /home/sample.avi -L $MOVIE_URL
+    script:
     - pushd src
     - make test
     - popd
@@ -93,21 +67,117 @@ fc28:
     - chmod -R 755 rootdirectory
     - dpkg-deb --build rootdirectory .
     - mv mtn*.deb ../
+    artifacts:
+        name: mtn-$CI_JOB_NAME
+        expire_in: 4 week
+        paths:
+        - ./*.deb
 
-ubuntu17:
+win:
+    image: fedora:28
+    stage: build
+    only:
+    - master
+    - devel
+    before_script:
+    - dnf -y install curl make mingw32-gcc.x86_64
+    - curl --output /tmp/deps-win-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
+    - curl --output /tmp/deps-win-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
+    - curl --output /home/sample.avi -L $MOVIE_URL
+    script:
+    - mkdir -p lib/windows
+    - pushd lib/windows
+    - tar xzf /tmp/deps-win-libgd.tgz
+    - tar xzf /tmp/deps-win-FFmpeg.tgz
+    - cd ../../src
+    - make -f Makefile.mingw
+    - popd
+    - mkdir -p mtn-win32/bin
+    - mv lib/windows/bin/* mtn-win32/bin/
+    - mv bin/mtn.exe mtn-win32/bin/
+    - cp -r src mtn-win32/
+    - cp ./*.txt mtn-win32/
+    - cp ./*.md mtn-win32/
+    # mv mtn-win32.zip $CI_PROJECT_DIR
+#    when: manual
+    artifacts:
+        name: mtn-$CI_JOB_NAME
+        expire_in: 4 week
+        paths:
+        - mtn-win32
+
+centos:
+    image: centos:7
+    stage: build
+    only:
+    - master
+    - devel
+    - tesci
+    before_script:
+    - yum -y install git patch gcc cmake libjpeg-turbo-devel freetype-devel bzip2-devel make gcc-c++ zlib-static libpng-static
+    - curl --output /home/sample.avi -L $MOVIE_URL
+    - git clone --depth=1 --branch release/3.4 https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg
+    - git clone --depth=1 --branch GD-2.2 https://github.com/libgd/libgd.git lib/libgd
+    script:
+    - pushd lib/FFmpeg
+    - ../../misc/configureFFmpeg.sh
+    - make -j4
+    - cd ..
+    - ln -s FFmpeg/libavformat/libavformat.a
+    - ln -s FFmpeg/libavcodec/libavcodec.a
+    - ln -s FFmpeg/libswscale/libswscale.a
+    - ln -s FFmpeg/libavutil/libavutil.a
+    - popd
+    - pushd lib/libgd
+    - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DFREETYPE_INCLUDE_DIRS=/usr/include/freetype2 .
+    - make -j4
+    - cd ..
+    - ln -s libgd/Bin/libgd.a
+    - ln -s /usr/lib64/libpng.a
+    - ln -s /usr/lib64/libz.a
+    - popd
+    - pushd src
+    - make tests
+    - cd ../lib/FFmpeg
+    - git clean -fxd
+    - rm -rf .git
+    - cd ../libgd
+    - git clean -fxd
+    - rm -rf .git
+    - popd
+    - tar czf mtn-el7.tgz --exclude=*.tgz * --transform="s%^%mtn-static/%"
+    - mv /tmp/sample_s.jpg .
+    artifacts:
+        name: mtn-el7
+        expire_in: 4 week
+        paths:
+        - ./*.tgz
+        - ./*.jpg
+
+fc26:
+    image: fedora:26
+    <<: *fc
+
+fc28:
+    image: fedora:28
+    <<: *fc
+
+fc29:
+    image: fedora:29
+    <<: *fc
+
+u17.10:
     image: ubuntu:17.10
     <<: *ubuntu
-    artifacts:
-        name: mtn-u17.10
-        expire_in: 30 week
-        paths:
-        - ./*.deb
 
-ubuntu18:
+u18.04:
     image: ubuntu:18.04
     <<: *ubuntu
-    artifacts:
-        name: mtn-u18.04
-        expire_in: 30 week
-        paths:
-        - ./*.deb
+
+u18.10:
+    image: ubuntu:18.10
+    <<: *ubuntu
+
+u19.04:
+    image: ubuntu:19.04
+    <<: *ubuntu
