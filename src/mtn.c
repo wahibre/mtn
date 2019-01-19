@@ -274,8 +274,8 @@ void format_time(double duration, TIME_STR str, char sep)
     if (duration < 0) {
         sprintf(str, "N/A");
     } else {
-        //int hours, mins, secs; // with -O3 results in  warning: '__builtin___snprintf_chk' output may be truncated before the last format character [-Wformat-truncation=]
-        unsigned char hours, mins, secs;
+        int hours, mins, secs;
+        //unsigned char hours, mins, secs;      // displays incorrect time
         secs = duration;
         mins = secs / 60;
         secs %= 60;
