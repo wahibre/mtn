@@ -84,8 +84,8 @@ debian:
     - devel
     before_script:
     - apt update
-    - apt install -y git curl libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
-    - curl --output /home/sample.avi -L $MOVIE_URL
+    - apt install -y git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
+    - wget --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
     - git clone --depth=1 -b $STATIC_FFMPEG_BRANCH https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg

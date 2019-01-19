@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2018 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
+    Copyright (C) 2017-2019 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html

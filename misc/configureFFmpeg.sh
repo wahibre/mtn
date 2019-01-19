@@ -19,19 +19,12 @@
 --disable-shared \
 --disable-swresample \
 --disable-x86asm \
-\
+--disable-autodetect \
 
 exit
 
-
-format
-codec
-swscale
-util
-
 --disable-protocols \
 --disable-demuxers \
-
 --disable-bzlib \
 --disable-iconv \
 --disable-libxcb \
@@ -49,4 +42,8 @@ util
 --disable-mdct    \
 --disable-rdft    \
 --enable-gpl \
+--enable-parser=h264
+--enable-libx264 \
 --enable-libx265 \
+--enable-libxvid \
+--enable-libzvbi \
