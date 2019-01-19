@@ -3,7 +3,7 @@
 
 #DESTDIR - reserved for rpmbuild
 UNAME!=uname -s
-CFLAGS=-W -Wall
+CFLAGS=-W -Wall -O3
 OUT=../bin
 LIBSDIR=../lib
 

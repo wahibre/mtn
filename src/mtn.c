@@ -101,7 +101,7 @@
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
 
-typedef char TIME_STR[15];
+typedef char TIME_STR[16];
 
 typedef struct rgb_color
 {   // GD uses int, so we'll use int too
@@ -288,7 +288,7 @@ void format_time(double duration, TIME_STR str, char sep)
 
 char *format_size(int64_t size)
 {
-    static char buf[20]; // FIXME
+    static char buf[23]; // FIXME
     char unit[]="B";
 
     if (size < 1024) {
@@ -336,9 +336,11 @@ char *strcpy_va(char *dst, int n, ...)
     for (i=0; i < n; i++) {
         char *s = va_arg(ap, char *);
         assert(NULL != s);
+        /* warning: ‘strncpy’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
         int len = strlen(s);
-        strncpy(dst + pos, s, len + 1); // for '\0'
-        pos += len;
+        strncpy(dst + pos, s, len + 1); // for '\0' 
+        pos += len; */
+        strcat(dst, s);
     }
     va_end(ap);
     return dst;
@@ -1680,6 +1682,7 @@ int make_thumbnail(char *file)
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
     static int nb_file = 0; // FIXME: static
     nb_file++;
+    int idx = 0;
 
     struct timeval tstart;
     gettimeofday(&tstart, NULL);
@@ -2185,7 +2188,7 @@ int make_thumbnail(char *file)
     double avg_evade_try = 0; // average
     int direction = 0; // seek direction (seek flags)
     seek_target = (tn.step + start_time + gb_B_begin) / av_q2d(pStream->time_base);
-    int idx = 0; // idx = thumb_idx
+    idx = 0; // idx = thumb_idx
     int thumb_nb = tn.row * tn.column; // thumb_nb = # of shots we need
     int64_t prevshot_pts = -1; // pts of previous good shot
     int64_t prevfound_pts = -1; // pts of previous decoding
