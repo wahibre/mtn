@@ -1,3 +1,6 @@
+version 3.3.1 	2019/01/23
+- improoved searching for video source in case the first video source is cover art
+
 version 3.3 	2018/05/16
 - Added PNG image format
 - Added --shadow switch to draw shadows beneath thumbnails

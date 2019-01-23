@@ -238,7 +238,7 @@ int gb__transparent_bg=0;		//  0 off, 1 on
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.3";
+char *gb_version = "3.3.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
@@ -1674,6 +1674,51 @@ int make_unique_name(char *name, char *suffix, int unum)
     return unum;
 }
 
+/*  find first usable video stream (not cover art)
+    based on av_find_default_stream_index()
+    returns
+        >0: video index
+        -1: can't find any usable video
+*/
+static int find_default_videostream_index(AVFormatContext *s, int user_selected_video_stream)
+{
+    int default_stream_idx = -1;
+    int cover_image;
+    int n_video_stream = 0;
+    AVStream *st;
+
+    for (unsigned int i = 0; i < s->nb_streams; i++)
+    {
+        st = s->streams[i];
+        if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+        {
+            cover_image = (st->disposition & AV_DISPOSITION_ATTACHED_PIC);
+
+            if(user_selected_video_stream)
+            {
+                if (++n_video_stream == user_selected_video_stream)
+                {
+                    default_stream_idx = i;
+                    av_log(NULL, AV_LOG_INFO, "Selecting video stream (-S): %d%s", user_selected_video_stream, NEWLINE);
+
+                    if(cover_image)
+                        av_log(NULL, AV_LOG_INFO, "  Warning: Selected video stream is \"cover art\"%s", NEWLINE);
+                    break;
+                }
+            }
+            else
+            {
+                if (!cover_image) {
+                    default_stream_idx = i;
+                    break;
+                }
+            }
+        }
+    }
+
+    return default_stream_idx;
+}
+
 /*
 */
 int make_thumbnail(char *file)
@@ -1827,25 +1872,8 @@ int make_thumbnail(char *file)
     }
     dump_format_context(pFormatCtx, nb_file, file, 0);
 
-    // Find the first video stream
-    // int av_find_default_stream_index(AVFormatContext *s)
-    int video_index = -1;
-    int n_video_stream = 0;
-    uint8_t j;
-    for (j = 0; j < pFormatCtx->nb_streams; j++) {
-        if (AVMEDIA_TYPE_VIDEO == pFormatCtx->streams[j]->codecpar->codec_type) {
-            if (!gb_S_select_video_stream) {
-                video_index = j;
-                break;
-            } else {
-                 if (++n_video_stream == gb_S_select_video_stream) {
-                   video_index = j;
-                   av_log(NULL, AV_LOG_INFO, "Selecting video stream (-S): %d\n", gb_S_select_video_stream);
-                   break;
-              }
-            }
-        }
-    }
+    // Find videostream
+    int video_index = find_default_videostream_index(pFormatCtx, gb_S_select_video_stream);
     if (video_index == -1)
     {
         if(!gb_S_select_video_stream)

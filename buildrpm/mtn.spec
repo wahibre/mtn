@@ -1,5 +1,5 @@
 Name:		mtn	
-Version: 	3.3
+Version: 	3.3.1
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
@@ -44,28 +44,20 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Fri Jan 18 2019 wahibre  <wahibre@gmx.com> - 3.3.1
+- update to version 3.3.1
+
 * Wed May 16 2018 wahibre  <wahibre@gmx.com> - 3.3
-- Added PNG image format
-- Added --shadow switch to draw shadows beneath thumbnails
-- Added --transparent switch to set background color as transparent
-- Added -q switch to enable quiet mode (overrides -v)
-- verbose mode prints MTN, GD and FFmpeg's version to output
+- update to version 3.3
 
 * Tue Jan 02 2018 wahibre  <wahibre@gmx.com> - 3.2.1
-- fixed final cleaning memory crashing on windows
+- update to version 3.2.1
 
 * Tue Dec 05 2017 wahibre  <wahibre@gmx.com> - 3.2
-- add -H option to disable filesize in bytes in media info
+- update to version 3.2
 
 * Thu Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
-- propose new image size in case of too small thumbnails
-- file size only in human readable format
-- fixed blank lines between media info and additional title
-- fixed freezing after reading file error
+- update to version 3.1
 
 * Mon Aug 7 2017 wahibre  <wahibre@gmx.com> - 3.0
-- removed old and deprecated piece of code and replaced with new FFmpeg's (3.1.8) API
-- add -X option to include video extension in output filename
-- add -S option to select video stream
-- add -d option to set recursion depth
-- return code -1 on failure
+- initial
