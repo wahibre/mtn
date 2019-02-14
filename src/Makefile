@@ -2,7 +2,7 @@
 #CFLAGS=-W -Wall `pkg-config --cflags libavformat`
 
 #DESTDIR - reserved for rpmbuild
-UNAME!=uname -s
+UNAME=$(shell uname -s)
 CFLAGS=-W -Wall -O3
 OUT=../bin
 LIBSDIR=../lib
@@ -60,7 +60,7 @@ install: mtn
 	mkdir -p $(DESTDIR)/usr/share/doc/mtn
 	cp -Rp ../doc/* $(DESTDIR)/usr/share/doc/mtn
 	cp -p ../gpl-2.0.txt $(DESTDIR)/usr/share/doc/mtn
-	gzip --keep --force ../man/mtn.1
+	gzip --force ../man/mtn.1
 	mkdir -p $(DESTDIR)/usr/share/man/man1
 	cp -p ../man/mtn.1.gz $(DESTDIR)/usr/share/man/man1/
 

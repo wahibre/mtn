@@ -12,7 +12,7 @@ Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn.tar.gz
 
 BuildRequires:	gcc
 BuildRequires:	make
-BuildRequires:	gd-devel >= 2.1.1
+BuildRequires:	gd-devel >= 2.0.35
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd

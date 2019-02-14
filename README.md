@@ -13,7 +13,7 @@ https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 Dependency
 ==========
  - ffmpeg   (>=3.1)
- - gd       (>=2.1.1)
+ - gd       (>=2.0.35)
 
 Getting source
 ==============
@@ -30,10 +30,10 @@ Installing from source
 $ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
 $ dnf install ffmpeg-devel gd-devel make gcc-c++  
 $ make
-$ su -c 'make install'
+$ sudo make install
 ```
 
-**[Ubuntu](https://www.ubuntu.com/)** 17.10, **[Debian](https://www.debian.org/)** 9, **[LinuxMint](https://linuxmint.com)** 19  
+**[Debian](https://www.debian.org/)** 9, **[Ubuntu](https://www.ubuntu.com/)** 17.10, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
 ```
 $ sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
 $ make
@@ -56,8 +56,12 @@ $ sudo make install
 ```
 
 **[CentOS](https://centos.org/)** 7  
-*n/a*  
-*FFmpeg >=3.1 not available in RPMFusion repository*  
+```
+$ yum localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm    
+$ yum install ffmpeg-devel gd-devel make gcc-c++    
+$ make  
+$ sudo make install  
+```
 
 **[FreeBSD](https://www.freebsd.org/)** 10  
 ```

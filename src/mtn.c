@@ -666,9 +666,8 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
 		{
 			gdImageFilledRectangle(shadow, 0, 0, shW, shH, background);				//fill with background colour
 			gdImageFilledRectangle(shadow, radius+1, radius+1, width, height, 0);	//fill black rectangle as a shadow
-#ifdef GD_MAJOR_VERSION
 			//GaussianBlurred since libgd-2.1.1
-			if((GD_MAJOR_VERSION*1e6 + GD_MINOR_VERSION*1e3 + GD_RELEASE_VERSION) >= 2001001)
+			#if((GD_MAJOR_VERSION*1000000 + GD_MINOR_VERSION*1000 + GD_RELEASE_VERSION) >= 2001001)
 			{
 				gdImagePtr blurredShadow = gdImageCopyGaussianBlurred(shadow, radius, 0);			//blur shadow
 
@@ -683,12 +682,12 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
 				else
 					av_log(NULL, AV_LOG_ERROR, "Can't blur Shadow Image!%s", NEWLINE);
 			}
-			else
-#endif			
+			#else
 			{
 				av_log(NULL, AV_LOG_INFO, "Can't blur Shadow Image. Libgd does not support blurring. Use version libgd-2.1.1 or newer.%s", NEWLINE);
 				return shadow;
 			}
+            #endif
 		}
 		else
 			av_log(NULL, AV_LOG_ERROR, "Couldn't create Image in Size %dx%d!%s", shW, shH, NEWLINE);
@@ -1685,9 +1684,10 @@ static int find_default_videostream_index(AVFormatContext *s, int user_selected_
     int default_stream_idx = -1;
     int cover_image;
     int n_video_stream = 0;
+    unsigned int i;
     AVStream *st;
 
-    for (unsigned int i = 0; i < s->nb_streams; i++)
+    for (i = 0; i < s->nb_streams; i++)
     {
         st = s->streams[i];
         if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
