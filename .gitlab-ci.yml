@@ -55,24 +55,13 @@ variables:
     - apt-get -y install curl make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
     - curl --output /home/sample.avi -L $MOVIE_URL
     script:
-    - pushd src
+    - cd src
     - make test
-    - popd
-    - mkdir -p builddeb/rootdirectory/usr/{bin,share/doc/mtn,share/man/man1}
-    - mv bin/mtn builddeb/rootdirectory/usr/bin/
-    - mv doc README* *gpl*.txt builddeb/rootdirectory/usr/share/doc/mtn/
-    - gzip man/mtn.1
-    - mv man/mtn.1* builddeb/rootdirectory/usr/share/man/man1
-    - cd builddeb
-    - chmod -R 755 rootdirectory
-    - dpkg-deb --build rootdirectory .
-    - mv mtn*.deb ../
-    - mv /tmp/*.jpg ../
+    - mv /tmp/*.jpg ../../
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
-        - ./*.deb
         - ./*.jpg
 
 debian:

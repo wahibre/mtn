@@ -1,0 +1,17 @@
+Source: mtn
+Section: utils
+Priority: optional
+Maintainer: wahibre <wahibre@gmx.com>
+Build-Depends: debhelper(>=10), libgd-dev, libavutil-dev, libavcodec-dev, libavformat-dev, libswscale-dev
+Standards-Version: 4.1.2
+Homepage: https://gitlab.com/movie_thumbnailer/mtn/wikis
+Vcs-Bzr: lp:wahibre/mtn
+Vcs-Browser: https://launchpad.net/~wahibre/+archive/ubuntu/mtn
+
+Package: mtn
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: Movie Thumbnailer - screens generator
+ Movie Thumbnailer (mtn) saves thumbnails (screenshots) of movie or 
+ video files to jpeg files. It uses FFmpeg's libavcodec as its engine, 
+ so it supports all popular codecs.
