@@ -41,11 +41,8 @@ $ sudo make install
 ```
 
 **[Archlinux](https://www.archlinux.org/), [Manjaro](https://manjaro.org/)**  
-```
-$ pacman -Sy ffmpeg gd make gcc
-$ make
-$ sudo make install
-```
+
+Movie Thumbnailer is available in AUR as [mtn-git](https://aur.archlinux.org/packages/mtn-git)
 
 **[OpenSUSE](http://opensuse.org/)** 15  
 (FFmpeg in repository is unfortunately compiled with only a few video codecs)
