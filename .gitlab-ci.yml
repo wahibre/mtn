@@ -57,7 +57,7 @@ variables:
     script:
     - cd src
     - make test
-    - mv /tmp/*.jpg ../../
+    - mv /tmp/*.jpg ..
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
