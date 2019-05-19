@@ -164,7 +164,11 @@ int gb_D_edge = GB_D_EDGE; // edge detection; 0 off; >0 on
 //char *gb_e_ext = GB_E_EXT;
 #define GB_E_END 0.0
 double gb_E_end = GB_E_END; // skip this seconds at the end
-#define GB_F_FONTNAME "tahomabd.ttf"
+#ifdef __APPLE__
+#	define GB_F_FONTNAME "Tahoma Bold.ttf"
+#else
+#	define GB_F_FONTNAME "tahomabd.ttf"
+#endif
 char *gb_f_fontname = GB_F_FONTNAME;
 rgb_color gb_F_info_color = COLOR_INFO; // info color
 double gb_F_info_font_size = 9; // info font size
