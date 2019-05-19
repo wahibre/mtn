@@ -1,7 +1,14 @@
 #CFLAGS=-W -Wall -O3 -s -D_FILE_OFFSET_BITS=64 -mtune=i686 -march=i386 -I/home/tuitfun/include -L/home/tuitfun/lib
 #CFLAGS=-W -Wall `pkg-config --cflags libavformat`
 
+# The DESTDIR is macro is used for staged builds, so that it gets installed
+# under a fake root directory for the sake of packaging. Unlike PREFIX, it will
+# not actually be run from this directory.
 #DESTDIR - reserved for rpmbuild
+
+# According to a convention, PREFIX macro is the prefix of instalation.
+PREFIX = /usr/local
+
 UNAME=$(shell uname -s)
 CFLAGS=-W -Wall -O3
 OUT=../bin
@@ -55,16 +62,16 @@ test:  rebuild  mtn  test_bin
 tests: rebuilds mtns test_bin
 
 install: mtn
-	mkdir -p $(DESTDIR)/usr/bin/
-	install -m 755 $(OUT)/mtn $(DESTDIR)/usr/bin/
-	mkdir -p $(DESTDIR)/usr/share/doc/mtn
-	cp -Rp ../doc/* $(DESTDIR)/usr/share/doc/mtn
-	cp -p ../gpl-2.0.txt $(DESTDIR)/usr/share/doc/mtn
-	mkdir -p $(DESTDIR)/usr/share/man/man1
-	cp -p ../man/mtn.1 $(DESTDIR)/usr/share/man/man1/
+	mkdir -p $(DESTDIR)$(PREFIX)/bin/
+	install -m 755 $(OUT)/mtn $(DESTDIR)$(PREFIX)/bin/
+	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/mtn
+	cp -Rp ../doc/* $(DESTDIR)$(PREFIX)/share/doc/mtn
+	cp -p ../gpl-2.0.txt $(DESTDIR)$(PREFIX)/share/doc/mtn
+	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
+	cp -p ../man/mtn.1 $(DESTDIR)$(PREFIX)/share/man/man1/
 
 uninstall:
-	rm -f  $(DESTDIR)/usr/share/man/man1/mtn.1
-	rm -f  $(DESTDIR)/usr/bin/mtn
-	rm -rf $(DESTDIR)/usr/share/doc/mtn
+	rm -f  $(DESTDIR)$(PREFIX)/share/man/man1/mtn.1
+	rm -f  $(DESTDIR)$(PREFIX)/bin/mtn
+	rm -rf $(DESTDIR)$(PREFIX)/share/doc/mtn
 
