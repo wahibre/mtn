@@ -3030,82 +3030,83 @@ char* mtn_identification()
 	return msg;
 }
 
-void usage()
+void
+usage()
 {
-    av_log(NULL, AV_LOG_ERROR, "\n%s\n\n", mtn_identification());
+    av_log(NULL, AV_LOG_INFO, "\n%s\n\n", mtn_identification());
 
-    av_log(NULL, AV_LOG_ERROR, "Mtn saves thumbnails of specified movie files or directories to image files.\n");
-    av_log(NULL, AV_LOG_ERROR, "For directories, it will recursively search inside for movie files.\n\n");
-    av_log(NULL, AV_LOG_ERROR, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "Options: (and default values)\n");
-    av_log(NULL, AV_LOG_ERROR, "  -a aspect_ratio : override input file's display aspect ratio\n");
-    av_log(NULL, AV_LOG_ERROR, "  -b %.2f : skip if %% blank is higher; 0:skip all 1:skip really blank >1:off\n", GB_B_BLANK);
-    av_log(NULL, AV_LOG_ERROR, "  -B %.1f : omit this seconds from the beginning\n", GB_B_BEGIN);
-    av_log(NULL, AV_LOG_ERROR, "  -c %d : # of column\n", GB_C_COLUMN);
-    av_log(NULL, AV_LOG_ERROR, "  -C %d : cut movie and thumbnails not more than the specified seconds; <=0:off\n", GB_C_CUT);
-    av_log(NULL, AV_LOG_ERROR, "  -d #: recursion depth; 0:immediate children files only\n");
-    av_log(NULL, AV_LOG_ERROR, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
+    av_log(NULL, AV_LOG_INFO, "Mtn saves thumbnails of specified movie files or directories to image files.\n");
+    av_log(NULL, AV_LOG_INFO, "For directories, it will recursively search inside for movie files.\n\n");
+    av_log(NULL, AV_LOG_INFO, "Usage:\n  %s [options] file_or_dir1 [file_or_dir2] ... [file_or_dirn]\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "Options: (and default values)\n");
+    av_log(NULL, AV_LOG_INFO, "  -a aspect_ratio : override input file's display aspect ratio\n");
+    av_log(NULL, AV_LOG_INFO, "  -b %.2f : skip if %% blank is higher; 0:skip all 1:skip really blank >1:off\n", GB_B_BLANK);
+    av_log(NULL, AV_LOG_INFO, "  -B %.1f : omit this seconds from the beginning\n", GB_B_BEGIN);
+    av_log(NULL, AV_LOG_INFO, "  -c %d : # of column\n", GB_C_COLUMN);
+    av_log(NULL, AV_LOG_INFO, "  -C %d : cut movie and thumbnails not more than the specified seconds; <=0:off\n", GB_C_CUT);
+    av_log(NULL, AV_LOG_INFO, "  -d #: recursion depth; 0:immediate children files only\n");
+    av_log(NULL, AV_LOG_INFO, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
     //av_log(NULL, AV_LOG_ERROR, "  -e : to be done\n"); // extension of movie files
-    av_log(NULL, AV_LOG_ERROR, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
-    av_log(NULL, AV_LOG_ERROR, "  -f %s : font file; use absolute path if not in usual places\n", GB_F_FONTNAME);
-    av_log(NULL, AV_LOG_ERROR, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
-    av_log(NULL, AV_LOG_ERROR, "  -g %d : gap between each shot\n", GB_G_GAP);
-    av_log(NULL, AV_LOG_ERROR, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
-    av_log(NULL, AV_LOG_ERROR, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too\n");
-    av_log(NULL, AV_LOG_ERROR, "  -i : info text off\n");
-    av_log(NULL, AV_LOG_ERROR, "  -I : save individual shots too\n");
-    av_log(NULL, AV_LOG_ERROR, "  -j %d : jpeg quality\n", GB_J_QUALITY);
-    av_log(NULL, AV_LOG_ERROR, "  -k RRGGBB : background color (in hex)\n"); // backgroud color
-    av_log(NULL, AV_LOG_ERROR, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
-    av_log(NULL, AV_LOG_ERROR, "  -n : run at normal priority\n");
-    av_log(NULL, AV_LOG_ERROR, "  -N info_suffix : save info text to a file with suffix\n");
-    av_log(NULL, AV_LOG_ERROR, "  -o %s : output suffix including image extension (.jpg or .png)\n", GB_O_SUFFIX);
-    av_log(NULL, AV_LOG_ERROR, "  -O directory : save output files in the specified directory\n");
-    av_log(NULL, AV_LOG_ERROR, "  -p : pause before exiting; default on in win32\n");
-    av_log(NULL, AV_LOG_ERROR, "  -P : dont pause before exiting; override -p\n");
-    av_log(NULL, AV_LOG_ERROR, "  -q : quiet mode (print only error messages)\n");
-    av_log(NULL, AV_LOG_ERROR, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
-    av_log(NULL, AV_LOG_ERROR, "  -s %d : time step between each shot\n", GB_S_STEP);
-    av_log(NULL, AV_LOG_ERROR, "  -S #: select specific stream number\n");
-    av_log(NULL, AV_LOG_ERROR, "  -t : time stamp off\n");
-    av_log(NULL, AV_LOG_ERROR, "  -T text : add text above output image\n");
-    av_log(NULL, AV_LOG_ERROR, "  -v : verbose mode (debug)\n");
-    av_log(NULL, AV_LOG_ERROR, "  -w %d : width of output image; 0:column * movie width\n", GB_W_WIDTH);
-    av_log(NULL, AV_LOG_ERROR, "  -W : dont overwrite existing files, i.e. update mode\n");
-    av_log(NULL, AV_LOG_ERROR, "  -X : use full input filename (include extension)\n");
-    av_log(NULL, AV_LOG_ERROR, "  -z : always use seek mode\n");
-    av_log(NULL, AV_LOG_ERROR, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
-    av_log(NULL, AV_LOG_ERROR, "  --shadow[=N]\n     draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
-    av_log(NULL, AV_LOG_ERROR, "  --transparent\n    set background color (-k) to transparent; works with PNG image only \n");
-    av_log(NULL, AV_LOG_ERROR, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
-    av_log(NULL, AV_LOG_ERROR, "Examples:\n");
-    av_log(NULL, AV_LOG_ERROR, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to change time step to 65 seconds & change total width to 900:\n    %s -s 65 -w 900 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
+    av_log(NULL, AV_LOG_INFO, "  -f %s : font file; use absolute path if not in usual places\n", GB_F_FONTNAME);
+    av_log(NULL, AV_LOG_INFO, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
+    av_log(NULL, AV_LOG_INFO, "  -g %d : gap between each shot\n", GB_G_GAP);
+    av_log(NULL, AV_LOG_INFO, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
+    av_log(NULL, AV_LOG_INFO, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too\n");
+    av_log(NULL, AV_LOG_INFO, "  -i : info text off\n");
+    av_log(NULL, AV_LOG_INFO, "  -I : save individual shots too\n");
+    av_log(NULL, AV_LOG_INFO, "  -j %d : jpeg quality\n", GB_J_QUALITY);
+    av_log(NULL, AV_LOG_INFO, "  -k RRGGBB : background color (in hex)\n"); // backgroud color
+    av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
+    av_log(NULL, AV_LOG_INFO, "  -n : run at normal priority\n");
+    av_log(NULL, AV_LOG_INFO, "  -N info_suffix : save info text to a file with suffix\n");
+    av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (.jpg or .png)\n", GB_O_SUFFIX);
+    av_log(NULL, AV_LOG_INFO, "  -O directory : save output files in the specified directory\n");
+    av_log(NULL, AV_LOG_INFO, "  -p : pause before exiting; default on in win32\n");
+    av_log(NULL, AV_LOG_INFO, "  -P : dont pause before exiting; override -p\n");
+    av_log(NULL, AV_LOG_INFO, "  -q : quiet mode (print only error messages)\n");
+    av_log(NULL, AV_LOG_INFO, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
+    av_log(NULL, AV_LOG_INFO, "  -s %d : time step between each shot\n", GB_S_STEP);
+    av_log(NULL, AV_LOG_INFO, "  -S #: select specific stream number\n");
+    av_log(NULL, AV_LOG_INFO, "  -t : time stamp off\n");
+    av_log(NULL, AV_LOG_INFO, "  -T text : add text above output image\n");
+    av_log(NULL, AV_LOG_INFO, "  -v : verbose mode (debug)\n");
+    av_log(NULL, AV_LOG_INFO, "  -w %d : width of output image; 0:column * movie width\n", GB_W_WIDTH);
+    av_log(NULL, AV_LOG_INFO, "  -W : dont overwrite existing files, i.e. update mode\n");
+    av_log(NULL, AV_LOG_INFO, "  -X : use full input filename (include extension)\n");
+    av_log(NULL, AV_LOG_INFO, "  -z : always use seek mode\n");
+    av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
+    av_log(NULL, AV_LOG_INFO, "  --shadow[=N]\n     draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
+    av_log(NULL, AV_LOG_INFO, "  --transparent\n    set background color (-k) to transparent; works with PNG image only \n");
+    av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
+    av_log(NULL, AV_LOG_INFO, "Examples:\n");
+    av_log(NULL, AV_LOG_INFO, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to change time step to 65 seconds & change total width to 900:\n    %s -s 65 -w 900 infile.avi\n", gb_argv0);
     // as of version 0.60, -s 0 is not needed
-    av_log(NULL, AV_LOG_ERROR, "  to step evenly to get 3 columns x 10 rows:\n    %s -c 3 -r 10 infile.avi\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to skip uninteresting shots, try:\n    %s -D 6 infile.avi\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to draw shadows of the individual shots, try:\n    %s --shadow=3 -g 7 infile.avi\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to step evenly to get 3 columns x 10 rows:\n    %s -c 3 -r 10 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to skip uninteresting shots, try:\n    %s -D 6 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to draw shadows of the individual shots, try:\n    %s --shadow=3 -g 7 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
 #ifdef WIN32
-    av_log(NULL, AV_LOG_ERROR, "\nIn windows, you can run %s from command prompt or drag files/dirs from\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "windows explorer and drop them on %s. you can change the default options\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "by creating a shortcut to %s and add options there (right click the\n", gb_argv0);
-    av_log(NULL, AV_LOG_ERROR, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
-    av_log(NULL, AV_LOG_ERROR, "instead.\n");
+    av_log(NULL, AV_LOG_INFO, "\nIn windows, you can run %s from command prompt or drag files/dirs from\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "windows explorer and drop them on %s. you can change the default options\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "by creating a shortcut to %s and add options there (right click the\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
+    av_log(NULL, AV_LOG_INFO, "instead.\n");
 #else
-    av_log(NULL, AV_LOG_ERROR, "\nYou'll probably need to change the truetype font path (-f fontfile).\n");
-    av_log(NULL, AV_LOG_ERROR, "the default is set to %s which might not exist in non-windows\n", GB_F_FONTNAME);
-    av_log(NULL, AV_LOG_ERROR, "systems. if you dont have a truetype font, you can turn the text off by\n");
-    av_log(NULL, AV_LOG_ERROR, "using -i -t.\n");
+    av_log(NULL, AV_LOG_INFO, "\nYou'll probably need to change the truetype font path (-f fontfile).\n");
+    av_log(NULL, AV_LOG_INFO, "the default is set to %s which might not exist in non-windows\n", GB_F_FONTNAME);
+    av_log(NULL, AV_LOG_INFO, "systems. if you dont have a truetype font, you can turn the text off by\n");
+    av_log(NULL, AV_LOG_INFO, "using -i -t.\n");
 #endif
-    av_log(NULL, AV_LOG_ERROR, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
-    av_log(NULL, AV_LOG_ERROR, "welcome to redistribute it under certain conditions; for details see file\n");
-    av_log(NULL, AV_LOG_ERROR, "gpl-2.0.txt.\n\n");
+    av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
+    av_log(NULL, AV_LOG_INFO, "welcome to redistribute it under certain conditions; for details see file\n");
+    av_log(NULL, AV_LOG_INFO, "gpl-2.0.txt.\n\n");
 
-    av_log(NULL, AV_LOG_ERROR, "wahibre@gmx.com\n");
-    av_log(NULL, AV_LOG_ERROR, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
+    av_log(NULL, AV_LOG_INFO, "wahibre@gmx.com\n");
+    av_log(NULL, AV_LOG_INFO, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
 }
 
 /**
@@ -3313,25 +3314,25 @@ int main(int argc, char *argv[])
     }
 
     if (optind == argc) {
-        av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified\n", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified", gb_argv0);
         parse_error += 1;
     }
     
     /* check arguments */
     if (gb_r_row == 0 && gb_s_step == 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -r and -s cant be 0 at the same time\n", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -r and -s cant be 0 at the same time", gb_argv0);
         parse_error += 1;
     }
     if (gb_b_blank > 1 && gb_D_edge > 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: -D requires -b arg to be less than 1\n", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: -D requires -b arg to be less than 1", gb_argv0);
         parse_error += 1;
     }
     if (gb_z_seek == 1 && gb_Z_nonseek == 1) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -z and -Z cant be used together\n", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -z and -Z cant be used together", gb_argv0);
         parse_error += 1;
     }
     if (gb_E_end > 0 && gb_C_cut > 0) {
-        av_log(NULL, AV_LOG_ERROR, "%s: option -C and -E cant be used together\n", gb_argv0);
+        av_log(NULL, AV_LOG_ERROR, "%s: option -C and -E cant be used together", gb_argv0);
         parse_error += 1;
     }
 
