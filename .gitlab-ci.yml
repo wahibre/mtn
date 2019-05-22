@@ -26,12 +26,9 @@ variables:
 
 .fedora: &fc
     stage: build
-    only:
-    - master
-    - devel
     before_script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-    - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-devel libpng-devel
+    - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     - curl --output /home/sample.avi -L $MOVIE_URL
     script:
 # 	  build & test
@@ -146,28 +143,19 @@ win:
 
 fc26:
     image: fedora:26
+    only:
+    - master
+    - devel
     <<: *fc
 
-fc28:
-    image: fedora:28
+fc_latest:
+    image: fedora:latest
     <<: *fc
-
-fc29:
-    image: fedora:29
-    <<: *fc
-
-u17.10:
-    image: ubuntu:17.10
-    <<: *ubuntu
 
 u18.04:
     image: ubuntu:18.04
     <<: *ubuntu
 
-u18.10:
-    image: ubuntu:18.10
-    <<: *ubuntu
-
-u19.04:
-    image: ubuntu:19.04
+ubuntu_devel:
+    image: ubuntu:devel
     <<: *ubuntu
