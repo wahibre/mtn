@@ -242,7 +242,7 @@ int gb__transparent_bg=0;		//  0 off, 1 on
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.3.1";
+char *gb_version = "3.3.2";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */

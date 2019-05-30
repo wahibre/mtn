@@ -1,3 +1,6 @@
+version 3.3.2 	2019/05/30
+- macOS support (homebrew)
+
 version 3.3.1 	2019/02/19
 - improoved searching for video source in case the first video source is cover art
 - minor changes to remove compilation warnings

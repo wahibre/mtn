@@ -1,5 +1,5 @@
 Name:		mtn	
-Version: 	3.3.1
+Version: 	3.3.2
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
@@ -44,6 +44,9 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Thu May 30 2019 wahibre  <wahibre@gmx.com> - 3.3.2
+- update to version 3.3.2
+
 * Fri Jan 18 2019 wahibre  <wahibre@gmx.com> - 3.3.1
 - update to version 3.3.1
 
