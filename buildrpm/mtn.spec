@@ -32,7 +32,7 @@ cd src
 
 %install
 cd src
-%make_install
+%make_install PREFIX=%{_prefix}
 
 %files
 %{_bindir}/mtn
@@ -46,6 +46,7 @@ rm -rf *
 %changelog
 * Thu May 30 2019 wahibre  <wahibre@gmx.com> - 3.3.2
 - update to version 3.3.2
+- add install prefix
 
 * Fri Jan 18 2019 wahibre  <wahibre@gmx.com> - 3.3.1
 - update to version 3.3.1

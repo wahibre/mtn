@@ -85,4 +85,5 @@ References
  * [libgd library and dependecies](http://gnuwin32.sourceforge.net/packages/gd.htm)
  * [MinGW](http://www.mingw.org/)
  * [RPM Fusion repository](https://rpmfusion.org/)
+ * [RPM Macros](https://docs.fedoraproject.org/en-US/packaging-guidelines/RPMMacros/)
  * [GitLab yaml](https://docs.gitlab.com/ee/ci/yaml/README.html)
