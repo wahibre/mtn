@@ -71,7 +71,12 @@ $ gmake
 C:\..\mtn\src> Make.MinGW.bat
 ```
 
-**macOS [(brew)](https://brew.sh/)** 10.14.2 (1.8.6)
+**macOS [(brew)](https://brew.sh/)**
+
+If you don't want to contribute please refer to the installation guide
+[here](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#macos-homebrew)
+instead.
+
 ```
 $ brew install ffmpeg libgd
 $ make
