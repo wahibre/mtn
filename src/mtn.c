@@ -340,10 +340,6 @@ char *strcpy_va(char *dst, int n, ...)
     for (i=0; i < n; i++) {
         char *s = va_arg(ap, char *);
         assert(NULL != s);
-        /* warning: ‘strncpy’ specified bound depends on the length of the source argument [-Wstringop-overflow=]
-        int len = strlen(s);
-        strncpy(dst + pos, s, len + 1); // for '\0' 
-        pos += len; */
         strcat(dst, s);
     }
     va_end(ap);
@@ -1020,22 +1016,7 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
 
 AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
 {
-//    AVCodec *pCodec;
     AVCodecContext *pCodecContext;
-
-//    pCodec = avcodec_find_decoder(codecID);
-//    if(!pCodec)
-//    {
-//        av_log(NULL, AV_LOG_ERROR, "Couldn't find decoder for codec ID=%d %s", codecID, NEWLINE);
-//        return NULL;
-//    }
-
-//    pCodecContext = avcodec_alloc_context3(pCodec);
-//    if(!pCodecContext)
-//    {
-//        av_log(NULL, AV_LOG_ERROR, "Couldn't alocate codec context for codec name:\"%s\", id: %d%s", pCodec->name, codecID, NEWLINE);
-//        return NULL;
-//    }
 
     pCodecContext = avcodec_alloc_context3(NULL);
     if(!pCodecContext)
@@ -1106,9 +1087,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
             sprintf(buf + strlen(buf), ": ");
         }
 
-        /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations] */
         avcodec_string(codec_buf, sizeof(codec_buf), pCodexCtx, 0);
-//        avcodec_string(codec_buf, sizeof(codec_buf), st->codec, 0);
 
 /* re-enable SAR & DAR
         // remove [SAR DAR] from string, it's not very useful.
@@ -1123,27 +1102,18 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 */
         strcat(buf, codec_buf);
 
-        /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
         if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
             if (st->r_frame_rate.den && st->r_frame_rate.num)
                 sprintf(buf + strlen(buf), ", %5.2f fps(r)", av_q2d(st->r_frame_rate));
-            //else if(st->time_base.den && st->time_base.num)
-            //  sprintf(buf + strlen(buf), ", %5.2f fps(m)", 1/av_q2d(st->time_base));
             else
-                /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
-              //sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->codec->time_base));
                 sprintf(buf + strlen(buf), ", %5.2f fps(c)", 1/av_q2d(st->time_base));
 
             // show aspect ratio
             int scaled_src_width, scaled_src_height;
 
-            /* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]
-            calc_scale_src(st->codec->width, st->codec->height, sample_aspect_ratio,  */
             calc_scale_src(st->codecpar->width, st->codecpar->height, sample_aspect_ratio,
                 &scaled_src_width, &scaled_src_height);
 
-/* warning: ‘codec’ is deprecated [-Wdeprecated-declarations]*/
-//            if (scaled_src_width != st->codec->width || scaled_src_height != st->codec->height) {
             if (scaled_src_width != st->codecpar->width || scaled_src_height != st->codecpar->height) {
                 sprintf(buf + strlen(buf), " => %dx%d", scaled_src_width, scaled_src_height);
             }
@@ -1151,7 +1121,6 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         if (language != NULL) {
             sprintf(buf + strlen(buf), " (%s)", language->value);
         }
-//            sprintf(buf + strlen(buf), NEWLINE);
     } //for
 
     if (0 < strlen(sub_buf)) {
@@ -1176,7 +1145,6 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
         file_name = path_2_file(url);
     }
 
-    // ic->file_size -> avio_size()
     int64_t file_size = avio_size(ic->pb);
 
     sprintf(buf, "File: %s", file_name);
@@ -1361,7 +1329,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
         exit(1);
     }
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 34, 100)
-    av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pts=%"PRId64"\n", pFrame->pts);
+    av_log(NULL, AV_LOG_VERBOSE, "Got picture from frame pts=%"PRId64"\n", pFrame->pts);
 #else
     av_log(NULL, AV_LOG_VERBOSE, "Got picture, Frame pkt_pts=%"PRId64"\n", pFrame->pkt_pts);
 #endif
@@ -1409,7 +1377,6 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         return -1;
     }
 
-
     while(got_picture == 0 || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)))
     {
         /// read packet
@@ -1454,14 +1421,16 @@ int get_videoframe(AVFormatContext *pFormatCtx,
             continue;
         }
 
-        /// got picture
+        /// decoded frame
         if(fret == 0)
         {
+            if (pFrame->pict_type == AV_PICTURE_TYPE_P || pFrame->pict_type == AV_PICTURE_TYPE_I)
+                got_picture=1;
+
             pkt_without_pic=0;
-            got_picture=1;
             decoded_frame++;
 
-            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %d\n", pFrame->key_frame, pFrame->pict_type);
+            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %c\n", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
 
             // some codecs, e.g avisyth, dont seem to set key_frame
             if (1 == key_only && 0 == decoded_frame%200) {
@@ -1481,7 +1450,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
             av_packet_free(&pkt);
             return -1;
         }
-    }  //while
+    }  // end of while
 
     av_packet_unref(pkt);
     av_packet_free(&pkt);
@@ -1494,12 +1463,9 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         av_log(NULL, AV_LOG_INFO, "  skipping non key packets for this file\n");
     }
 
-    av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %d\n", pFrame->repeat_pict,
-        (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, pFrame->pict_type);
-//    if(NULL != pFrame->opaque && (uint64_t)AV_NOPTS_VALUE != *(uint64_t *) pFrame->opaque) {
-//        //av_log(NULL, AV_LOG_VERBOSE, "*pts: %.2f, value in opaque: %"PRId64"\n", pts, *(uint64_t *) pFrame->opaque);
-//        av_log(NULL, AV_LOG_VERBOSE, "*value in opaque: %"PRId64"\n", *(uint64_t *) pFrame->opaque);
-//    }
+    av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %c\n", pFrame->repeat_pict,
+        (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
+
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
 
@@ -1739,16 +1705,6 @@ int make_thumbnail(char *file)
     thumbnail tn; // thumbnail data & info
     thumb_new(&tn);
     gdImagePtr thumbShadowIm=NULL;
-    // shot sh; // shot info
-
-    /* warning: variable ‘fill_buffer’ set but not used [-Wunused-but-set-variable]
-    int i;
-    shot fill_buffer[gb_c_column-1]; // skipped shots to fill the last row
-    for (i=0; i<gb_c_column-1; i++) {
-        fill_buffer[i].ip = NULL;
-    }
-    */
-
 
     int nb_shots = 0; // # of decoded shots (stat purposes)
 
@@ -2568,7 +2524,6 @@ int make_thumbnail(char *file)
         av_free(pFrame);
 
     // Close the codec
-//    if (NULL != pCodecCtx && NULL != pCodecCtx->codec) {
     if (NULL != pCodecCtx) {
         avcodec_close(pCodecCtx);
         avcodec_free_context(&pCodecCtx);
