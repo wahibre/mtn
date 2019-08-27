@@ -1,6 +1,6 @@
 @echo off
 
-REM download and install MinGW into c:\Mingw from https://sourceforge.net/projects/mingw/files/
+REM download and install MinGW with gcc into c:\Mingw from https://sourceforge.net/projects/mingw/files/
 REM download and extract ffmpeg into c:\MinGW from https://ffmpeg.zeranoe.com/builds/win32/shared/ and https://ffmpeg.zeranoe.com/builds/win32/dev/
 REM download and extract libgd (Binaries, Dependencies and Developer files) from http://gnuwin32.sourceforge.net/packages/gd.htm
 

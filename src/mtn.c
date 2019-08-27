@@ -65,6 +65,10 @@
 #define LINESIZE_ALIGN 1
 #define MAX_PACKETS_WITHOUT_PICTURE 1000
 
+#define EXIT_SUCCESS 0
+#define EXIT_WARNING 1
+#define EXIT_ERROR   2
+
 
 #ifdef WIN32
     unsigned int _CRT_fmode = _O_BINARY;  // default binary file including stdin, stdout, stderr
@@ -140,6 +144,7 @@ typedef struct thumbnail
     int shot_width, shot_height;
     int center_gap; // horizontal gap to center the shots
     int idx; // index of the last shot; -1 = no shot
+    int tiles_nr; // number of shots in thumbnail
 
     // dynamic
     int64_t *ppts; // array of pts value of each shot
@@ -620,6 +625,7 @@ void thumb_new(thumbnail *ptn)
     ptn->shot_width = ptn->shot_height = 0;
     ptn->center_gap = 0;
     ptn->idx = -1;
+    ptn->tiles_nr = 0;
 
     // dynamic
     ptn->ppts = NULL;
@@ -715,6 +721,7 @@ void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int
     gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width, ptn->shot_height);
     ptn->idx = idx;
     ptn->ppts[idx] = pts;
+    ptn->tiles_nr++;
 }
 
 /*
@@ -1690,6 +1697,9 @@ static int find_default_videostream_index(AVFormatContext *s, int user_selected_
 }
 
 /*
+ * return   0 ok
+ *         -1 something went wrong
+ *          1 some images are missing
 */
 int make_thumbnail(char *file)
 {
@@ -1698,6 +1708,7 @@ int make_thumbnail(char *file)
     static int nb_file = 0; // FIXME: static
     nb_file++;
     int idx = 0;
+    int thumb_nb = 0;
 
     struct timeval tstart;
     gettimeofday(&tstart, NULL);
@@ -2177,7 +2188,7 @@ int make_thumbnail(char *file)
     int direction = 0; // seek direction (seek flags)
     seek_target = (tn.step + start_time + gb_B_begin) / av_q2d(pStream->time_base);
     idx = 0; // idx = thumb_idx
-    int thumb_nb = tn.row * tn.column; // thumb_nb = # of shots we need
+    thumb_nb = tn.row * tn.column; // thumb_nb = # of shots we need
     int64_t prevshot_pts = -1; // pts of previous good shot
     int64_t prevfound_pts = -1; // pts of previous decoding
     gdImagePtr edge_ip = NULL; // edge image
@@ -2489,7 +2500,10 @@ int make_thumbnail(char *file)
     av_log(NULL, AV_LOG_INFO, "  %.2f s, %.2f shots/s; output: %s\n",
         diff_time, (tn.idx + 1) / diff_time, tn.out_filename);
 
-    return_code = 0;
+    if(tn.tiles_nr == (tn.row * tn.column))
+        return_code = 0;        // everything is fine
+    else
+        return_code = 1;        // warning - some images are missing
 
   cleanup:
     if (NULL != ip)
@@ -2686,12 +2700,16 @@ int process_dir(char *dir, int current_depth)
 }
 
 /**
- * @return 0- success, otherwise - failed
+ * @return
+ *  0- success
+ *  1- uncomplete image(s)
+ *  2- error
  */
 int process_loop(int n, char **files, int current_depth)
 {
     int i;
     int files_done=0;
+    int files_uncomplete=0;
 
     for (i = 0; i < n; i++) {
         av_log(NULL, AV_LOG_VERBOSE, "process_loop: %s\n", files[i]);
@@ -2702,16 +2720,28 @@ int process_loop(int n, char **files, int current_depth)
             if(process_dir(files[i], current_depth) == 0)
                 files_done++;
         } else { // not a directory
-            //av_log(NULL, AV_LOG_INFO, "process_loop: %s is not a DIR\n", files[i]); // DEBUG
-            if(make_thumbnail(files[i]) == 0)
+
+            switch (make_thumbnail(files[i])) {
+            case 0:
                 files_done++;
+                break;
+            case 1:
+                files_done++;
+                files_uncomplete++;
+                break;
+            default:
+                break;
+            }
         }
     }
 
-    if(files_done == n)
-        return 0;
+    if(files_done == n && files_uncomplete > 0)
+        return EXIT_WARNING;
 
-    return -1;
+    if(files_done == n)
+        return EXIT_SUCCESS;
+
+    return EXIT_ERROR;
 }
 
 // copied & modified from mingw-runtime-3.13's init.c

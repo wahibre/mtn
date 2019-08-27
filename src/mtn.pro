@@ -9,3 +9,6 @@ LIBS += -L/usr/lib64 -lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd
 
 HEADERS += fake_tchar.h
 SOURCES += mtn.c
+
+DISTFILES += \
+    Make.MinGW.bat

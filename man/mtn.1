@@ -1,7 +1,7 @@
 .\" Manpage for mtn.
 .\" Contact wahibre@gmx.com to correct errors or typos.
 
-.TH man 1 "16 May 2018" "1.2" "mtn man page"
+.TH man 1 "August 2019" "1.3" "mtn man page"
 .SH NAME
 mtn \- generate thumbnail grid of a movie file(s)
 .SH SYNOPSIS
@@ -72,6 +72,10 @@ name of the movie file or directory containing movie files
   systems. if you dont have a truetype font, you can turn the text off by
   using -i -t.
 
+
+.SH EXIT STATUS
+  MTN exits  with status 0 if all files are processed successfully, 1 if some shots are missing, 2 on error.
+
 .SH EXAMPLES
   to save thumbnails to file infile_s.jpg with default options:
     mtn infile.avi
@@ -98,5 +102,5 @@ wahibre (wahibre@gmx.com)
 
 
 .SH COPYRIGHT
-Copyright © 2018 Free Software Foundation, Inc.  License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>.
+Copyright © 2019 Free Software Foundation, Inc.  License GPLv2+: GNU GPL version 2 or later <http://gnu.org/licenses/gpl.html>.
 This is free software: you are free to change and redistribute it.  There is NO WARRANTY, to the extent permitted by law.
