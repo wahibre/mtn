@@ -1,0 +1,5 @@
+echo "CI_PROJECT_PATH:    $CI_PROJECT_PATH"	   
+echo "CI_COMMIT_REF_NAME: $CI_COMMIT_REF_NAME" 
+echo "CI_COMMIT_SHA:      $CI_COMMIT_SHA"      
+echo "CI_PIPELINE_ID:     $CI_PIPELINE_ID"     
+echo "CI_JOB_ID:          $CI_JOB_ID"          
