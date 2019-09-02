@@ -140,7 +140,6 @@ win:
     - dnf -y install curl make mingw32-gcc.x86_64
     - curl --output /tmp/deps-win-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
     - curl --output /tmp/deps-win-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
-    - curl --output /home/sample.avi -L $MOVIE_URL
     script:
     - mkdir -p lib/windows
     - pushd lib/windows
