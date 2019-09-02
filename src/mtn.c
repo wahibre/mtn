@@ -1191,10 +1191,10 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     // is this ok? probably not ok with .vob files when duration is wrong. DEBUG
 
 
-    if (duration > 0) {
-        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s", (double) file_size * 8.0 / duration / 1000);
-    } else if (ic->bit_rate) {
+    if (ic->bit_rate) {
         sprintf(buf + strlen(buf), ", bitrate: %"PRId64" kb/s", ic->bit_rate / 1000);
+    } else if (duration > 0) {
+        sprintf(buf + strlen(buf), ", avg.bitrate: %.0f kb/s", (double) file_size * 8.0 / duration / 1000);
     } else {
         strcat(buf, ", bitrate: N/A");
     }
