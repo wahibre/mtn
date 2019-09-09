@@ -1,5 +1,6 @@
-version 3.3.3 	2019/08/27
-- changed exit code
+version 3.3.3 	2019/09/04
+- bitrate from metadata if missing in Format Context
+- changed exit code to work with errorlevel (win)
 - fixed processing h264 with B frames
 
 version 3.3.2 	2019/05/30

@@ -303,7 +303,7 @@ char *format_size(int64_t size)
     if (size < 1024) {
         sprintf(buf, "%"PRId64" %s", size, unit);
     } else if (size < 1024*1024) {
-        sprintf(buf, "%.0f Ki%s", size/1024.0, unit);
+        sprintf(buf, "%.0f ki%s", size/1024.0, unit);
     } else if (size < 1024*1024*1024) {
         sprintf(buf, "%.0f Mi%s", size/1024.0/1024, unit);
     } else {
@@ -311,7 +311,36 @@ char *format_size(int64_t size)
     }
     return buf;
 }
+/*
+ * size: number of bites
+ * Returnes formated string in b, kb, Mb or Gb.
+ * Caller must free returned resource.
+ */
+char *format_size_f(int64_t size)
+{
+    char *buf = NULL;
+    int bufflength;
+    int needToPrint = 20;
+    char unit[]="b";
 
+    do
+    {
+        bufflength = needToPrint+1;
+        buf = realloc(buf, bufflength);
+
+        if (size < 1200) {
+            needToPrint = snprintf(buf, bufflength,"%"PRId64" %s", size, unit);
+        } else if (size < (int64_t)10000*1000) {
+            needToPrint = snprintf(buf, bufflength,"%.0f k%s", size/1000.0, unit);
+        } else if (size < (int64_t)10000*1000*1000) {
+            needToPrint = snprintf(buf, bufflength,"%.0f M%s", size/1000.0/1000, unit);
+        } else {
+            needToPrint = snprintf(buf, bufflength,"%.1f G%s", size/1000.0/1000/1000, unit);
+        }
+    } while (needToPrint >= bufflength);
+
+    return buf;
+}
 /*
 return only the file name of the full path
 FIXME: wont work in unix if filename has '\\', e.g. path = "hello \\ world";
@@ -1021,6 +1050,33 @@ void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int 
     }
 }
 
+long
+get_bitrate_from_metadata(const AVDictionary *dict)
+{
+    if(av_dict_count(dict) > 0)
+    {
+        char *bps_value = NULL;
+        AVDictionaryEntry* e = NULL;
+
+        e = av_dict_get(dict, "BPS-eng", NULL, AV_DICT_IGNORE_SUFFIX);
+
+        if(e)
+            bps_value = e->value;
+        else
+        {
+            e = av_dict_get(dict, "BPS", NULL, AV_DICT_IGNORE_SUFFIX);
+
+            if(e)
+                bps_value = e->value;
+        }
+
+        if(bps_value)
+            return atol(bps_value);
+    }
+
+    return 0;
+}
+
 AVCodecContext* get_codecContext_from_codecParams(AVCodecParameters* pCodecPar)
 {
     AVCodecContext *pCodecContext;
@@ -1108,6 +1164,22 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         }
 */
         strcat(buf, codec_buf);
+
+        /* if bitrate is missing, try to search elsewhere */
+        if((AVMEDIA_TYPE_AUDIO  == st->codecpar->codec_type || AVMEDIA_TYPE_VIDEO  == st->codecpar->codec_type )
+        &&  st->codecpar->bit_rate <= 0)
+        {
+            char bitratebuff[100];
+            long metadata_bitrate = get_bitrate_from_metadata(st->metadata);
+
+            if(metadata_bitrate > 0)
+            {
+                char *formated_bitrate_size = format_size_f(metadata_bitrate);
+                snprintf(bitratebuff, sizeof(bitratebuff),", %s/s", formated_bitrate_size);
+                strcat(buf, bitratebuff);
+                free(formated_bitrate_size);
+            }
+        }
 
         if (st->codecpar->codec_type == AVMEDIA_TYPE_VIDEO ){
             if (st->r_frame_rate.den && st->r_frame_rate.num)
