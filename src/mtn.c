@@ -1503,7 +1503,8 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         /// decoded frame
         if(fret == 0)
         {
-            if (pFrame->pict_type == AV_PICTURE_TYPE_P || pFrame->pict_type == AV_PICTURE_TYPE_I)
+            /* only AV_PICTURE_TYPE_I contains complete image */
+            if (pFrame->pict_type == AV_PICTURE_TYPE_I)
                 got_picture=1;
 
             pkt_without_pic=0;
