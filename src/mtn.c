@@ -140,7 +140,7 @@ typedef struct thumbnail
     int width, height;
     int txt_height;
     int column, row;
-    int step;
+    int step;       // in seconds
     int shot_width, shot_height;
     int center_gap; // horizontal gap to center the shots
     int idx; // index of the last shot; -1 = no shot
@@ -1673,7 +1673,6 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     // here we assume that the whole file has duration seconds.
     // so we'll interpolate accordingly.
     AVStream *pStream = pFormatCtx->streams[index];
-    int64_t duration_tb = duration / av_q2d(pStream->time_base); // in time_base unit
     double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // in seconds
     // if start_time is negative, we ignore it; FIXME: is this ok?
     if (start_time < 0) {
@@ -1688,6 +1687,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
         return -1;
     }
     if (duration > 0) {
+        int64_t duration_tb = duration / av_q2d(pStream->time_base); // in time_base unit
         int64_t byte_pos = av_rescale(timestamp, file_size, duration_tb);
         av_log(NULL, AV_LOG_INFO, "AVSEEK_FLAG_BYTE: byte_pos: %"PRId64", timestamp: %"PRId64", file_size: %"PRId64", duration_tb: %"PRId64"\n", byte_pos, timestamp, file_size, duration_tb);
         return av_seek_frame(pFormatCtx, index, byte_pos, AVSEEK_FLAG_BYTE);
@@ -1987,7 +1987,6 @@ int make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  duration is unknown: %.2f\n", duration);
         goto cleanup;
     }
-    int64_t duration_tb = duration / av_q2d(pStream->time_base); // in time_base unit
     double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // in seconds
     // VTS_01_2.VOB & beyond from DVD seem to be like this
     //if (start_time > duration) {
@@ -2291,9 +2290,7 @@ int make_thumbnail(char *file)
 
         // make sure eff_target > previous found
         eff_target = MAX(eff_target, prevfound_pts+1);
-        if (eff_target > duration_tb) { // end of file
-            goto eof;
-        }
+
         format_time(calc_time(eff_target, pStream->time_base, start_time), time_tmp, ':');
         av_log(NULL, AV_LOG_VERBOSE, "\n***eff_target tb: %"PRId64", eff_target s:%.2f (%s), prevshot_pts: %"PRId64"\n", 
             eff_target, calc_time(eff_target, pStream->time_base, start_time), time_tmp, prevshot_pts);
@@ -2363,7 +2360,7 @@ int make_thumbnail(char *file)
             avcodec_flush_buffers(pCodecCtx);
             seek_mode = 0;
             av_log(NULL, AV_LOG_INFO, "  *** switching to non-seek mode because seeking was off target by %.2f s.\n", found_diff);
-            av_log(NULL, AV_LOG_INFO, "  non-seek mode is slower. increase time step or use -z if you dont want this.\n");
+            av_log(NULL, AV_LOG_INFO, "  non-seek mode is slower. increase time step or use -z if you don't want this.\n");
             goto restart;
         }
       non_seek_too_long:
@@ -3121,7 +3118,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (.jpg or .png)\n", GB_O_SUFFIX);
     av_log(NULL, AV_LOG_INFO, "  -O directory : save output files in the specified directory\n");
     av_log(NULL, AV_LOG_INFO, "  -p : pause before exiting; default on in win32\n");
-    av_log(NULL, AV_LOG_INFO, "  -P : dont pause before exiting; override -p\n");
+    av_log(NULL, AV_LOG_INFO, "  -P : don't pause before exiting; override -p\n");
     av_log(NULL, AV_LOG_INFO, "  -q : quiet mode (print only error messages)\n");
     av_log(NULL, AV_LOG_INFO, "  -r %d : # of rows; >0:override -s\n", GB_R_ROW);
     av_log(NULL, AV_LOG_INFO, "  -s %d : time step between each shot\n", GB_S_STEP);
@@ -3130,7 +3127,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -T text : add text above output image\n");
     av_log(NULL, AV_LOG_INFO, "  -v : verbose mode (debug)\n");
     av_log(NULL, AV_LOG_INFO, "  -w %d : width of output image; 0:column * movie width\n", GB_W_WIDTH);
-    av_log(NULL, AV_LOG_INFO, "  -W : dont overwrite existing files, i.e. update mode\n");
+    av_log(NULL, AV_LOG_INFO, "  -W : don't overwrite existing files, i.e. update mode\n");
     av_log(NULL, AV_LOG_INFO, "  -X : use full input filename (include extension)\n");
     av_log(NULL, AV_LOG_INFO, "  -z : always use seek mode\n");
     av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
@@ -3156,7 +3153,7 @@ usage()
 #else
     av_log(NULL, AV_LOG_INFO, "\nYou'll probably need to change the truetype font path (-f fontfile).\n");
     av_log(NULL, AV_LOG_INFO, "the default is set to %s which might not exist in non-windows\n", GB_F_FONTNAME);
-    av_log(NULL, AV_LOG_INFO, "systems. if you dont have a truetype font, you can turn the text off by\n");
+    av_log(NULL, AV_LOG_INFO, "systems. if you don't have a truetype font, you can turn the text off by\n");
     av_log(NULL, AV_LOG_INFO, "using -i -t.\n");
 #endif
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");

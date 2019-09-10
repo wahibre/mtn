@@ -1,0 +1,15 @@
+diff --git a/lib/libgd/src/gd_jpeg.c b/lib/libgd/src/gd_jpeg.c
+index f2dd329..f80e7ca 100644
+--- a/lib/libgd/src/gd_jpeg.c
++++ b/lib/libgd/src/gd_jpeg.c
+@@ -346,7 +346,9 @@ static int _gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+ 
+ 	jpeg_start_compress(&cinfo, TRUE);
+ 
+-	sprintf(comment, "CREATOR: gd-jpeg v%s (using IJG JPEG v%d),", GD_JPEG_VERSION, JPEG_LIB_VERSION);
++	sprintf(comment, "CREATOR: Movie Thumbnailer v3.3.3 "
++	"(https://gitlab.com/movie_thumbnailer/mtn/wikis) "
++	"using gd-jpeg v%s (using IJG JPEG v%d),", GD_JPEG_VERSION, JPEG_LIB_VERSION);
+ 
+ 	if(quality >= 0) {
+ 		sprintf (comment + strlen(comment), " quality = %d\n", quality);

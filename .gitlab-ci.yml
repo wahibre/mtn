@@ -101,6 +101,7 @@ debian:
     - git clone --depth=1 -b $STATIC_FFMPEG_BRANCH https://github.com/FFmpeg/FFmpeg.git lib/FFmpeg
     - echo cloning GD branch $STATIC_GD_BRANCH...
     - git clone --depth=1 -b $STATIC_GD_BRANCH https://github.com/libgd/libgd.git lib/libgd
+    - patch -p1 < misc/gdjpeg.patch
     - cd lib/FFmpeg
     - sh -e ../../misc/configureFFmpeg.sh
     - make -j4
