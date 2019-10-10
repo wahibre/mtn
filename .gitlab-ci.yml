@@ -131,24 +131,30 @@ debian:
         - ./*.jpg
 
 win:
-    image: fedora:28
+    image: fedora:29
     stage: build
+    variables:
+        WIN_FFMPEG_VER: 3.4.2
     only:
     - master
     - devel
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
-    - dnf -y install curl make mingw32-gcc.x86_64
-    - curl --output /tmp/deps-win-libgd.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
-    - curl --output /tmp/deps-win-FFmpeg.tgz -L https://bitbucket.org/wahibre/mtn/downloads/deps-FFmpeg-3.4.2-x86.tgz
+    - dnf -y install curl unzip make mingw32-gcc.x86_64
+    - curl --output /tmp/deps-win-libgd.tgz      -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
+    - curl --output /tmp/ffmpeg-win32-dev.zip    -L https://ffmpeg.zeranoe.com/builds/win32/dev/ffmpeg-$WIN_FFMPEG_VER-win32-dev.zip
+    - curl --output /tmp/ffmpeg-win32-shared.zip -L https://ffmpeg.zeranoe.com/builds/win32/shared/ffmpeg-$WIN_FFMPEG_VER-win32-shared.zip
+
     script:
-    - mkdir -p lib/windows
-    - pushd lib/windows
-    - tar xzf /tmp/deps-win-libgd.tgz
-    - tar xzf /tmp/deps-win-FFmpeg.tgz
-    - cd ../../src
+    - mkdir -p lib
+    - unzip -d lib /tmp/ffmpeg-win32-dev.zip
+    - mv lib/ffmpeg-*-dev lib/windows
+    - mkdir -p lib/windows/bin
+    - unzip -j -d lib/windows/bin /tmp/ffmpeg-win32-shared.zip ffmpeg-*-win32-shared/bin/{avcodec*.dll,avformat*.dll,avutil*.dll,sw*.dll}
+    - tar xzf /tmp/deps-win-libgd.tgz -C lib/windows
+    - cd src
     - make -f Makefile.mingw
-    - popd
+    - cd ..
     - mkdir -p mtn-win32/bin
     - mv lib/windows/bin/* mtn-win32/bin/
     - mv bin/mtn.exe mtn-win32/bin/
