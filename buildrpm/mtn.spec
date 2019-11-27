@@ -21,6 +21,15 @@ Requires:	ffmpeg-libs
 %description
 Movie thumbnail generator
 
+%package bash-completion
+Summary: Bash completion support for %{name}
+BuildArch: noarch
+Requires: bash-completion
+Requires: fontconfig
+
+%description bash-completion
+Bash completion support for the %{name}'s utilities.
+
 %prep
 rm -rf ./*
 tar -xf %SOURCE0
@@ -34,34 +43,28 @@ cd src
 cd src
 %make_install PREFIX=%{_prefix}
 
+## Make bash completion file
+mkdir -p %{buildroot}%{_datadir}/bash-completion/completions
+install -pm644 ../completions/%{name} %{buildroot}%{_datadir}/bash-completion/completions/%{name}
+
 %files
 %{_bindir}/mtn
 %{_defaultdocdir}/mtn/*
 %{_mandir}/man1/mtn.1*
+
+%files bash-completion
+%{_datadir}/bash-completion/completions/%{name}
 
 %clean
 rm -rf %{buildroot}
 rm -rf *
 
 %changelog
+* Wed Nov 27 2019 wahibre  <wahibre@gmx.com> - 3.3.3
+- bash completion
+
 * Thu May 30 2019 wahibre  <wahibre@gmx.com> - 3.3.2
-- update to version 3.3.2
 - add install prefix
-
-* Fri Jan 18 2019 wahibre  <wahibre@gmx.com> - 3.3.1
-- update to version 3.3.1
-
-* Wed May 16 2018 wahibre  <wahibre@gmx.com> - 3.3
-- update to version 3.3
-
-* Tue Jan 02 2018 wahibre  <wahibre@gmx.com> - 3.2.1
-- update to version 3.2.1
-
-* Tue Dec 05 2017 wahibre  <wahibre@gmx.com> - 3.2
-- update to version 3.2
-
-* Thu Nov 23 2017 wahibre  <wahibre@gmx.com> - 3.1
-- update to version 3.1
 
 * Mon Aug 7 2017 wahibre  <wahibre@gmx.com> - 3.0
 - initial

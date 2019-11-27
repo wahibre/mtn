@@ -1,0 +1,24 @@
+# Bash tab-completion for mtn (movie_thumbnailer)
+
+_movie_thumbnailer()
+{
+    local fclist
+    local cur prev words cword
+    _init_completion || return
+
+    if [ "${cur:0:2}" == "--" ] ;then
+        COMPREPLY=( $( compgen -W "--shadow --transparent" -- "$cur" ) )
+    else
+        case "$prev" in 
+        "-f") fclist=$(fc-list :fontformat=TrueType file | cut -d : -f1)
+             COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
+            ;;
+        "-O") _filedir -d
+            ;;
+        *) _filedir
+            ;;
+        esac
+    fi
+}
+
+complete -F _movie_thumbnailer mtn
