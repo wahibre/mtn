@@ -1,0 +1,52 @@
+#compdef mtn
+# zsh shell completion for mtn (Movie Thumbnailer)
+
+_TTFfontlist()
+{
+	compadd $( fc-list :fontformat=TrueType file | cut -d : -f1 )
+}
+
+_mtn()
+{
+	_arguments 	'-a[Aspect ratio]'\
+				'-b[Skip if % blank is higher]'\
+				'-B[Omit this seconds from the beginning]'\
+				'-c[Number of columns]'\
+				'-C[Max. seconds to cut off]'\
+				'-d[Recursion depth]'\
+				'-D[Edge detection]'\
+				'-E[Omit seconds at the end]'\
+				'-f[TrueType font file]:fonts:_TTFfontlist'\
+				'-F[font format: RRGGBB:size\[:font:RRGGBB:RRGGBB:size\]]'\
+				'-g[Gap between each shot]'\
+				'-h[Minimum height of each shot]'\
+				'-H[Filesize only in human readable format]'\
+				'-i[Info text off]'\
+				'-I[Save individual shots]'\
+				'-j[Jpeg quality]'\
+				'-k[background color (in hex): RRGGBB]'\
+				'-L[Location of text: info_location\[:time_location\]]'\
+				'-n[Run at normal priority]'\
+				'-N[Suffix for info text file]'\
+				'-o[Output suffix including image extension (.jpg or .png)]'\
+				'-O[Output directory]:directory:_dirs'\
+				'-p[Pause before exiting]'\
+				'-P[Dont pause before exiting]'\
+				'-q[Quiet mode]'\
+				'-r[Number of rows]'\
+				'-s[Time step between each shot]'\
+				'-S[Stream number]'\
+				'-t[Time stamp off]'\
+				'-T[Additional text above image]'\
+				'-v[Verbose mode]'\
+				'-w[Width of output image]'\
+				'-W[Dont overwrite existing files]'\
+				'-X[Use full input filename (include extension)]'\
+				'-z[Always use seek mode]'\
+				'-Z[Always use non-seek mode]'\
+				'--shadow[Shadows beneath thumbnails]'\
+				'--transparent[Transparent background color]'\
+				'*:file:_files'
+}
+
+_mtn

@@ -30,6 +30,15 @@ Requires: fontconfig
 %description bash-completion
 Bash completion support for the %{name}'s utilities.
 
+%package zsh-completion
+Summary: Zsh completion support for %{name}
+BuildArch: noarch
+Requires: zsh
+Requires: fontconfig
+
+%description zsh-completion
+Zsh completion support for the %{name}'s utilities.
+
 %prep
 rm -rf ./*
 tar -xf %SOURCE0
@@ -46,6 +55,8 @@ cd src
 ## Make bash completion file
 mkdir -p %{buildroot}%{_datadir}/bash-completion/completions
 install -pm644 ../completions/%{name} %{buildroot}%{_datadir}/bash-completion/completions/%{name}
+mkdir -p %{buildroot}%{_datadir}/zsh/site-functions
+install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-functions/_%{name}
 
 %files
 %{_bindir}/mtn
@@ -55,13 +66,17 @@ install -pm644 ../completions/%{name} %{buildroot}%{_datadir}/bash-completion/co
 %files bash-completion
 %{_datadir}/bash-completion/completions/%{name}
 
+%files zsh-completion
+%{_datadir}/zsh/site-functions/_%{name}
+
 %clean
 rm -rf %{buildroot}
 rm -rf *
 
 %changelog
-* Wed Nov 27 2019 wahibre  <wahibre@gmx.com> - 3.3.3
+* Fri Nov 29 2019 wahibre  <wahibre@gmx.com> - 3.3.3
 - bash completion
+- zsh completion
 
 * Thu May 30 2019 wahibre  <wahibre@gmx.com> - 3.3.2
 - add install prefix

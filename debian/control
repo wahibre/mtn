@@ -29,3 +29,11 @@ Depends: mtn (>=3.3.3),
          fontconfig
 Description: bash completion for Movie Thumbnailer - screens generator
  This package contains file for bash competions.
+
+Package: mtn-zsh-completion
+Architecture: any
+Depends: mtn (>=3.3.3),
+         zsh-common,
+         fontconfig
+Description: zsh completion for Movie Thumbnailer - screens generator
+ This package contains file for zsh competions.
