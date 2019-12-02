@@ -2,27 +2,7 @@ stages:
     - build
 
 variables:
-  MOVIE_URL: "https://bitbucket.org/wahibre/mtn/downloads/sample.avi"
-
-#obsolete
-.fedorarpm: &fcrpm
-    stage: build
-    only:
-    - master
-    - devel
-    script:
-    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-    - dnf -y install make gcc-c++ ffmpeg-devel gd-devel rpm-build zlib-devel libpng-devel
-    - tar czf mtn.tar.gz * --transform="s%^%mtn-ci/%"
-    - mkdir -p buildroot/SOURCES
-    - mv mtn.tar.gz buildroot/SOURCES/
-    - rpmbuild -bb --define "_topdir $(pwd)/buildroot" buildrpm/mtn.spec
-    - mv buildroot/RPMS/x86_64/*.rpm .
-    artifacts:
-        name: mtn-$CI_JOB_NAME
-        expire_in: 4 week
-        paths:
-        - ./*.rpm
+  MOVIE_URL: "https://$MYDOWNLOADSERVER/sample.avi"
 
 .fedora: &fc
     stage: build
@@ -31,7 +11,6 @@ variables:
     - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     - curl --output /home/sample.avi -L $MOVIE_URL
     script:
-# 	  build & test
     - cd src
     - make test
     - mv /tmp/*.jpg ..
@@ -52,7 +31,6 @@ variables:
     - yum -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     - curl --output /home/sample.avi -L $MOVIE_URL
     script:
-# 	  build & test
     - cd src
     - make test
     - mv /tmp/*.jpg ..
@@ -91,6 +69,7 @@ debian:
     only:
         variables:
         - $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+    when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt update
@@ -121,7 +100,6 @@ debian:
     - popd
     - tar czhf mtn-static.tar.gz *
     - mv /tmp/*.jpg .
-    when: manual
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
@@ -136,14 +114,16 @@ win:
     variables:
         WIN_FFMPEG_VER: 3.4.2
     only:
-    - master
-    - devel
+        variables:
+        - $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+    when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - dnf -y install curl unzip make mingw32-gcc.x86_64
-    - curl --output /tmp/deps-win-libgd.tgz      -L https://bitbucket.org/wahibre/mtn/downloads/deps-libgd-2.1.1-x86.tgz
-    - curl --output /tmp/ffmpeg-win32-dev.zip    -L https://ffmpeg.zeranoe.com/builds/win32/dev/ffmpeg-$WIN_FFMPEG_VER-win32-dev.zip
-    - curl --output /tmp/ffmpeg-win32-shared.zip -L https://ffmpeg.zeranoe.com/builds/win32/shared/ffmpeg-$WIN_FFMPEG_VER-win32-shared.zip
+    # MYDOWNLOADSERVER = ffmpeg.zeranoe.com/builds/win32/...
+    - curl --output /tmp/deps-win-libgd.tgz      -L https://$MYDOWNLOADSERVER/deps-libgd-2.1.1-x86.tgz
+    - curl --output /tmp/ffmpeg-win32-dev.zip    -L https://$MYDOWNLOADSERVER/ffmpeg-$WIN_FFMPEG_VER-win32-dev.zip
+    - curl --output /tmp/ffmpeg-win32-shared.zip -L https://$MYDOWNLOADSERVER/ffmpeg-$WIN_FFMPEG_VER-win32-shared.zip
 
     script:
     - mkdir -p lib
