@@ -17,6 +17,8 @@ Package: mtn
 Architecture: any
 Depends: ${shlibs:Depends}, 
          ${misc:Depends}
+Suggests: mtn-bash-completion,
+          mtn-zsh-completion
 Description: Movie Thumbnailer - screens generator
  Movie Thumbnailer (mtn) saves thumbnails (screenshots) of movie or 
  video files to jpeg files. It uses FFmpeg's libavcodec as its engine, 

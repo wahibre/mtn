@@ -26,6 +26,7 @@ Summary: Bash completion support for %{name}
 BuildArch: noarch
 Requires: bash-completion
 Requires: fontconfig
+Enhances: mtn
 
 %description bash-completion
 Bash completion support for the %{name}'s utilities.
@@ -35,6 +36,7 @@ Summary: Zsh completion support for %{name}
 BuildArch: noarch
 Requires: zsh
 Requires: fontconfig
+Enhances: mtn
 
 %description zsh-completion
 Zsh completion support for the %{name}'s utilities.
