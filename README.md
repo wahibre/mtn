@@ -13,7 +13,7 @@ https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 Dependency
 ==========
  - ffmpeg   (>=3.1)
- - gd       (>=2.0.35)
+ - gd       (>=2.0.33)
 
 Getting source
 ==============
