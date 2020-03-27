@@ -43,7 +43,7 @@ mtns: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS)
 
 mtnd: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -g $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) -W -Wall -g $(LIBS)
 
 clean:
 	rm -f $(OUT)/mtn

@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2019 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
+    Copyright (C) 2017-2020 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -55,6 +55,7 @@
 
 #include "libavutil/imgutils.h"
 #include "libavutil/avutil.h"
+#include "libavutil/display.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
 #include "libswscale/swscale.h"
@@ -136,15 +137,17 @@ typedef struct thumbnail
     gdImagePtr out_ip;
     char out_filename[UTF8_FILENAME_SIZE];
     char info_filename[UTF8_FILENAME_SIZE];
-    int out_saved; // 1 = out file is successfully saved
-    int width, height;
+    int out_saved;                          // 1 = out file is successfully saved
+    int img_width, img_height;
     int txt_height;
     int column, row;
-    int step;       // in seconds
-    int shot_width, shot_height;
-    int center_gap; // horizontal gap to center the shots
-    int idx; // index of the last shot; -1 = no shot
-    int tiles_nr; // number of shots in thumbnail
+    int step;                               // in seconds
+    int shot_width_in,  shot_height_in;     // dimension stored in movie file
+    int shot_width_out, shot_height_out;    // dimension  after possible rotation
+    int center_gap;                         // horizontal gap to center the shots
+    int idx;                                // index of the last shot; -1 = no shot
+    int tiles_nr;                           // number of shots in thumbnail
+    int rotation;                           // in degrees <-180; 180> stored in movie
 
     // dynamic
     int64_t *ppts; // array of pts value of each shot
@@ -619,7 +622,6 @@ void FrameRGB_2_gdImage(AVFrame *pFrame, gdImagePtr ip, int width, int height)
     for (y = 0; y < height; y++) {
         for (x = 0; x < width * 3; x += 3) {
             gdImageSetPixel(ip, x / 3, y, gdImageColorResolve(ip, src[x], src[x + 1], src[x + 2]));
-            //gdImageSetPixel(ip, x/3, y, gdTrueColor(src[x], src[x+1], src[x+2]));
         }
         src += width * 3;
     }
@@ -647,14 +649,16 @@ void thumb_new(thumbnail *ptn)
     ptn->out_filename[0] = '\0';
     ptn->info_filename[0] = '\0';
     ptn->out_saved = 0;
-    ptn->width = ptn->height = 0;
+    ptn->img_width = ptn->img_height = 0;
     ptn->txt_height = 0;
     ptn->column = ptn->row = 0;
     ptn->step = 0;
-    ptn->shot_width = ptn->shot_height = 0;
+    ptn->shot_width_in  = ptn->shot_height_in = 0;
+    ptn->shot_width_out = ptn->shot_height_out = 0;
     ptn->center_gap = 0;
     ptn->idx = -1;
-    ptn->tiles_nr = 0;
+    ptn->tiles_nr = 0;    
+    ptn->rotation = 0;
 
     // dynamic
     ptn->ppts = NULL;
@@ -740,14 +744,14 @@ in increasing order.
 */
 void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int idx, int64_t pts)
 {
-    int dstX = idx%ptn->column * (ptn->shot_width+gb_g_gap) + gb_g_gap + ptn->center_gap;
-    int dstY = idx/ptn->column * (ptn->shot_height+gb_g_gap) + gb_g_gap
+    int dstX = idx%ptn->column * (ptn->shot_width_out+gb_g_gap) + gb_g_gap + ptn->center_gap;
+    int dstY = idx/ptn->column * (ptn->shot_height_out+gb_g_gap) + gb_g_gap
         + ((3 == gb_L_info_location || 4 == gb_L_info_location) ? ptn->txt_height : 0);
 
     if(gb__shadow > 0 && thumbShadowIm!=NULL)
 		gdImageCopy(ptn->out_ip, thumbShadowIm, dstX+gb__shadow+1, dstY+gb__shadow+1, 0, 0, gdImageSX(thumbShadowIm), gdImageSY(thumbShadowIm));
     
-    gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width, ptn->shot_height);
+    gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width_out, ptn->shot_height_out);
     ptn->idx = idx;
     ptn->ppts[idx] = pts;
     ptn->tiles_nr++;
@@ -850,8 +854,10 @@ http://www.pages.drexel.edu/~weg22/edge.html
 http://student.kuleuven.be/~m0216922/CG/filtering.html
 http://cvs.php.net/viewvc.cgi/php-src/ext/gd/libgd/gd.c?revision=1.111&view=markup
 */
-gdImagePtr detect_edge(AVFrame *pFrame, int width, int height, float *edge, float edge_found)
+gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, float edge_found)
 {
+    int width =  tn->shot_width_in;
+    int height = tn->shot_height_in;
     static float filter[] = {
          0,-1, 0,
         -1, 4,-1,
@@ -1019,6 +1025,29 @@ void dump_index_entries(AVStream * p)
         prev_ts = cur_ts;
     }
     av_log(NULL, AV_LOG_VERBOSE, "  *** nb_index_entries: %d, avg. timestamp s diff: %.2f\n", p->nb_index_entries, diff / p->nb_index_entries);
+}
+
+//based on dump.c: static void dump_sidedata(void *ctx, AVStream *st, const char *indent)
+double get_stream_rotation(AVStream *st)
+{
+    double rotation = 0.0;
+
+    if (st->nb_side_data)
+    {
+
+        int i;
+        for(i=0; i < st->nb_side_data; i++ )
+        {
+            AVPacketSideData sd = st->side_data[i];
+
+            if(sd.type == AV_PKT_DATA_DISPLAYMATRIX) {
+                rotation = av_display_rotation_get((int32_t *)sd.data);
+                break;
+            }
+        }
+    }
+
+    return rotation;
 }
 
 void dump_stream(AVStream * p)
@@ -1769,6 +1798,58 @@ static int find_default_videostream_index(AVFormatContext *s, int user_selected_
     return default_stream_idx;
 }
 
+void rotate_geometry(int *w, int *h, int angle)
+{
+    if(abs(angle) == 90)
+    {
+        int tmp = *w;
+        *w = *h;
+        *h = tmp;
+    }
+}
+
+gdImagePtr rotate_gdImage(gdImagePtr ip, int angle)
+{
+    if(angle == 0)
+        return ip;
+    
+    int win = gdImageSX(ip);
+    int hin = gdImageSY(ip);
+    int wout = win;
+    int hout = hin;
+
+    if(abs(angle) == 90) {
+        wout = hin;
+        hout = win;
+    }
+
+    gdImagePtr ipr = gdImageCreateTrueColor(wout, hout);
+
+    int i,j;
+
+    for(i=0; i<win; i++)
+        for(j=0; j<hin; j++)
+            switch(angle)
+            {
+                case -180:
+                case +180:
+                    gdImageSetPixel(ipr, wout-i, hout-j, gdImageGetPixel(ip, i, j));
+                    break;
+                case   90:
+                    gdImageSetPixel(ipr, j,      hout-i, gdImageGetPixel(ip, i, j));
+                    break;
+                case  -90:
+                    gdImageSetPixel(ipr, wout-j, i,      gdImageGetPixel(ip, i, j));
+                    break;
+                default:
+                    gdImageDestroy(ipr);
+                    return ip;
+            }
+            
+    gdImageDestroy(ip);
+    return ipr;
+}
+
 /*
  * return   0 ok
  *         -1 something went wrong
@@ -1933,6 +2014,9 @@ int make_thumbnail(char *file)
     if(!pCodecCtx)
         goto cleanup;
 
+    if((tn.rotation = get_stream_rotation(pStream)) != 0)
+        av_log(NULL, AV_LOG_INFO,  "  Rotation: %d degrees%s", tn.rotation, NEWLINE);
+    
     dump_stream(pStream);
     dump_index_entries(pStream);
     dump_codec_context(pCodecCtx);
@@ -1977,16 +2061,17 @@ int make_thumbnail(char *file)
     double duration = (double) pFormatCtx->duration / AV_TIME_BASE; // can be unknown & can be incorrect (e.g. .vob files)
     if (duration <= 0) {
         duration = guess_duration(pFormatCtx, video_index, pCodecCtx, pFrame);
+    }
+    if (duration <= 0) {
         // have to turn timestamping off because it'll be incorrect
         if (1 == gb_t_timestamp) { // on
             t_timestamp = 0;
             av_log(NULL, AV_LOG_ERROR, "  turning time stamp off because of duration\n");
         }
-    }
-    if (duration <= 0) {
         av_log(NULL, AV_LOG_ERROR, "  duration is unknown: %.2f\n", duration);
         goto cleanup;
     }
+
     double start_time = (double) pFormatCtx->start_time / AV_TIME_BASE; // in seconds
     // VTS_01_2.VOB & beyond from DVD seem to be like this
     //if (start_time > duration) {
@@ -2058,24 +2143,31 @@ int make_thumbnail(char *file)
 
     /* scale according to sample_aspect_ratio. */
     int scaled_src_width, scaled_src_height;
+
     calc_scale_src(pCodecCtx->width, pCodecCtx->height, sample_aspect_ratio,
         &scaled_src_width, &scaled_src_height);
+
     if (scaled_src_width != pCodecCtx->width || scaled_src_height != pCodecCtx->height) {
         av_log(NULL, AV_LOG_INFO, "  * scaling input * %dx%d => %dx%d according to sample_aspect_ratio %d/%d\n",
             pCodecCtx->width, pCodecCtx->height, scaled_src_width, scaled_src_height, 
             sample_aspect_ratio.num, sample_aspect_ratio.den);
     }
 
+    int scaled_src_width_out  = scaled_src_width,
+        scaled_src_height_out = scaled_src_height;
+
+    rotate_geometry(&scaled_src_width_out, &scaled_src_height_out, tn.rotation);
+
     tn.column = gb_c_column + 1; // will be -1 in the loop
     int seek_mode = 1; // 1 = seek; 0 = non-seek
     tn.step = -99999; // seconds
     tn.row = -99999;
-    tn.width = -99999;
-    tn.shot_width = -99999;
-    tn.shot_height = -99999;
+    tn.img_width = -99999;
+    tn.shot_width_out = -99999;
+    tn.shot_height_out = -99999;
 
     // reduce # of column until we meet minimum height except when movie is too small
-    while (tn.shot_height < gb_h_height && tn.column > 0 && tn.shot_width != scaled_src_width) {
+    while (tn.shot_height_out < gb_h_height && tn.column > 0 && tn.shot_width_out != scaled_src_width_out) {
         tn.column--;
         if (gb_s_step == 0) { // step evenly to get column x row
             tn.step = net_duration / (tn.column * gb_r_row + 1);
@@ -2098,28 +2190,36 @@ int make_thumbnail(char *file)
 
         int full_width = tn.column * (scaled_src_width + gb_g_gap) + gb_g_gap;
         if (gb_w_width > 0 && gb_w_width < full_width) {
-            tn.width = gb_w_width;
+            tn.img_width = gb_w_width;
         } else {
-            tn.width = full_width;
+            tn.img_width = full_width;
         }
-        tn.shot_width = floor((tn.width - gb_g_gap*(tn.column+1)) / (double)tn.column + 0.5); // round nearest
-        tn.shot_width -= tn.shot_width%2; // floor to even number
-        tn.shot_height = floor((double) scaled_src_height / scaled_src_width * tn.shot_width + 0.5); // round nearest
-        tn.shot_height -= tn.shot_height%2; // floor to even number
-        tn.center_gap = (tn.width - gb_g_gap*(tn.column+1) - tn.shot_width * tn.column) / 2.0;
+        tn.shot_width_out = floor((tn.img_width - gb_g_gap*(tn.column+1)) / (double)tn.column + 0.5); // round nearest
+        tn.shot_width_out -= tn.shot_width_out%2; // floor to even number
+        tn.shot_height_out = floor((double) scaled_src_height_out / scaled_src_width_out * tn.shot_width_out + 0.5); // round nearest
+        tn.shot_height_out -= tn.shot_height_out%2; // floor to even number
+        tn.center_gap = (tn.img_width - gb_g_gap*(tn.column+1) - tn.shot_width_out * tn.column) / 2.0;
     }
     if (tn.step == 0) {
         av_log(NULL, AV_LOG_ERROR, "  step is zero; movie is too short?\n");
         goto cleanup;
     }
 
+    if(abs(tn.rotation) == 90){
+        tn.shot_height_in = tn.shot_width_out;
+        tn.shot_width_in  = tn.shot_height_out;
+    } else {
+        tn.shot_height_in = tn.shot_height_out;
+        tn.shot_width_in  = tn.shot_width_out;
+    }
+
     if(tn.column == 0)
     {
         int suggested_width, suggested_height;
         // guess new width and height to create thumbnails
-        suggested_width = ceil(gb_h_height * scaled_src_width/scaled_src_height + 2*(double)gb_g_gap);
+        suggested_width = ceil(gb_h_height * scaled_src_width_out/scaled_src_height_out + 2*(double)gb_g_gap);
         suggested_width+= suggested_width%2;
-        suggested_height = floor((gb_w_width - 2*gb_g_gap) * scaled_src_height/scaled_src_width);
+        suggested_height = floor((gb_w_width - 2*gb_g_gap) * scaled_src_height_out/scaled_src_width_out);
         suggested_height-= suggested_height%2;
 
         av_log(NULL, AV_LOG_ERROR, "  thumbnail to small; increase image width to %d (-w) or decrease min. image height to %d (-h)%s" ,
@@ -2129,8 +2229,8 @@ int make_thumbnail(char *file)
     if (tn.column != gb_c_column) {
         av_log(NULL, AV_LOG_INFO, "  changing # of column to %d to meet minimum height of %d; see -h option\n", tn.column, gb_h_height);
     }
-    if (gb_w_width > 0 && gb_w_width != tn.width) {
-        av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.width, scaled_src_width, tn.column);
+    if (gb_w_width > 0 && gb_w_width != tn.img_width) {
+        av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.img_width, scaled_src_width, tn.column);
     }
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
     if (NULL != info_fp) {
@@ -2146,12 +2246,12 @@ int make_thumbnail(char *file)
         }
     }
     tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
-    tn.height = tn.shot_height*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
+    tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
     av_log(NULL, AV_LOG_INFO, "  step: %d s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
-        tn.step, tn.column, tn.row, tn.shot_width, tn.shot_height, tn.width, tn.height);
+        tn.step, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
 
     // jpeg seems to have max size of 65500 pixels
-    if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.width > 65500 || tn.height > 65500)) {
+    if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.img_width > 65500 || tn.img_height > 65500)) {
         av_log(NULL, AV_LOG_ERROR, "  jpeg only supports max size of 65500\n");
         goto cleanup;
     }
@@ -2168,7 +2268,7 @@ int make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
     }
-    int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
+    int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width_in, tn.shot_height_in, LINESIZE_ALIGN);
     rgb_buffer = av_malloc(rgb_bufsize);
 //    rgb_buffer = (uint8_t*)malloc(rgb_bufsize*sizeof(uint8_t));
 
@@ -2178,7 +2278,7 @@ int make_thumbnail(char *file)
     }
     //DEPRECATED avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
     // Returns: the size in bytes required for src, a negative error code in case of failure
-    ret = av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height, LINESIZE_ALIGN);
+    ret = av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width_in, tn.shot_height_in, LINESIZE_ALIGN);
     if(ret <0 )
     {
         av_log(NULL, AV_LOG_ERROR, "  av_image_fill_arrays failed (%d)\n", ret);
@@ -2186,16 +2286,16 @@ int make_thumbnail(char *file)
     }
 
     pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
-        tn.shot_width, tn.shot_height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+        tn.shot_width_in, tn.shot_height_in, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
     if (NULL == pSwsCtx) { // sws_getContext is not documented
         av_log(NULL, AV_LOG_ERROR, "  sws_getContext failed\n");
         goto cleanup;
     }
 
     /* create the output image */
-    tn.out_ip = gdImageCreateTrueColor(tn.width, tn.height);
+    tn.out_ip = gdImageCreateTrueColor(tn.img_width, tn.img_height);
     if (NULL == tn.out_ip) {
-        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed: width %d, height %d\n", tn.width, tn.height);
+        av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed: width %d, height %d\n", tn.img_width, tn.img_height);
         goto cleanup;
     }
 
@@ -2211,7 +2311,7 @@ int make_thumbnail(char *file)
     );
     */
     int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b); // set backgroud
-    gdImageFilledRectangle(tn.out_ip, 0, 0, tn.width, tn.height, background);
+    gdImageFilledRectangle(tn.out_ip, 0, 0, tn.img_width, tn.img_height, background);
     
     if(gb__transparent_bg)
 		gdImageColorTransparent (tn.out_ip, background);
@@ -2229,7 +2329,7 @@ int make_thumbnail(char *file)
 
 	/* if needed create shadow image used for every shot	*/
 	if(gb__shadow >= 0){
-		if((thumbShadowIm = create_shadow_image(background, &gb__shadow, tn.shot_width, tn.shot_height)) == NULL)
+		if((thumbShadowIm = create_shadow_image(background, &gb__shadow, tn.shot_width_out, tn.shot_height_out)) == NULL)
 			goto cleanup;
 	}
 
@@ -2422,11 +2522,14 @@ int make_thumbnail(char *file)
         /* if blank screen, try again */
         // FIXME: make sure this'll work when step is small
         // FIXME: make sure each shot wont get repeated
-        double blank = blank_frame(pFrameRGB, tn.shot_width, tn.shot_height);
+        double blank = blank_frame(pFrameRGB, tn.shot_width_out, tn.shot_height_out);
         // only do edge when blank detection doesn't work
         float edge[EDGE_PARTS] = {1,1,1,1,1,1}; // FIXME: change this if EDGE_PARTS is changed
         if (evade_step > 0 && blank <= gb_b_blank && gb_D_edge > 0) {
-            edge_ip = detect_edge(pFrameRGB, tn.shot_width, tn.shot_height, edge, EDGE_FOUND);
+            edge_ip = rotate_gdImage(
+                detect_edge(pFrameRGB, &tn, edge, EDGE_FOUND),
+                tn.rotation);
+
         }
         //av_log(NULL, AV_LOG_VERBOSE, "  idx: %d, evade_try: %d, blank: %.2f%s edge: %.3f %.3f %.3f %.3f %.3f %.3f%s\n", 
         //    idx, evade_try, blank, (blank > gb_b_blank) ? "**b**" : "", 
@@ -2456,12 +2559,13 @@ int make_thumbnail(char *file)
         //av_log(NULL, AV_LOG_VERBOSE, "  *** avg_evade_try: %.2f\n", avg_evade_try); // DEBUG
 
         /* convert to GD image */
-        ip = gdImageCreateTrueColor(tn.shot_width, tn.shot_height);
+        ip = gdImageCreateTrueColor(tn.shot_width_in, tn.shot_height_in);
         if (NULL == ip) {
-            av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed: width %d, height %d\n", tn.shot_width, tn.shot_height);
+            av_log(NULL, AV_LOG_ERROR, "  gdImageCreateTrueColor failed: width %d, height %d\n", tn.shot_width_in, tn.shot_height_in);
             goto cleanup;
         }
-        FrameRGB_2_gdImage(pFrameRGB, ip, tn.shot_width, tn.shot_height);
+        FrameRGB_2_gdImage(pFrameRGB, ip, tn.shot_width_in, tn.shot_height_in);
+        ip = rotate_gdImage(ip, tn.rotation);
 
         /* if debugging, save the edge instead */
         if (gb_v_verbose > 0 && NULL != edge_ip) {
@@ -2538,24 +2642,16 @@ int make_thumbnail(char *file)
         goto cleanup;
     }
     if (0 != skipped_rows) {
-        int cropped_height = tn.height - skipped_rows*tn.shot_height;
-        gdImagePtr new_out_ip = crop_image(tn.out_ip, tn.width, cropped_height);
+        int cropped_height = tn.img_height - skipped_rows*tn.shot_height_out;
+        gdImagePtr new_out_ip = crop_image(tn.out_ip, tn.img_width, cropped_height);
         if (new_out_ip != tn.out_ip) {
             tn.out_ip = new_out_ip;
-            av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", tn.column, tn.row - skipped_rows, tn.width, cropped_height);
+            av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", tn.column, tn.row - skipped_rows, tn.img_width, cropped_height);
         }
     }
 
     /* fill in the last row if some shots were skipped */
 
-    /* save output image */
-//    errno = 0;
-//    gdImageJpeg(tn.out_ip, out_fp, gb_j_quality);  /* FIXME: how to check if write was successful? */
-//    if (0 != errno) { // FIXME: this should work?
-//        av_log(NULL, AV_LOG_ERROR, "  saving output image failed: %s\n", strerror(errno));
-//        goto cleanup;
-//    }
-//    tn.out_saved = 1;
     /* save output image */
     if(save_image(tn.out_ip, tn.out_filename) == 0)
         tn.out_saved  = 1;
@@ -2583,12 +2679,6 @@ int make_thumbnail(char *file)
     if (NULL != tn.out_ip)
         gdImageDestroy(tn.out_ip);
 
-//    if (NULL != out_fp) {
-//        fclose(out_fp);
-//        if (1 != tn.out_saved) {
-//            _tunlink(out_filename_w);
-//        }
-//    }
     if (NULL != info_fp) {
         fclose(info_fp);
         if (1 != tn.out_saved) {

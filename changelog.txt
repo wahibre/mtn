@@ -1,3 +1,7 @@
+version NEXT
+- thumbnail autorotation
+- bash and zsh completion
+
 version 3.3.3 	2019/09/16
 - bitrate from metadata if missing in Format Context
 - changed exit code to work with errorlevel (win)
