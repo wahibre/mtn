@@ -48,7 +48,7 @@ variables:
     - devel
     before_script:
     - apt-get -y update
-    - apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
+    - DEBIAN_FRONTEND=noninteractive apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
     - curl --output /home/sample.avi -L $MOVIE_URL
     script:
     - cd src
