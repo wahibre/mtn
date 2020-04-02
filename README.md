@@ -58,7 +58,6 @@ $ sudo pacman -S ffmpeg gd
 ```
 
 **[OpenSUSE](http://opensuse.org/)** 15  
-(FFmpeg in repository is unfortunately compiled with only a few video codecs)
 ```sh
 $ zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```

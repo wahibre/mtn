@@ -16,7 +16,11 @@ BuildRequires:	gd-devel >= 2.0.35
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd
+%if 0%{?mageia}
+Requires:	ffmpeg
+%else
 Requires:	ffmpeg-libs
+%endif
 
 %description
 Movie thumbnail generator
