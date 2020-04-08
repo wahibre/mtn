@@ -1,5 +1,5 @@
 Name:		mtn	
-Version: 	3.3.3
+Version: 	3.4.0
 Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
@@ -80,7 +80,7 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
-* Fri Nov 29 2019 wahibre  <wahibre@gmx.com> - 3.3.3
+* Fri Nov 29 2019 wahibre  <wahibre@gmx.com> - 3.4.0
 - bash completion
 - zsh completion
 

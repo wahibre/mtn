@@ -109,7 +109,7 @@ debian:
         - ./*.jpg
 
 win:
-    image: fedora:29
+    image: fedora:31
     stage: build
     variables:
         WIN_FFMPEG_VER: 3.4.2

@@ -1,4 +1,4 @@
-version NEXT
+version 3.4.0   2020/04/14
 - thumbnail autorotation
 - bash and zsh completion
 

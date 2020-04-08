@@ -7,7 +7,7 @@ index f2dd329..f80e7ca 100644
  	jpeg_start_compress(&cinfo, TRUE);
  
 -	sprintf(comment, "CREATOR: gd-jpeg v%s (using IJG JPEG v%d),", GD_JPEG_VERSION, JPEG_LIB_VERSION);
-+	sprintf(comment, "CREATOR: Movie Thumbnailer v3.3.3 "
++	sprintf(comment, "CREATOR: Movie Thumbnailer v3.4.0 "
 +	"(https://gitlab.com/movie_thumbnailer/mtn/wikis) "
 +	"using gd-jpeg v%s (using IJG JPEG v%d),", GD_JPEG_VERSION, JPEG_LIB_VERSION);
  
