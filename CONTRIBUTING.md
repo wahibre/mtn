@@ -18,7 +18,7 @@ Read the [README](https://gitlab.com/movie_thumbnailer/mtn/-/blob/devel/README.m
 
 ## Report bug
 
-Download latest version and test it. If you find a bug, report an [issue](https://gitlab.com/movie_thumbnailer/mtn/issues). Fill in all important information to reproduce the bug. Use **-v** switch to print out debug information. Attach whole output as a file.  
+Download latest version and test it. If you find a bug, report an [issue](https://gitlab.com/movie_thumbnailer/mtn/issues). Fill in all important information to reproduce the bug. Use **-v** switch to print out debug information. Attach whole output as a file output.txt.  
 
 <u>*Example:*</u>  
 
@@ -26,7 +26,8 @@ Download latest version and test it. If you find a bug, report an [issue](https:
 **Command line:** `mtn -v -f DejaVuSans.ttf -c 3 -r 4 -g 5 -D 12 -o _preview.jpg video.mkv`  
 **Link:** [http://link.to.video.mkv](http://link.to.video.mkv), [http://link.to.video_preview.jpg](http://link.to.video_preview.jpg)  
 **Issue:** Invalid timestamps in last row of pictures  
-**Output:**  
+**Attachment:**  output.txt  
+**Output:**  (most interesting part of output)  
 ```
 Movie Thumbnailer (mtn) 3.3.3
 Compiled with: Lavc58.54.100 Lavf58.29.100 Lavu56.31.100 SwS5.5.100 GD:2.2.5

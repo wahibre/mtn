@@ -26,7 +26,7 @@ Description: Movie Thumbnailer - screens generator
 
 Package: mtn-bash-completion
 Architecture: any
-Depends: mtn (>=3.3.3),
+Depends: mtn (>=3.4.0),
          bash-completion,
          fontconfig
 Description: bash completion for Movie Thumbnailer - screens generator
@@ -34,7 +34,7 @@ Description: bash completion for Movie Thumbnailer - screens generator
 
 Package: mtn-zsh-completion
 Architecture: any
-Depends: mtn (>=3.3.3),
+Depends: mtn (>=3.4.0),
          zsh-common,
          fontconfig
 Description: zsh completion for Movie Thumbnailer - screens generator

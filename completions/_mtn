@@ -46,6 +46,7 @@ _mtn()
 				'-Z[Always use non-seek mode]'\
 				'--shadow[Shadows beneath thumbnails]'\
 				'--transparent[Transparent background color]'\
+				'--cover[Extract album art]'\
 				'*:file:_files'
 }
 

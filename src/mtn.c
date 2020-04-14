@@ -137,6 +137,7 @@ typedef struct thumbnail
     gdImagePtr out_ip;
     char out_filename[UTF8_FILENAME_SIZE];
     char info_filename[UTF8_FILENAME_SIZE];
+    char cover_filename[UTF8_FILENAME_SIZE];
     int out_saved;                          // 1 = out file is successfully saved
     int img_width, img_height;
     int txt_height;
@@ -246,6 +247,8 @@ int gb_Z_nonseek = GB_Z_NONSEEK; // always use non-seek mode; 1 on; 0 off
 /* long command line options */
 int gb__shadow=-1;				// -1 off, 0 auto, >0 manual
 int gb__transparent_bg=0;		//  0 off, 1 on
+int gb__cover=0;                //  album art (cover image)
+const char* gb__cover_suffix="_cover.jpg";
 
 
 /* more global variables */
@@ -646,8 +649,9 @@ void shot_new(shot *psh)
 void thumb_new(thumbnail *ptn)
 {
     ptn->out_ip = NULL;
-    ptn->out_filename[0] = '\0';
-    ptn->info_filename[0] = '\0';
+    ptn->out_filename[0]   = '\0';
+    ptn->info_filename[0]  = '\0';
+    ptn->cover_filename[0] = '\0';
     ptn->out_saved = 0;
     ptn->img_width = ptn->img_height = 0;
     ptn->txt_height = 0;
@@ -1752,13 +1756,15 @@ int make_unique_name(char *name, char *suffix, int unum)
     return unum;
 }
 
-/*  find first usable video stream (not cover art)
-    based on av_find_default_stream_index()
-    returns
-        >0: video index
-        -1: can't find any usable video
-*/
-static int find_default_videostream_index(AVFormatContext *s, int user_selected_video_stream)
+/*
+ * find first usable video stream (not cover art)
+ * based on av_find_default_stream_index()
+ * returns
+ *      >0: video index
+ *      -1: can't find any usable video
+ */
+int
+find_default_videostream_index(AVFormatContext *s, int user_selected_video_stream)
 {
     int default_stream_idx = -1;
     int cover_image;
@@ -1851,11 +1857,54 @@ gdImagePtr rotate_gdImage(gdImagePtr ip, int angle)
 }
 
 /*
+ * Find and extract album art / cover image
+ */
+void
+save_cover_image(AVFormatContext *s, const char* cover_filename)
+{
+    int cover_stream_idx = -1;
+    unsigned int i;
+
+    // find first stream with cover art
+    for (i = 0; i < s->nb_streams; i++)
+    {
+        if (s->streams[i]->codecpar->codec_type == AVMEDIA_TYPE_VIDEO &&
+            (s->streams[i]->disposition & AV_DISPOSITION_ATTACHED_PIC))
+        {
+            cover_stream_idx  = (int)i;
+            break;
+        }
+    }
+
+    if(cover_stream_idx > -1)
+    {
+        AVPacket pkt = s->streams[cover_stream_idx]->attached_pic;
+
+        if(pkt.data && pkt.size > 0)
+        {
+            av_log(NULL, AV_LOG_VERBOSE, "Found cover art in stream index %d.%s", cover_stream_idx, NEWLINE);
+
+            FILE* image_file = fopen(cover_filename, "wb");
+            if(image_file)
+            {
+                fwrite(pkt.data, pkt.size, 1, image_file);
+                fclose(image_file);
+            }
+            else
+                av_log(NULL, AV_LOG_ERROR, "Error opening file \"%s\" for writting!%s", cover_filename, NEWLINE);
+        }
+    }
+    else
+        av_log(NULL, AV_LOG_VERBOSE, "No cover art found.%s", NEWLINE);
+}
+
+/*
  * return   0 ok
  *         -1 something went wrong
  *          1 some images are missing
-*/
-int make_thumbnail(char *file)
+ */
+int
+make_thumbnail(char *file)
 {
     int return_code = -1;
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: %s\n", file);
@@ -1890,37 +1939,43 @@ int make_thumbnail(char *file)
 
     av_log(NULL, AV_LOG_INFO, "\n");
 
-    /* check if output file already exists & open output file */
-    if (NULL != gb_O_outdir && strlen(gb_O_outdir) > 0) {
-        strcpy_va(tn.out_filename, 3, gb_O_outdir, "/", path_2_file(file));
-        if (NULL != gb_N_suffix)
-            strcpy_va(tn.info_filename, 3, gb_O_outdir, "/", path_2_file(file));
-    } else {
-        strcpy(tn.out_filename, file);
-        if (NULL != gb_N_suffix)
-            strcpy(tn.info_filename, file);
-    }
-    char *suffix = strrchr(tn.out_filename, '.');   //movie extension (.avi, .mkv, ...)
+    {
+        char *extpos;
+        char *filenamepos = NULL;
+        char filenamebase[UTF8_FILENAME_SIZE] = {'\0',};
 
-    if (gb_X_filename_use_full) {
+        if (gb_O_outdir != NULL && strlen(gb_O_outdir) > 0) {
+            strcpy_va(filenamebase, 3, gb_O_outdir, "/", path_2_file(file));
+        } else {
+            strcpy(filenamebase, file);
+        }
+
+        filenamepos=path_2_file(filenamebase);
+        extpos = strrchr(filenamepos, '.');
+
+        if (gb_X_filename_use_full != 1 && extpos != NULL)
+        {
+            // remove movie extenxtion (e.g. .avi)
+            *extpos = '\0';
+        }
+
+        strcpy(tn.out_filename, filenamebase);
         strcat(tn.out_filename, gb_o_suffix);
-        strcat(tn.info_filename, gb_o_suffix);
-    } else {
-        if (NULL == suffix) {
-            strcat(tn.out_filename, gb_o_suffix);
-        } else {
-            strcpy(suffix, gb_o_suffix);            //overwrite extension with suffix
+
+        if (gb_N_suffix != NULL)
+        {
+            strcpy(tn.info_filename, filenamebase);
+            strcat(tn.info_filename, gb_N_suffix);
+        }
+
+        if (gb__cover == 1)
+        {
+            strcpy(tn.cover_filename, filenamebase);
+            strcat(tn.cover_filename, gb__cover_suffix);
         }
     }
 
-    if (NULL != gb_N_suffix) {
-        suffix = strrchr(tn.info_filename, '.');
-        if (NULL == suffix) {
-            strcat(tn.info_filename, gb_N_suffix);
-        } else {
-            strcpy(suffix, gb_N_suffix);
-        }
-    }
+    char *suffix;
 
     // idenfity thumbnail image extension
     char image_extension[5];
@@ -2052,6 +2107,10 @@ int make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame\n");
         goto cleanup;
     }
+
+    if( gb__cover )
+        save_cover_image(pFormatCtx, tn.cover_filename);
+
 
     // keep a copy of sample_aspect_ratio because it might be changed after 
     // decoding a frame, e.g. Dragonball Z 001 (720x480 H264 AAC).mkv
@@ -3151,7 +3210,7 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
     if (sign > 0 && ret <= 0) {
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c must be > 0\n", gb_argv0, c);
         return 1;
-    } else if (sign == 0 && ret < 0) {
+    } else if (sign == 0.0 && ret < 0) {
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c must be >= 0\n", gb_argv0, c);
         return 1;
     }
@@ -3223,6 +3282,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
     av_log(NULL, AV_LOG_INFO, "  --shadow[=N]\n     draw shadows beneath thumbnails with radius N pixels if N >0; Radius is calculated if N=0 or N is omitted\n");
     av_log(NULL, AV_LOG_INFO, "  --transparent\n    set background color (-k) to transparent; works with PNG image only \n");
+    av_log(NULL, AV_LOG_INFO, "  --cover[=_cover.jpg]\n    extract album art if exists \n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
     av_log(NULL, AV_LOG_INFO, "Examples:\n");
     av_log(NULL, AV_LOG_INFO, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
@@ -3280,8 +3340,9 @@ int main(int argc, char *argv[])
     /* get & check options */
     
 	struct option long_options[] = {		// no_argument, required_argument, optional_argument
-		{"shadow",      optional_argument, 	0,  0 },	
-		{"transparent", no_argument, 		0,  0 },	
+		{"shadow",      optional_argument, 	0,  0 },
+		{"transparent", no_argument, 		0,  0 },
+		{"cover",       optional_argument, 	0,  0 },
 		{0,         	0,                 	0,  0 }
 	};    
     int parse_error = 0, option_index = 0;
@@ -3301,6 +3362,16 @@ int main(int argc, char *argv[])
 			{
 				if(strcmp("transparent", long_options[option_index].name) == 0)
 					gb__transparent_bg = 1;
+                else
+                {
+                    if(strcmp("cover", long_options[option_index].name) == 0)
+                    {
+                        gb__cover = 1;
+
+                        if(optarg)
+                            gb__cover_suffix = optarg;
+                    }
+                }
 			}
 			break;
         case 'a':

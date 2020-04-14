@@ -3,7 +3,7 @@ Upstream-Name: mtn
 Source: https://gitlab.com/movie_thumbnailer/mtn/
 
 Files: *
-Copyright: 2019 wahibre <wahibre@gmx.com>
+Copyright: 2020 wahibre <wahibre@gmx.com>
 License: GPL-2+
  This package is free software; you can redistribute it and/or modify
  it under the terms of the GNU General Public License as published by
