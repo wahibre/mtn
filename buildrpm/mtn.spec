@@ -1,6 +1,6 @@
 Name:		mtn	
-Version: 	3.4.0
-Release:	1%{?dist}
+Version: 	3.3.3
+Release:	2%{?dist}
 Summary:	Movie thumbnailer
 
 Group:		Amusements/Graphics
@@ -8,7 +8,6 @@ License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
 Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/master/mtn.tar.gz
 #Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
-#Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/archive.tar.gz?ref=%{version}
 
 BuildRequires:	gcc
 BuildRequires:	make
@@ -16,6 +15,8 @@ BuildRequires:	gd-devel >= 2.0.35
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd
+Requires:	dejavu-sans-fonts
+
 %if 0%{?mageia}
 Requires:	ffmpeg
 %else
@@ -80,7 +81,8 @@ rm -rf %{buildroot}
 rm -rf *
 
 %changelog
-* Fri Nov 29 2019 wahibre  <wahibre@gmx.com> - 3.4.0
+* Fri Apr 17 2020 wahibre  <wahibre@gmx.com> - 3.3.3-2
+- Add dejavu-sans-fonts to Requires
 - bash completion
 - zsh completion
 

@@ -10,7 +10,7 @@
 PREFIX = /usr/local
 
 UNAME=$(shell uname -s)
-CFLAGS=-W -Wall -O3
+CFLAGS=-W -Wall -O3 $(USER_CFLAGS)
 OUT=../bin
 LIBSDIR=../lib
 

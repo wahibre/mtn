@@ -28,7 +28,8 @@ From source
 -----------
 ```sh
 $ cd src
-$ make
+$ # USER_CFLAGS is optional
+$ make USER_CFLAGS=-DMTN_DEF_FONTNAME=\\\"DefaultFont.ttf\\\"
 $ make install
 
 ```
