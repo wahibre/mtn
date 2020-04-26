@@ -1427,8 +1427,10 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
     /// send packet for decoding
     fret = avcodec_send_packet(pCodecCtx, pkt);
 
-    // if packet is invalid, ignore it and continue
-    if(fret == AVERROR_INVALIDDATA)
+    // ignore invalid packets and continue
+    if(fret == AVERROR_INVALIDDATA ||
+       fret == -1 /* Operation not permitted */
+    )
         return AVERROR(EAGAIN);
     
     if (fret < 0) {

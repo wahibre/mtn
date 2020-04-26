@@ -1,6 +1,6 @@
 Name:		mtn	
 Version: 	3.3.3
-Release:	2%{?dist}
+Release:	3%{?dist}
 Summary:	Movie thumbnailer
 
 Group:		Amusements/Graphics
