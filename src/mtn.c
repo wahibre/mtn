@@ -1426,6 +1426,11 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
 
     /// send packet for decoding
     fret = avcodec_send_packet(pCodecCtx, pkt);
+
+    // if packet is invalid, ignore it and continue
+    if(fret == AVERROR_INVALIDDATA)
+        return AVERROR(EAGAIN);
+    
     if (fret < 0) {
         av_log(NULL, AV_LOG_ERROR,  "Error sending a packet for decoding - %s\n", get_error_text(fret));
         exit(1);
