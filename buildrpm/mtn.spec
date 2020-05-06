@@ -1,13 +1,12 @@
 Name:		mtn	
-Version: 	3.3.3
+Version:	3.3.3
 Release:	3%{?dist}
 Summary:	Movie thumbnailer
 
-Group:		Amusements/Graphics
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
-Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/devel/mtn.tar.gz
-#Source0:	https://gitlab.com/movie_thumbnailer/mtn/repository/%{version}/archive.tar.gz
+Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/devel/%{name}-devel.tar.gz
+# Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/%%{version}/%%{name}-%%{version}.tar.gz
 
 BuildRequires:	gcc
 BuildRequires:	make
@@ -31,7 +30,8 @@ Summary: Bash completion support for %{name}
 BuildArch: noarch
 Requires: bash-completion
 Requires: fontconfig
-Enhances: mtn
+# Does not work on centOS7
+# Enhances: mtn
 
 %description bash-completion
 Bash completion support for the %{name}'s utilities.
@@ -41,22 +41,23 @@ Summary: Zsh completion support for %{name}
 BuildArch: noarch
 Requires: zsh
 Requires: fontconfig
-Enhances: mtn
+# Does not work on centOS7
+# Enhances: mtn
 
 %description zsh-completion
 Zsh completion support for the %{name}'s utilities.
 
 %prep
-rm -rf ./*
 tar -xf %SOURCE0
-mv mtn*/* ./
+cd %{name}-devel
+#%%setup -n %%{name}-devel
 
 %build
-cd src
+cd %{name}-devel/src
 %make_build
 
 %install
-cd src
+cd %{name}-devel/src
 %make_install PREFIX=%{_prefix}
 
 ## Make bash completion file
@@ -67,7 +68,7 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 
 %files
 %{_bindir}/mtn
-%{_defaultdocdir}/mtn/*
+%{_defaultdocdir}/mtn
 %{_mandir}/man1/mtn.1*
 
 %files bash-completion
@@ -78,10 +79,10 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 
 %clean
 rm -rf %{buildroot}
-rm -rf *
 
 %changelog
-* Fri Apr 17 2020 wahibre  <wahibre@gmx.com> - 3.3.3-2
+* Tue May 05 2020 wahibre  <wahibre@gmx.com> - 3.3.3-3
+- removed Enhances
 - Add dejavu-sans-fonts to Requires
 - bash completion
 - zsh completion

@@ -1,10 +1,15 @@
-spec file for building RPM package on Fedora
+spec file for building RPM package on Fedora  
+(This file is for testing purpose only)   
 
 requires:
     rpm-build
 
+optional:
+    rpmlint
+    rpmdevtools (spectool, rpmdev-bumpspec, rpmdev-setuptree, ...)
+
 build:
-    rpmbuild --undefine=_disable_source_fetch -ba mtn.spec
+    rpmbuild --undefine=_disable_source_fetch -bb --clean mtn.spec
 
 
 references:
