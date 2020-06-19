@@ -1,7 +1,10 @@
-version 3.4.0   2020/04/14
+version 3.4.0   2020/06/19
 - extract album art (--cover)
 - thumbnail autorotation
 - bash and zsh completion
+- fix "Error sending a packet for decoding - Operation not permitted"
+- fix processing HEVC format
+- fix switching to non-seek mode
 
 version 3.3.3 	2019/09/16
 - bitrate from metadata if missing in Format Context
