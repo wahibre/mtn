@@ -23,9 +23,12 @@ variables:
 
 .centOS: &el
     stage: build
-    rules:
-    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
-      when: manual
+#    rules:
+#    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
+#      when: manual
+    only:
+    - master
+    - devel
     before_script:
     - yum -y install https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
     - yum -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
@@ -43,9 +46,12 @@ variables:
 
 .ubu: &ubuntu
     stage: build
-    rules:
-    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
-      when: manual
+#    rules:
+#    - if: $CI_COMMIT_REF_NAME == "master" || $CI_COMMIT_REF_NAME == "devel"
+#      when: manual
+    only:
+    - master
+    - devel
     before_script:
     - apt-get -y update
     - DEBIAN_FRONTEND=noninteractive apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
@@ -66,9 +72,13 @@ debian:
     variables:
         STATIC_GD_BRANCH: GD-2.2
         STATIC_FFMPEG_BRANCH: release/4.0
-    rules:
-    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
-      when: manual
+#    rules:
+#    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+#      when: manual
+    only:
+        variables:
+        - $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+    when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt update
@@ -112,9 +122,13 @@ win:
     stage: build
     variables:
         WIN_FFMPEG_VER: 3.4.2
-    rules:
-    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
-      when: manual
+#    rules:
+#    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+#      when: manual
+    only:
+        variables:
+        - $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
+    when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - dnf -y install curl unzip make mingw32-gcc.x86_64
