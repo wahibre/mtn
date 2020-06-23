@@ -1915,6 +1915,111 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
         av_log(NULL, AV_LOG_VERBOSE, "No cover art found.%s", NEWLINE);
 }
 
+void
+calculate_thumnail(
+        int req_step,
+        int req_cols,
+        int req_rows,
+        int src_width,
+        int src_height,
+        int duration,
+        thumbnail *tn
+)
+{
+
+    tn->column = req_cols;
+
+    if (req_step > 0)
+        tn->step = req_step;
+    else
+        tn->step = duration / (tn->column * req_rows + 1);
+
+    if (req_rows > 0) {
+        tn->row = req_rows;
+        // if # of columns is reduced, we should increase # of rows so # of tiles would be almost the same
+        // could some users not want this?
+    } else { // as many rows as needed
+        tn->row = floor(duration / tn->column / tn->step + 0.5); // round nearest
+    }
+    if (tn->row < 1) {
+        tn->row = 1;
+    }
+
+    // make sure last row is full
+    tn->step = duration / (tn->column * tn->row + 1);
+
+    int full_width = tn->column * (src_width + gb_g_gap) + gb_g_gap;
+    if (gb_w_width > 0 && gb_w_width < full_width) {
+        tn->img_width = gb_w_width;
+    } else {
+        tn->img_width = full_width;
+    }
+    tn->shot_width_out = floor((tn->img_width - gb_g_gap*(tn->column+1)) / (double)tn->column + 0.5); // round nearest
+    tn->shot_width_out -= tn->shot_width_out%2; // floor to even number
+    tn->shot_height_out = floor((double) src_height / src_width * tn->shot_width_out + 0.5); // round nearest
+    tn->shot_height_out -= tn->shot_height_out%2; // floor to even number
+    tn->center_gap = (tn->img_width - gb_g_gap*(tn->column+1) - tn->shot_width_out * tn->column) / 2.0;
+}
+
+void
+reduce_shots_to_fit_in(
+    int req_step,
+    int req_rows,
+    int req_cols,
+    int src_width,
+    int src_height,
+    int duration,
+    thumbnail *tn
+)
+{
+    int reduced_columns = req_cols + 1;  // will be -1 in the loop
+
+    tn->step = -99999; // seconds
+    tn->column = -99999;
+    tn->row = -99999;
+    tn->img_width = -99999;
+    tn->shot_width_out = -99999;
+    tn->shot_height_out = -99999;
+
+    // reduce # of columns to meet required height
+    while (tn->shot_height_out < gb_h_height && reduced_columns > 0 && tn->shot_width_out != src_width) {
+        reduced_columns--;
+
+        calculate_thumnail(
+            req_step,
+            reduced_columns,
+            req_rows,
+            src_width,
+            src_height,
+            duration,
+            tn
+        );
+    }
+
+    // reduce # of rows if movie is too short
+    if (tn->step <= 0 &&
+        tn->column > 0 &&
+        tn->row > 1)
+    {
+        int reduced_rows = (int)((double)(duration-1) /(double)reduced_columns);
+
+        if(reduced_rows == 0)
+            reduced_rows = 1;
+
+        av_log(NULL, AV_LOG_INFO, "  movie is too short, reducing number of rows to %d%s", reduced_rows, NEWLINE);
+
+        calculate_thumnail(
+            req_step,
+            reduced_columns,
+            reduced_rows,
+            src_width,
+            src_height,
+            duration,
+            tn
+        );
+    }
+}
+
 /*
  * return   0 ok
  *         -1 something went wrong
@@ -2229,65 +2334,21 @@ make_thumbnail(char *file)
             sample_aspect_ratio.num, sample_aspect_ratio.den);
     }
 
+    int seek_mode = 1; // 1 = seek; 0 = non-seek
     int scaled_src_width_out  = scaled_src_width,
         scaled_src_height_out = scaled_src_height;
 
     rotate_geometry(&scaled_src_width_out, &scaled_src_height_out, tn.rotation);
 
-    tn.column = gb_c_column + 1; // will be -1 in the loop
-    int seek_mode = 1; // 1 = seek; 0 = non-seek
-    tn.step = -99999; // seconds
-    tn.row = -99999;
-    tn.img_width = -99999;
-    tn.shot_width_out = -99999;
-    tn.shot_height_out = -99999;
-
-    // reduce # of column until we meet minimum height except when movie is too small
-    while (tn.shot_height_out < gb_h_height && tn.column > 0 && tn.shot_width_out != scaled_src_width_out) {
-        tn.column--;
-        if (gb_s_step == 0) { // step evenly to get column x row
-            tn.step = net_duration / (tn.column * gb_r_row + 1);
-        } else {
-            tn.step = gb_s_step;
-        }
-        if (gb_r_row > 0) {
-            tn.row = gb_r_row;
-            // if # of columns is reduced, we should increase # of rows so # of tiles would be almost the same
-            // could some users not want this?
-        } else { // as many rows as needed
-            tn.row = floor(net_duration / tn.column / tn.step + 0.5); // round nearest
-        }
-        if (tn.row < 1) {
-            tn.row = 1;
-        }
-
-        // make sure last row is full
-        tn.step = net_duration / (tn.column * tn.row + 1);
-
-        int full_width = tn.column * (scaled_src_width + gb_g_gap) + gb_g_gap;
-        if (gb_w_width > 0 && gb_w_width < full_width) {
-            tn.img_width = gb_w_width;
-        } else {
-            tn.img_width = full_width;
-        }
-        tn.shot_width_out = floor((tn.img_width - gb_g_gap*(tn.column+1)) / (double)tn.column + 0.5); // round nearest
-        tn.shot_width_out -= tn.shot_width_out%2; // floor to even number
-        tn.shot_height_out = floor((double) scaled_src_height_out / scaled_src_width_out * tn.shot_width_out + 0.5); // round nearest
-        tn.shot_height_out -= tn.shot_height_out%2; // floor to even number
-        tn.center_gap = (tn.img_width - gb_g_gap*(tn.column+1) - tn.shot_width_out * tn.column) / 2.0;
-    }
-    if (tn.step == 0) {
-        av_log(NULL, AV_LOG_ERROR, "  step is zero; movie is too short?\n");
-        goto cleanup;
-    }
-
-    if(abs(tn.rotation) == 90){
-        tn.shot_height_in = tn.shot_width_out;
-        tn.shot_width_in  = tn.shot_height_out;
-    } else {
-        tn.shot_height_in = tn.shot_height_out;
-        tn.shot_width_in  = tn.shot_width_out;
-    }
+    reduce_shots_to_fit_in(
+        gb_s_step,
+        gb_r_row,
+        gb_c_column,
+        scaled_src_width_out,
+        scaled_src_height_out,
+        net_duration,
+        &tn
+    );
 
     if(tn.column == 0)
     {
@@ -2302,6 +2363,20 @@ make_thumbnail(char *file)
                suggested_width, suggested_height, NEWLINE);
         goto cleanup;
     }
+
+    if (tn.step == 0) {
+        av_log(NULL, AV_LOG_ERROR, "  step is zero; movie is too short?\n");
+        goto cleanup;
+    }
+
+    if(abs(tn.rotation) == 90){
+        tn.shot_height_in = tn.shot_width_out;
+        tn.shot_width_in  = tn.shot_height_out;
+    } else {
+        tn.shot_height_in = tn.shot_height_out;
+        tn.shot_width_in  = tn.shot_width_out;
+    }
+
     if (tn.column != gb_c_column) {
         av_log(NULL, AV_LOG_INFO, "  changing # of column to %d to meet minimum height of %d; see -h option\n", tn.column, gb_h_height);
     }
@@ -2423,14 +2498,15 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_INFO, "  *** using non-seek mode -- slower but more accurate timing.\n");
     }
 
+    int64_t seek_target, seek_evade; // in time_base unit
+
     /* decode & fill in the shots */
   restart:
-    seek_mode = seek_mode; // target for restart
+    seek_target = 0, seek_evade = 0; // in time_base unit
     if (0 == seek_mode && gb_B_begin > 10) {
         av_log(NULL, AV_LOG_INFO, "  -B %.2f with non-seek mode will take some time.\n", gb_B_begin);
     }
 
-    int64_t seek_target, seek_evade = 0; // in time_base unit
     int evade_try = 0; // blank screen evasion index
     double avg_evade_try = 0; // average
     int direction = 0; // seek direction (seek flags)
