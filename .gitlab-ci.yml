@@ -52,6 +52,7 @@ variables:
     only:
     - master
     - devel
+    when: manual
     before_script:
     - apt-get -y update
     - DEBIAN_FRONTEND=noninteractive apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev

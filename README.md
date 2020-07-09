@@ -17,7 +17,7 @@ Dependency
 
 Getting source
 ==============
-```
+```sh
 $ git clone https://gitlab.com/movie_thumbnailer/mtn.git
 ```
 
@@ -55,7 +55,7 @@ $ sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev li
 
 **[Archlinux](https://www.archlinux.org/), [Manjaro](https://manjaro.org/)**  
 ```sh
-$ sudo pacman -S ffmpeg gd
+$ sudo pacman -Sy ffmpeg gd
 ```
 
 **[OpenSUSE](http://opensuse.org/)** 15  
@@ -101,7 +101,7 @@ Links
 =====
  * [FFmpeg project](http://www.ffmpeg.org)
  * [libgd project](https://libgd.github.io)
- * [libgd library and dependecies](http://gnuwin32.sourceforge.net/packages/gd.htm)
+ * [libgd for windows](http://gnuwin32.sourceforge.net/packages/gd.htm)
  * [MinGW](http://www.mingw.org/)
  * [RPM Fusion repository](https://rpmfusion.org/)
  * [RPM Macros](https://docs.fedoraproject.org/en-US/packaging-guidelines/RPMMacros/)
