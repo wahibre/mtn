@@ -1435,7 +1435,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
     
     if (fret < 0) {
         av_log(NULL, AV_LOG_ERROR,  "Error sending a packet for decoding - %s\n", get_error_text(fret));
-        exit(1);
+        exit(EXIT_ERROR);
     }
 
     fret = avcodec_receive_frame(pCodecCtx, pFrame);
@@ -1455,7 +1455,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
     }
     if (fret < 0) {
         av_log(NULL, AV_LOG_ERROR, "Error during decoding packet\n");
-        exit(1);
+        exit(EXIT_ERROR);
     }
 #if LIBAVUTIL_VERSION_INT >= AV_VERSION_INT(55, 34, 100)
     av_log(NULL, AV_LOG_VERBOSE, "Got picture from frame pts=%"PRId64"\n", pFrame->pts);
