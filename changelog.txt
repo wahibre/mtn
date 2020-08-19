@@ -1,8 +1,8 @@
-version 3.4.0   2020/06/24
+version 3.4.0   2020/08/18
 - extract album art (--cover)
 - thumbnail autorotation
 - bash and zsh completion
-- reducing number of rows if movie is too short
+- reducing number of tiles if movie is too short
 - fix "Error sending a packet for decoding - Operation not permitted"
 - fix processing HEVC format
 - fix switching to non-seek mode

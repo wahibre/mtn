@@ -2788,21 +2788,46 @@ make_thumbnail(char *file)
 
   eof: ;
     /* crop if we dont get enough shots */
-    int skipped_rows = tn.row - ceil((double)idx / tn.column);
+    int cropp_needed = 0;
+    const int created_rows = ceil((double)idx / tn.column);
+    int skipped_rows = tn.row - created_rows;
     if (skipped_rows == tn.row) {
         av_log(NULL, AV_LOG_ERROR, "  all rows're skipped?\n");
         goto cleanup;
     }
     if (0 != skipped_rows) {
         int cropped_height = tn.img_height - skipped_rows*tn.shot_height_out;
-        gdImagePtr new_out_ip = crop_image(tn.out_ip, tn.img_width, cropped_height);
-        if (new_out_ip != tn.out_ip) {
-            tn.out_ip = new_out_ip;
-            av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", tn.column, tn.row - skipped_rows, tn.img_width, cropped_height);
-        }
+
+		tn.img_height = cropped_height;
+		tn.row = created_rows;
+		cropp_needed = 1;
     }
 
-    /* fill in the last row if some shots were skipped */
+	if(created_rows == 1)
+	{
+		const int created_cols = idx;
+
+		if(created_cols < tn.column)
+		{
+			int cropped_width = tn.img_width - (tn.column-created_cols)*tn.shot_width_out;
+
+            tn.img_width = cropped_width;
+            tn.column = created_cols;
+            cropp_needed = 1;
+		}
+	}
+
+	if(cropp_needed == 1)
+	{
+		tn.out_ip = crop_image(tn.out_ip, tn.img_width, tn.img_height);
+
+		av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", 
+			tn.column,
+			tn.row,
+			tn.img_width,
+			tn.img_height
+		);
+	}
 
     /* save output image */
     if(save_image(tn.out_ip, tn.out_filename) == 0)
