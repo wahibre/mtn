@@ -142,7 +142,8 @@ typedef struct thumbnail
     int img_width, img_height;
     int txt_height;
     int column, row;
-    int step;                               // in seconds
+    double time_base;
+    int64_t step_t;                         // in timebase units
     int shot_width_in,  shot_height_in;     // dimension stored in movie file
     int shot_width_out, shot_height_out;    // dimension  after possible rotation
     int center_gap;                         // horizontal gap to center the shots
@@ -666,7 +667,7 @@ void thumb_new(thumbnail *ptn)
     ptn->img_width = ptn->img_height = 0;
     ptn->txt_height = 0;
     ptn->column = ptn->row = 0;
-    ptn->step = 0;
+    ptn->step_t = 0;
     ptn->shot_width_in  = ptn->shot_height_in = 0;
     ptn->shot_width_out = ptn->shot_height_out = 0;
     ptn->center_gap = 0;
@@ -1477,7 +1478,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
  *          0 if end of file
  *         <0 if error
  */
-int get_videoframe(AVFormatContext *pFormatCtx,
+int video_decode_next_frame(AVFormatContext *pFormatCtx,
                    AVCodecContext  *pCodecCtx,
                    AVFrame         *pFrame,     /* OUTPUT */
                    int              video_index,
@@ -1593,12 +1594,7 @@ double calc_time(int64_t timestamp, AVRational time_base, double start_time)
     // however, for .vob files of dvds, after subtracting start_time
     // each file will start with timestamp 0 instead of continuing from the previous file.
 
-    // for unknown start_time, we ignore it
-    //if (start_time < 0) {
-    //    return av_rescale(timestamp, time_base.num, time_base.den);
-    //} else {
-        return av_rescale(timestamp, time_base.num, time_base.den) - start_time;
-    //}
+    return av_rescale(timestamp, time_base.num, time_base.den) - start_time;
 }
 
 /*
@@ -1910,23 +1906,23 @@ calculate_thumnail(
     tn->column = req_cols;
 
     if (req_step > 0)
-        tn->step = req_step;
+        tn->step_t = req_step / tn->time_base;
     else
-        tn->step = duration / (tn->column * req_rows + 1);
+        tn->step_t = duration / tn->time_base / (tn->column * req_rows + 1);
 
     if (req_rows > 0) {
         tn->row = req_rows;
         // if # of columns is reduced, we should increase # of rows so # of tiles would be almost the same
         // could some users not want this?
     } else { // as many rows as needed
-        tn->row = floor(duration / tn->column / tn->step + 0.5); // round nearest
+        tn->row = floor(duration / tn->column / tn->step_t * tn->time_base + 0.5); // round nearest
     }
     if (tn->row < 1) {
         tn->row = 1;
     }
 
     // make sure last row is full
-    tn->step = duration / (tn->column * tn->row + 1);
+    tn->step_t = duration / tn->time_base / (tn->column * tn->row + 1);
 
     int full_width = tn->column * (src_width + gb_g_gap) + gb_g_gap;
     if (gb_w_width > 0 && gb_w_width < full_width) {
@@ -1954,7 +1950,7 @@ reduce_shots_to_fit_in(
 {
     int reduced_columns = req_cols + 1;  // will be -1 in the loop
 
-    tn->step = -99999; // seconds
+    tn->step_t = -99999;
     tn->column = -99999;
     tn->row = -99999;
     tn->img_width = -99999;
@@ -1977,7 +1973,7 @@ reduce_shots_to_fit_in(
     }
 
     // reduce # of rows if movie is too short
-    if (tn->step <= 0 &&
+    if (tn->step_t <= 0 &&
         tn->column > 0 &&
         tn->row > 1)
     {
@@ -2167,6 +2163,7 @@ make_thumbnail(char *file)
 
     AVStream *pStream = pFormatCtx->streams[video_index];
     pCodecCtx = get_codecContext_from_codecParams(pStream->codecpar);
+    tn.time_base = av_q2d(pStream->time_base);
 
     if(!pCodecCtx)
         goto cleanup;
@@ -2254,7 +2251,7 @@ make_thumbnail(char *file)
     // for .flv files. bug reported by: dragonbook 
     int64_t found_pts = -1;
     int64_t first_pts = -1; // pts of first frame
-    ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &first_pts);
+    ret = video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &first_pts);
     if (0 == ret) { // end of file
         goto eof;
     } else if (ret < 0) { // error
@@ -2344,7 +2341,7 @@ make_thumbnail(char *file)
         goto cleanup;
     }
 
-    if (tn.step == 0) {
+    if (tn.step_t == 0) {
         av_log(NULL, AV_LOG_ERROR, "  step is zero; movie is too short?\n");
         goto cleanup;
     }
@@ -2378,8 +2375,8 @@ make_thumbnail(char *file)
     }
     tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
-    av_log(NULL, AV_LOG_INFO, "  step: %d s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
-        tn.step, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
+    av_log(NULL, AV_LOG_INFO, "  step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
+        tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
 
     // jpeg seems to have max size of 65500 pixels
     if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.img_width > 65500 || tn.img_height > 65500)) {
@@ -2387,9 +2384,9 @@ make_thumbnail(char *file)
         goto cleanup;
     }
 
-    int evade_step = MIN(10, tn.step / 14); // seconds to evade blank screen ; max 10 s
-    // FIXME: what's the min value? 1?
-    if (evade_step <= 0) {
+    int64_t evade_step = MIN(10/tn.time_base, tn.step_t / 14); // max 10 s to evade blank screen
+    if (evade_step*tn.time_base <= 1) {
+        evade_step = 0;
         av_log(NULL, AV_LOG_INFO, "  step is less than 14 s; blank & blur evasion is turned off.\n");
     }
 
@@ -2407,7 +2404,6 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
     }
-    //DEPRECATED avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width, tn.shot_height);
     // Returns: the size in bytes required for src, a negative error code in case of failure
     ret = av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, AV_PIX_FMT_RGB24, tn.shot_width_in, tn.shot_height_in, LINESIZE_ALIGN);
     if(ret <0 )
@@ -2490,7 +2486,7 @@ make_thumbnail(char *file)
     int evade_try = 0; // blank screen evasion index
     double avg_evade_try = 0; // average
     int direction = 0; // seek direction (seek flags)
-    seek_target = (tn.step + start_time + gb_B_begin) / av_q2d(pStream->time_base);
+    seek_target = tn.step_t + (start_time + gb_B_begin) / tn.time_base;
     idx = 0; // idx = thumb_idx
     thumb_nb = tn.row * tn.column; // thumb_nb = # of shots we need
     int64_t prevshot_pts = -1; // pts of previous good shot
@@ -2538,26 +2534,24 @@ make_thumbnail(char *file)
             }
             avcodec_flush_buffers(pCodecCtx);
 
-            ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
+            ret = video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
             if (0 == ret) { // end of file
                 goto eof;
             } else if (ret < 0) { // error
-                av_log(NULL, AV_LOG_ERROR, "  read_and_decode failed!\n");
+                av_log(NULL, AV_LOG_ERROR, "  read&decode failed!\n");
                 goto cleanup;
             }
-            //av_log(NULL, AV_LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
         } else { // non-seek mode -- we keep decoding until we get to the next shot
             found_pts = 0;
             while (found_pts < eff_target) {
                 // we should check if it's taking too long for this loop. FIXME
-                ret =  get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
+                ret =  video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
                 if (0 == ret) { // end of file
                     goto eof;
                 } else if (ret < 0) { // error
-                    av_log(NULL, AV_LOG_ERROR, "  read_and_decode failed!\n");
+                    av_log(NULL, AV_LOG_ERROR, "  read&decode failed!\n");
                     goto cleanup;
                 }
-                //av_log(NULL, AV_LOG_INFO, "  found_pts: %"PRId64", eff_target: %"PRId64"\n", found_pts, eff_target); // DEBUG
             }
         }
         //struct timeval dfinish; // DEBUG
@@ -2565,25 +2559,25 @@ make_thumbnail(char *file)
         //double decode_time = (dfinish.tv_sec + dfinish.tv_usec/1000000.0) - (dstart.tv_sec + dstart.tv_usec/1000000.0);
         double decode_time = 0;
 
-        double found_diff = (found_pts - eff_target) * av_q2d(pStream->time_base);
+        int64_t found_diff = found_pts - eff_target;
         //av_log(NULL, AV_LOG_INFO, "  found_diff: %.2f\n", found_diff); // DEBUG
         // if found frame is too far off from target, we'll disable seeking and start over
         if (idx < 5 && 1 == seek_mode && 0 == gb_z_seek 
             // usually movies have key frames every 10 s
-            && (tn.step < 15 || found_diff > 15)
-            && (found_diff <= -tn.step || found_diff >= tn.step)) {
+            && (tn.step_t < (15/tn.time_base) || found_diff > 15/tn.time_base)
+            && (found_diff <= -tn.step_t || found_diff >= tn.step_t)) {
             
             // compute the approx. time it take for the non-seek mode, if too long print a msg instead
             double shot_dtime;
             if (scaled_src_width > 576*4/3.0) { // HD
-                shot_dtime = tn.step * 30 / 30.0;
+                shot_dtime = tn.step_t*tn.time_base * 30 / 30.0;
             } else if (scaled_src_width > 288*4/3.0) { // ~DVD
-                shot_dtime = tn.step * 30 / 80.0;
+                shot_dtime = tn.step_t*tn.time_base * 30 / 80.0;
             } else { // small
-                shot_dtime = tn.step * 30 / 500.0;
+                shot_dtime = tn.step_t*tn.time_base * 30 / 500.0;
             }
             if (shot_dtime > 2 || shot_dtime * tn.column * tn.row > 120) {
-                av_log(NULL, AV_LOG_INFO, "  *** seeking off target %.2f s, increase time step or use non-seek mode.\n", found_diff);
+                av_log(NULL, AV_LOG_INFO, "  *** seeking off target %.2f s, increase time step or use non-seek mode.\n", found_diff*tn.time_base);
                 goto non_seek_too_long;
             }
 
@@ -2591,7 +2585,7 @@ make_thumbnail(char *file)
             av_seek_frame(pFormatCtx, video_index, 0, 0);
             avcodec_flush_buffers(pCodecCtx);
             seek_mode = 0;
-            av_log(NULL, AV_LOG_INFO, "  *** switching to non-seek mode because seeking was off target by %.2f s.\n", found_diff);
+            av_log(NULL, AV_LOG_INFO, "  *** switching to non-seek mode because seeking was off target by %.2f s.\n", found_diff*tn.time_base);
             av_log(NULL, AV_LOG_INFO, "  non-seek mode is slower. increase time step or use -z if you don't want this.\n");
             goto restart;
         }
@@ -2601,31 +2595,12 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_VERBOSE, "shot %d: found_: %"PRId64" (%.2fs), eff_: %"PRId64" (%.2fs), dtime: %.3f\n", 
             idx, found_pts, calc_time(found_pts, pStream->time_base, start_time), 
             eff_target, calc_time(eff_target, pStream->time_base, start_time), decode_time);
-        av_log(NULL, AV_LOG_VERBOSE, "approx. decoded frames/s: %.2f\n", tn.step * 30 / decode_time); //TODO W: decode_time allways==0
+        av_log(NULL, AV_LOG_VERBOSE, "approx. decoded frames/s: %.2f\n", tn.step_t * tn.time_base * 30 / decode_time); //TODO W: decode_time allways==0
         /*
         char debug_filename[2048]; // DEBUG
         sprintf(debug_filename, "%s_decoded%05d.jpg", tn.out_filename, nb_shots - 1);
         save_AVFrame(pFrame, pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, 
             debug_filename, pCodecCtx->width, pCodecCtx->height);
-        */
-
-        /* doesn't work very well -- tends to make evade_step too large
-        if (evade_step > 0) {
-            // this shot is the same as previous seek -- not good.
-            if (found_pts == prevfound_pts) {
-                // maybe evade_step is too small
-                if (evade_step < 20) { // FIXME
-                    evade_step *= 1.2; // FIXME
-                }
-            }
-            // found diffs from target > evade_step
-            if (found_diff <= -evade_step || found_diff >= evade_step) {
-                // maybe evade_step is too small
-                if (evade_step < 20 && found_diff < 20) { // FIXME
-                    //evade_step = 1 + ceiling(found_diff); // FIXME
-                }
-            }
-        }
         */
 
         // got same picture as previous shot, we'll skip it
@@ -2671,8 +2646,8 @@ make_thumbnail(char *file)
             evade_try++;
             // we'll always search forward to support non-seek mode, which cant go backward
             // keep trying until getting close to next step
-            seek_evade = evade_step * evade_try / av_q2d(pStream->time_base);
-            if (seek_evade < (tn.step - evade_step) / av_q2d(pStream->time_base)) { // FIXME
+            seek_evade = evade_step * evade_try;
+            if (seek_evade < (tn.step_t - evade_step)) {
                 av_log(NULL, AV_LOG_VERBOSE, "  * blank or no edge * try #%d: seeking forward seek_evade: %"PRId64" (%.2f s)\n", 
                     evade_try, seek_evade, seek_evade * av_q2d(pStream->time_base));
                 goto continue_cleanup;
@@ -2749,7 +2724,7 @@ make_thumbnail(char *file)
 
       skip_shot:
         /* step */
-        seek_target += tn.step / av_q2d(pStream->time_base);
+        seek_target += tn.step_t;
         
         seek_evade = 0;
         direction = 0;

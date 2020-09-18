@@ -55,7 +55,7 @@ rebuild:  clean mtn
 rebuild_static: clean static
 
 test_bin:
-	$(OUT)/mtn -f ../test/font.ttf -O /tmp /home/sample.avi
+	$(OUT)/mtn -f ../test/font.ttf -h 50 -O /tmp /home/sample.avi
 	test -s /tmp/sample_s.jpg
 
 test:  rebuild  mtn  test_bin
