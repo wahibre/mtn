@@ -72,7 +72,7 @@ debian:
     stage: build
     variables:
         STATIC_GD_BRANCH: GD-2.2
-        STATIC_FFMPEG_BRANCH: release/4.0
+        STATIC_FFMPEG_BRANCH: release/4.3
 #    rules:
 #    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
 #      when: manual
@@ -82,8 +82,8 @@ debian:
     when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
-    - apt update
-    - apt install -y git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
+    - apt-get update
+    - apt-get install -y git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
     - wget --no-verbose --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
@@ -100,7 +100,7 @@ debian:
     - make -j4
     - cd -
     - cd src
-    - make tests
+    - make static_test
     - cd -
     - pushd lib/FFmpeg
     - make distclean
@@ -119,10 +119,10 @@ debian:
         - ./*.jpg
 
 win:
-    image: fedora:31
+    image: fedora
     stage: build
     variables:
-        WIN_FFMPEG_VER: 3.4.2
+        WIN_FFMPEG_VER: 4.3.1
 #    rules:
 #    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
 #      when: manual
@@ -162,7 +162,7 @@ win:
 
 # new RPM
 fc_latest:
-    image: fedora:latest
+    image: fedora
     <<: *fc
 
 # old RPM

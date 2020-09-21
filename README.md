@@ -42,13 +42,13 @@ See [wiki](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#install-from-comm
 Getting build dependencies
 ==========================
 
-**[Fedora](https://getfedora.org/)** 26
+**[Fedora](https://getfedora.org/)**
 ```sh
 $ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
 $ dnf install ffmpeg-devel gd-devel make gcc-c++  
 ```
 
-**[Debian](https://www.debian.org/)** 9, **[Ubuntu](https://www.ubuntu.com/)** 17.10, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
+**[Debian](https://www.debian.org/)** 9+, **[Ubuntu](https://www.ubuntu.com/)** 17.10, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
 ```sh
 $ sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
 ```
@@ -63,13 +63,13 @@ $ sudo pacman -Sy ffmpeg gd
 $ zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
-**[CentOS](https://centos.org/)** 7  
+**[CentOS](https://centos.org/)** 7+  
 ```sh
 $ yum localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm    
 $ yum install ffmpeg-devel gd-devel make gcc-c++    
 ```
 
-**[FreeBSD](https://www.freebsd.org/)** 10  
+**[FreeBSD](https://www.freebsd.org/)** 10+  
 ```sh
 $ pkg install gmake ffmpeg libgd
 $ gmake

@@ -39,10 +39,10 @@ mtn: mtn.c outdir
 outdir:
 	mkdir -p $(OUT)
 
-mtns: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS)
+static: mtn.c outdir
+	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS) -DMTN_STATIC
 
-mtnd: mtn.c outdir
+debug: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) -W -Wall -g $(LIBS)
 
 clean:
@@ -52,14 +52,14 @@ distclean:
 	rm -rf $(OUT)
 
 rebuild:  clean mtn
-rebuilds: clean mtns
+rebuild_static: clean static
 
 test_bin:
 	$(OUT)/mtn -f ../test/font.ttf -O /tmp /home/sample.avi
 	test -s /tmp/sample_s.jpg
 
 test:  rebuild  mtn  test_bin
-tests: rebuilds mtns test_bin
+static_test: rebuild_static static test_bin
 
 install: mtn
 	mkdir -p $(DESTDIR)$(PREFIX)/bin/

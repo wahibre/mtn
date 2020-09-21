@@ -1,12 +1,12 @@
 Name:		mtn	
-Version:	3.3.3
-Release:	6%{?dist}
+Version:	3.4.0
+Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
 URL:		http://gitlab.com/movie_thumbnailer/mtn/
 Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/devel/%{name}-devel.tar.gz
-# Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/%%{version}/%%{name}-%%{version}.tar.gz
+# Source0:	https://gitlab.com/movie_thumbnailer/mtn/-/archive/v%%{version}/%%{name}-v%%{version}.tar.gz
 
 BuildRequires:	gcc
 BuildRequires:	make
@@ -49,15 +49,15 @@ Zsh completion support for the %{name}'s utilities.
 
 %prep
 tar -xf %SOURCE0
-cd %{name}-devel
+cd %{name}-*
 #%%setup -n %%{name}-devel
 
 %build
-cd %{name}-devel/src
+cd %{name}-*/src
 %make_build
 
 %install
-cd %{name}-devel/src
+cd %{name}-*/src
 %make_install PREFIX=%{_prefix}
 
 ## Make bash completion file

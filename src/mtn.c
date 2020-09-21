@@ -1472,7 +1472,6 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
  * @param pCodecCtx - input
  * @param pFrame - decoded video frame
  * @param video_index - input
- * @param key_only - input
  * @param pPts - on succes it is set to packet's pts
  * @return >0 if can read packet(s) & decode a frame
  *          0 if end of file
@@ -1482,7 +1481,6 @@ int get_videoframe(AVFormatContext *pFormatCtx,
                    AVCodecContext  *pCodecCtx,
                    AVFrame         *pFrame,     /* OUTPUT */
                    int              video_index,
-                   int              key_only,
                    int64_t         *pPts        /* OUTPUT */
                    )
 {
@@ -1498,7 +1496,6 @@ int get_videoframe(AVFormatContext *pFormatCtx,
 
     static int    run = 0;               // # of times read_and_decode has been called for a file
     static double avg_decoded_frame = 0; // average # of decoded frame
-    static int    skip_non_key = 0;
 
     pkt = av_packet_alloc();
     if (!pkt)
@@ -1507,7 +1504,7 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         return -1;
     }
 
-    while(got_picture == 0 || (1 == key_only && !(1 == pFrame->key_frame || AV_PICTURE_TYPE_I  == pFrame->pict_type)))
+    while(got_picture == 0)
     {
         /// read packet
         do
@@ -1523,9 +1520,6 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         } while(pkt->stream_index != video_index);
 
         pkt_without_pic++;
-
-        if (1 == skip_non_key && 1 == key_only && !(pkt->flags & AV_PKT_FLAG_KEY))
-            continue;
 
         dump_packet(pkt, pStream);
 
@@ -1554,24 +1548,14 @@ int get_videoframe(AVFormatContext *pFormatCtx,
         /// decoded frame
         if(fret == 0)
         {
-            /* only AV_PICTURE_TYPE_I contains complete image */
-            if (pFrame->pict_type == AV_PICTURE_TYPE_I)
-                got_picture=1;
-
+            got_picture=1;
             pkt_without_pic=0;
             decoded_frame++;
 
             av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %c\n", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
 
-            // some codecs, e.g avisyth, dont seem to set key_frame
-            if (1 == key_only && 0 == decoded_frame%200) {
-                av_log(NULL, AV_LOG_INFO, "  a key frame is not found in %d frames\n", decoded_frame);
-            }
-            if (1 == key_only && 400 == decoded_frame) {
-                // is there a way to know when a frame has no missing pieces
-                // even though it's not a key frame?? // FIXME
-                av_log(NULL, AV_LOG_INFO, "  * using a non-key frame; File problem? FFmpeg's codec problem?\n");
-                break;
+            if (0 == decoded_frame%200) {
+                av_log(NULL, AV_LOG_INFO, "  picture not decoded in %d frames\n", decoded_frame);
             }
         }
         // error decoding packet
@@ -1588,11 +1572,6 @@ int get_videoframe(AVFormatContext *pFormatCtx,
 
     run++;
     avg_decoded_frame = (avg_decoded_frame*(run-1) + decoded_frame) / run;
-
-    if (0 == skip_non_key && run >= 3 && avg_decoded_frame > 30) {
-        skip_non_key = 1;
-        av_log(NULL, AV_LOG_INFO, "  skipping non key packets for this file\n");
-    }
 
     av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %c\n", pFrame->repeat_pict,
         (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
@@ -2275,7 +2254,7 @@ make_thumbnail(char *file)
     // for .flv files. bug reported by: dragonbook 
     int64_t found_pts = -1;
     int64_t first_pts = -1; // pts of first frame
-    ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 0/*key_only*/, &first_pts);
+    ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &first_pts);
     if (0 == ret) { // end of file
         goto eof;
     } else if (ret < 0) { // error
@@ -2559,7 +2538,7 @@ make_thumbnail(char *file)
             }
             avcodec_flush_buffers(pCodecCtx);
 
-            ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 1/*key_only*/, &found_pts);
+            ret = get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
             if (0 == ret) { // end of file
                 goto eof;
             } else if (ret < 0) { // error
@@ -2571,7 +2550,7 @@ make_thumbnail(char *file)
             found_pts = 0;
             while (found_pts < eff_target) {
                 // we should check if it's taking too long for this loop. FIXME
-                ret =  get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, 0/*key_only*/, &found_pts);
+                ret =  get_videoframe(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
                 if (0 == ret) { // end of file
                     goto eof;
                 } else if (ret < 0) { // error
@@ -3339,7 +3318,7 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
 
 char* mtn_identification()
 {
-	const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled with: %s %s %s %s GD:%s";
+    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with: %s %s %s %s GD:%s";
 	const char GD_VER[] = 
 	   #ifdef GD_VERSION_STRING
            GD_VERSION_STRING
@@ -3347,9 +3326,16 @@ char* mtn_identification()
            GD2_ID
         #endif
 	;
-	size_t s = snprintf(NULL, 0, txt, gb_version, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
+    const char STATIC_MSG[] =
+        #ifdef MTN_STATIC
+            " statically"
+        #else
+            ""
+        #endif
+            ;
+    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
 	char* msg = malloc(s);
-	           snprintf( msg, s, txt, gb_version, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
+               snprintf( msg, s, txt, gb_version, STATIC_MSG, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
 	return msg;
 }
 

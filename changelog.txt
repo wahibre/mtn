@@ -1,3 +1,6 @@
+version 3.4.1 	2020/09/16
+- improved decoding frames (less skipped pictures)
+
 version 3.4.0   2020/08/18
 - extract album art (--cover)
 - thumbnail autorotation
@@ -17,7 +20,7 @@ version 3.3.2 	2019/05/30
 - macOS support (homebrew)
 
 version 3.3.1 	2019/02/19
-- improoved searching for video source in case the first video source is cover art
+- improved searching for video source in case the first video source is cover art
 - minor changes to remove compilation warnings
 
 version 3.3 	2018/05/16
