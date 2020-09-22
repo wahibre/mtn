@@ -1915,7 +1915,7 @@ calculate_thumnail(
         // if # of columns is reduced, we should increase # of rows so # of tiles would be almost the same
         // could some users not want this?
     } else { // as many rows as needed
-        tn->row = floor(duration / tn->column / tn->step_t * tn->time_base + 0.5); // round nearest
+        tn->row = floor(duration / tn->column / (tn->step_t * tn->time_base) + 0.5); // round nearest
     }
     if (tn->row < 1) {
         tn->row = 1;
