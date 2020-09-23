@@ -109,10 +109,10 @@
 typedef char TIME_STR[16];
 
 typedef struct rgb_color
-{   // GD uses int, so we'll use int too
-    int r; // red
-    int g; // green
-    int b; // blue
+{
+    int r;
+    int g;
+    int b;
 } rgb_color;
 typedef char color_str[7]; // "RRGGBB" (in hex)
 
@@ -122,15 +122,6 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 #define COLOR_INFO (rgb_color){85, 85, 85}
 #define IMAGE_EXTENSION_JPG ".jpg"
 #define IMAGE_EXTENSION_PNG ".png"
-
-typedef struct shot
-{
-    gdImagePtr ip;
-    int64_t eff_target;
-    int64_t found_pts;
-    double blank; // blank detection
-    float edge[EDGE_PARTS]; // edge detection
-} shot; // shot
 
 typedef struct thumbnail
 {
@@ -638,20 +629,6 @@ void FrameRGB_2_gdImage(AVFrame *pFrame, gdImagePtr ip, int width, int height)
             gdImageSetPixel(ip, x / 3, y, gdImageColorResolve(ip, src[x], src[x + 1], src[x + 2]));
         }
         src += width * 3;
-    }
-}
-
-/*
-*/
-void shot_new(shot *psh)
-{
-    psh->ip = NULL;
-    psh->eff_target = AV_NOPTS_VALUE;
-    psh->found_pts = AV_NOPTS_VALUE;
-    psh->blank = 0;
-    int i;
-    for (i=0; i<EDGE_PARTS; i++) {
-        psh->edge[i] = 1;
     }
 }
 
@@ -1478,12 +1455,13 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
  *          0 if end of file
  *         <0 if error
  */
-int video_decode_next_frame(AVFormatContext *pFormatCtx,
-                   AVCodecContext  *pCodecCtx,
-                   AVFrame         *pFrame,     /* OUTPUT */
-                   int              video_index,
-                   int64_t         *pPts        /* OUTPUT */
-                   )
+int
+video_decode_next_frame(AVFormatContext *pFormatCtx,
+       AVCodecContext  *pCodecCtx,
+       AVFrame         *pFrame,     /* OUTPUT */
+       int              video_index,
+       int64_t         *pPts        /* OUTPUT */
+       )
 {
     assert(pFrame);
     assert(pPts);
@@ -2373,7 +2351,8 @@ make_thumbnail(char *file)
             fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
         }
     }
-    tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
+    if(gb_i_info == 1)
+        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
     av_log(NULL, AV_LOG_INFO, "  step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
         tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
@@ -2529,7 +2508,7 @@ make_thumbnail(char *file)
         if (1 == seek_mode) { // seek mode
             ret = really_seek(pFormatCtx, video_index, eff_target, direction, duration);
             if (ret < 0) {
-                av_log(NULL, AV_LOG_ERROR, "  seeking to to %.2f s failed\n", calc_time(eff_target, pStream->time_base, start_time));
+                av_log(NULL, AV_LOG_ERROR, "  seeking to %.2f s failed\n", calc_time(eff_target, pStream->time_base, start_time));
                 goto cleanup;
             }
             avcodec_flush_buffers(pCodecCtx);
