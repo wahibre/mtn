@@ -77,11 +77,18 @@ $ gmake
 
 Windows
 =======
-Read the info in Make.MinGW.bat and run:
+Install msys2 and open a MinGW64 terminal:
+
+```sh
+# update package database
+pacman -Sy
+# install dependencies
+pacman -S mingw-w64-x86_64-make mingw-w64-x86_64-gcc mingw-w64-x86_64-ffmpeg mingw-w64-x86_64-libgd
+# build mtn
+mingw32-make.exe
 
 ```
-C:\..\mtn\src> Make.MinGW.bat
-```
+(more information in [wiki](https://gitlab.com/movie_thumbnailer/mtn/-/wikis/Building-on-Windows))
 
 macOS [(brew)](https://brew.sh/)
 =====
@@ -103,6 +110,7 @@ Links
  * [libgd project](https://libgd.github.io)
  * [libgd for windows](http://gnuwin32.sourceforge.net/packages/gd.htm)
  * [MinGW](http://www.mingw.org/)
+ * [msys2](https://www.msys2.org/)
  * [RPM Fusion repository](https://rpmfusion.org/)
  * [RPM Macros](https://docs.fedoraproject.org/en-US/packaging-guidelines/RPMMacros/)
  * [GitLab yaml](https://docs.gitlab.com/ee/ci/yaml/README.html)

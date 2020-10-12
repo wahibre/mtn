@@ -9,18 +9,25 @@
 # According to a convention, PREFIX macro is the prefix of instalation.
 PREFIX = /usr/local
 
-UNAME=$(shell uname -s)
+KERNELNAME=$(shell uname -s)
+OSNAME=$(shell uname -o)
 CFLAGS=-W -Wall -O3 $(USER_CFLAGS)
 OUT=../bin
 LIBSDIR=../lib
 
-ifeq ($(UNAME),FreeBSD)
+ifeq ($(KERNELNAME),FreeBSD)
 LIBS+=-L/usr/local/lib
 INCPATH+=-I/usr/local/include
 endif
 
-ifeq ($(UNAME),Linux)
+ifeq ($(KERNELNAME),Linux)
 INCPATH=-I/usr/include/ffmpeg
+endif
+
+ifeq ($(OSNAME),Msys)
+LIBS=-L/mingw64/lib
+INCPATH=-I/mingw64/include
+CFLAGS=-W
 endif
 
 LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lfreetype -ljpeg -lz -lm -lpthread
