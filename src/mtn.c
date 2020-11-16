@@ -1021,9 +1021,9 @@ void dump_codec_context(AVCodecContext * p)
         (0 == p->sample_aspect_ratio.num) ? "" : "**a**");
 }
 
+/*
 void dump_index_entries(AVStream * p)
 {
-    // index_entries are only used if the format does not support seeking natively 
     int i;
     double diff = 0;
     for (i=0; i < p->nb_index_entries; i++) { 
@@ -1040,6 +1040,7 @@ void dump_index_entries(AVStream * p)
     }
     av_log(NULL, AV_LOG_VERBOSE, "  *** nb_index_entries: %d, avg. timestamp s diff: %.2f\n", p->nb_index_entries, diff / p->nb_index_entries);
 }
+*/
 
 //based on dump.c: static void dump_sidedata(void *ctx, AVStream *st, const char *indent)
 double get_stream_rotation(AVStream *st)
@@ -2195,7 +2196,7 @@ make_thumbnail(char *file)
         av_log(NULL, AV_LOG_INFO,  "  Rotation: %d degrees%s", tn.rotation, NEWLINE);
     
     dump_stream(pStream);
-    dump_index_entries(pStream);
+    //dump_index_entries(pStream);
     dump_codec_context(pCodecCtx);
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
