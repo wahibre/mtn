@@ -18,7 +18,7 @@ Dependency
 Getting source
 ==============
 ```sh
-$ git clone https://gitlab.com/movie_thumbnailer/mtn.git
+git clone https://gitlab.com/movie_thumbnailer/mtn.git
 ```
 
 Installation
@@ -27,11 +27,10 @@ Installation
 From source
 -----------
 ```sh
-$ cd src
-$ # USER_CFLAGS is optional
-$ make USER_CFLAGS=-DMTN_DEF_FONTNAME=\\\"DefaultFont.ttf\\\"
-$ make install
-
+cd src
+# USER_CFLAGS is optional
+make USER_CFLAGS=-DMTN_DEF_FONTNAME=\\\"DefaultFont.ttf\\\"
+make install
 ```
 
 From community repository
@@ -43,36 +42,42 @@ Getting build dependencies
 ==========================
 
 **[Fedora](https://getfedora.org/)**
+
 ```sh
-$ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-$ dnf install ffmpeg-devel gd-devel make gcc-c++  
+dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+dnf install ffmpeg-devel gd-devel make gcc-c++  
 ```
 
 **[Debian](https://www.debian.org/)** 9+, **[Ubuntu](https://www.ubuntu.com/)** 17.10, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
+
 ```sh
-$ sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
+sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
 ```
 
 **[Archlinux](https://www.archlinux.org/), [Manjaro](https://manjaro.org/)**  
+
 ```sh
-$ sudo pacman -Sy ffmpeg gd
+sudo pacman -Sy ffmpeg gd
 ```
 
-**[OpenSUSE](http://opensuse.org/)** 15  
+**[OpenSUSE](http://opensuse.org/)** 15
+
 ```sh
-$ zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
+zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
-**[CentOS](https://centos.org/)** 7+  
+**[CentOS](https://centos.org/)** 7+
+
 ```sh
-$ yum localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm    
-$ yum install ffmpeg-devel gd-devel make gcc-c++    
+yum localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm    
+yum install ffmpeg-devel gd-devel make gcc-c++    
 ```
 
-**[FreeBSD](https://www.freebsd.org/)** 10+  
+**[FreeBSD](https://www.freebsd.org/)** 10+
+
 ```sh
-$ pkg install gmake ffmpeg libgd
-$ gmake
+pkg install gmake ffmpeg libgd
+gmake
 ```
 
 Windows
@@ -99,17 +104,16 @@ If you don't want to contribute please refer to the installation guide
 instead.
 
 ```sh
-$ brew install ffmpeg libgd
-$ make
-$ sudo make install
+brew install ffmpeg libgd
+make
+sudo make install
 ```
 
 Links
 =====
  * [FFmpeg project](http://www.ffmpeg.org)
  * [libgd project](https://libgd.github.io)
- * [libgd for windows](http://gnuwin32.sourceforge.net/packages/gd.htm)
- * [MinGW](http://www.mingw.org/)
+ * [MinGW](http://mingw-w64.org)
  * [msys2](https://www.msys2.org/)
  * [RPM Fusion repository](https://rpmfusion.org/)
  * [RPM Macros](https://docs.fedoraproject.org/en-US/packaging-guidelines/RPMMacros/)

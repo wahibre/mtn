@@ -1,9 +1,12 @@
-# building mtn windows 32-bit version on Fedora machine:
+# building mtn windows 64-bit version on Fedora machine:
 #   download and extract
-#     FFmpeg from https://ffmpeg.zeranoe.com/builds/win32/dev/ into mtn's lib/windows directory
+#     FFmpeg (with "shared in filename") from https://github.com/BtbN/FFmpeg-Builds/releases into mtn's lib/windows directory
 #     artifact libgd  from https://ci.appveyor.com/project/imazen/gd-libgd into mtn's lib/windows directory
+#   install gcc
+#     dnf install make mingw64-gcc.x86_64
 #   cd src
-#   run> make -f Makefile.mingw
+#   run build
+#   > make -f Makefile.mingw
 #
 #
 # mtn's lib directory structure should look like this
@@ -33,7 +36,7 @@
 #|       |   |-- avdevice.lib
 #|       |   |-- ...
 
-CC=i686-w64-mingw32-gcc
+CC=x86_64-w64-mingw32-gcc
 CFLAGS=-Wall -DWIN32 -O3
 OUT=../bin
 LDFLAGS=-L../lib/windows/lib
