@@ -1,6 +1,6 @@
 Name:		mtn	
-Version:	3.4.0
-Release:	2%{?dist}
+Version:	3.4.1
+Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -81,6 +81,9 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 rm -rf %{buildroot}
 
 %changelog
+* Thu Feb 25 2021 wahibre <wahibre@gmx.com> - 3.4.1-1
+- update to version 3.4.1
+
 * Tue May 05 2020 wahibre  <wahibre@gmx.com> - 3.3.3-3
 - removed Enhances
 - Add dejavu-sans-fonts to Requires

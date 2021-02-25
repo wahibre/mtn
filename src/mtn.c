@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2020 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
+    Copyright (C) 2017-2021 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -255,7 +255,7 @@ const char* gb__cover_suffix="_cover.jpg";
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.4.0";
+char *gb_version = "3.4.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
