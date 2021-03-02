@@ -14,12 +14,13 @@ BuildRequires:	gd-devel >= 2.0.35
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd
-Requires:	dejavu-sans-fonts
 
 %if 0%{?mageia}
 Requires:	ffmpeg
+Requires:	fonts-ttf-dejavu
 %else
 Requires:	ffmpeg-libs
+Requires:	dejavu-sans-fonts
 %endif
 
 %description
@@ -81,6 +82,9 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 rm -rf %{buildroot}
 
 %changelog
+* Tue Mar 02 2021 wahibre <wahibre@gmx.com> - 3.4.1-2
+- fix font dependency for Mageia
+
 * Thu Feb 25 2021 wahibre <wahibre@gmx.com> - 3.4.1-1
 - update to version 3.4.1
 
