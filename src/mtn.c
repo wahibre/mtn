@@ -3589,7 +3589,7 @@ int main(int argc, char *argv[])
     }
 
     if (optind == argc) {
-        av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified", gb_argv0);
+        //av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified", gb_argv0);
         parse_error += 1;
     }
     
