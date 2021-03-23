@@ -1,6 +1,6 @@
 version 3.4.1 	2021/02/16
-- allow calculated step value to be a fraction of a second
 - improved decoding frames (less skipped pictures)
+- allowed calculated time step value to be a fraction of a second
 - compatibility with FFmpeg 4.4
 - Fix: Upper border is 2 pixels wider than lower/left/right border when omitting the info text (-i)
 

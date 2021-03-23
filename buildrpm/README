@@ -1,4 +1,4 @@
-spec file for building RPM package on Fedora  
+mtn.spec is a file for building RPM package on RPM-based distributions  
 (This file is for testing purpose only)   
 
 requires:
@@ -13,4 +13,4 @@ build:
 
 
 references:
-  https://fedoraproject.org/wiki/How_to_create_an_RPM_package
+  https://docs.fedoraproject.org/en-US/quick-docs/creating-rpm-packages

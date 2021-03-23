@@ -69,7 +69,7 @@ zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-lib
 **[CentOS](https://centos.org/)** 7+
 
 ```sh
-yum localinstall https://download1.rpmfusion.org/free/el/rpmfusion-free-release-7.noarch.rpm    
+yum localinstall https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
 yum install ffmpeg-devel gd-devel make gcc-c++    
 ```
 

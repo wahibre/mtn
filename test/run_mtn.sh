@@ -4,10 +4,11 @@
 
 [ -v ${MTN} ] && MTN=$(which mtn)
 
+# VIDEO have to be a full path
 if [ -n "$1" ]; then
     VIDEO="$1"
 else
-    VIDEO="."
+    VIDEO="$(pwd)"
 fi
 
 if [ ! -f $MTN ]; then
