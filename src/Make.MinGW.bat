@@ -86,4 +86,5 @@ set LDFLAGS=-L%MINGWDIR%\lib
 set INCLUDE=-I%MINGWDIR%\include
 set LIBS=-llibgd -lavutil -lavdevice -lavformat -lavcodec  -lswscale
 
+if not exist "..\bin\" mkdir "..\bin"
 %CC% -o ../bin/mtn mtn.c %CFLAGS% %LDFLAGS% %INCLUDE% %LIBS%
