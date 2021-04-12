@@ -9,17 +9,14 @@ variables:
     before_script:
     - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
-    - curl --output /home/sample.avi -L $MOVIE_URL
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
+    - make
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
         - ./bin/*
-        - ./*.jpg
 
 .centOS: &el
     stage: build
@@ -32,17 +29,14 @@ variables:
     before_script:
     - yum -y install https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
     - yum -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
-    - curl --output /home/sample.avi -L $MOVIE_URL
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
+    - make
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
         - ./bin/*
-        - ./*.jpg
 
 .ubu: &ubuntu
     stage: build
@@ -56,16 +50,9 @@ variables:
     before_script:
     - apt-get -y update
     - DEBIAN_FRONTEND=noninteractive apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
-    - curl --output /home/sample.avi -L $MOVIE_URL
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
-    artifacts:
-        name: mtn-$CI_JOB_NAME
-        expire_in: 4 week
-        paths:
-        - ./*.jpg
+    - make
 
 debian:
     image: debian:9
