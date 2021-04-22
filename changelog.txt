@@ -1,3 +1,6 @@
+version 3.4.2 	2021/04/23
+- aspect ratio defaults to sample ratio from container
+
 version 3.4.1 	2021/02/16
 - improved decoding frames (less skipped pictures)
 - allowed calculated time step value to be a fraction of a second

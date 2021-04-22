@@ -2191,8 +2191,7 @@ make_thumbnail(char *file)
 
     // keep a copy of sample_aspect_ratio because it might be changed after 
     // decoding a frame, e.g. Dragonball Z 001 (720x480 H264 AAC).mkv
-    // is this a codec bug? it seem this value can be in the header or in the stream.
-    AVRational sample_aspect_ratio = pCodecCtx->sample_aspect_ratio;
+    AVRational sample_aspect_ratio = av_guess_sample_aspect_ratio(pFormatCtx, pStream, NULL);
 
     double duration = (double) pFormatCtx->duration / AV_TIME_BASE; // can be unknown & can be incorrect (e.g. .vob files)
     if (duration <= 0) {
