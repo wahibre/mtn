@@ -2155,7 +2155,7 @@ make_thumbnail(char *file)
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
     // Find the decoder for the video stream
-    AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
+    const AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
     if (pCodec == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't find a decoder for codec_id: %d\n", pCodecCtx->codec_id);
         goto cleanup;
