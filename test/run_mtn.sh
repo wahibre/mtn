@@ -54,6 +54,10 @@ colouredecho  "===> save individual shots"
 tcdir individual_shots
 run_mtn -I
 
+colouredecho  "===> save individual shots withoud thumbnails"
+tcdir individual_shots_no_thumbnails
+run_mtn -I -I
+
 colouredecho  "===> transparent png image"
 tcdir transparent_png_noinf
 run_mtn -o .png --transparent -i -g 10 -k 00FFBB
