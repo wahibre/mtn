@@ -73,7 +73,7 @@ yum localinstall https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(
 yum install ffmpeg-devel gd-devel make gcc-c++    
 ```
 
-**[FreeBSD](https://www.freebsd.org/)** 10+
+**[FreeBSD](https://www.freebsd.org/)**
 
 ```sh
 pkg install gmake ffmpeg libgd
