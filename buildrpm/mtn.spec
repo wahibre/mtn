@@ -71,6 +71,7 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 %{_bindir}/mtn
 %{_defaultdocdir}/mtn
 %{_mandir}/man1/mtn.1*
+%license LICENSE
 
 %files bash-completion
 %{_datadir}/bash-completion/completions/%{name}

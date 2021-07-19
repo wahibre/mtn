@@ -1,6 +1,6 @@
 version 3.4.2 	2021/05/27
 - aspect ratio defaults to sample ratio from container
-- using -I twice skips making thumbnails
+- using -I twice skips making thumbnails grid
 
 version 3.4.1 	2021/02/16
 - improved decoding frames (less skipped pictures)
