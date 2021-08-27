@@ -22,7 +22,7 @@ _mtn()
 				'-h[Minimum height of each shot]'\
 				'-H[Filesize only in human readable format]'\
 				'-i[Info text off]'\
-				'-I[Save individual shots]'\
+				'-I[Save individual shots (t-thumbnail, o-original, i-individual shots only)]'\
 				'-j[Jpeg quality]'\
 				'-k[background color (in hex): RRGGBB]'\
 				'-L[Location of text: info_location\[:time_location\]]'\

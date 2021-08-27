@@ -50,13 +50,9 @@ colouredecho "====> use full input filename (include extension)"
 tcdir filename_extension_nosuffix
 run_mtn -X -o .jpg
 
-colouredecho  "===> save individual shots"
+colouredecho  "===> save individual shots (small and large) only"
 tcdir individual_shots
-run_mtn -I
-
-colouredecho  "===> save individual shots withoud thumbnails"
-tcdir individual_shots_no_thumbnails
-run_mtn -I -I
+run_mtn -I toi
 
 colouredecho  "===> transparent png image"
 tcdir transparent_png_noinf

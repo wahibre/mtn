@@ -13,6 +13,9 @@ _movie_thumbnailer()
         "-f") fclist=$(fc-list :fontformat=TrueType file | cut -d : -f1)
              COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
             ;;
+        "-I") fclist="t o i"
+             COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
+            ;;
         "-O") _filedir -d
             ;;
         *) _filedir

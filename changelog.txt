@@ -1,6 +1,8 @@
-version 3.4.2 	2021/05/27
+version 3.4.2 	2021/08/27
 - aspect ratio defaults to sample ratio from container
-- using -I twice skips making thumbnails grid
+- option -I now needs argument t,o,i or any combination (-It for old behavior)
+- saving individual shots now supports original image size (-Io)
+- making thumbnail grid can be ignored (-Ii)
 
 version 3.4.1 	2021/02/16
 - improved decoding frames (less skipped pictures)

@@ -1,6 +1,6 @@
 Name:		mtn	
 Version:	3.4.1
-Release:	3%{?dist}
+Release:	4%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -89,14 +89,14 @@ rm -rf %{buildroot}
 * Thu Feb 25 2021 wahibre <wahibre@gmx.com> - 3.4.1-1
 - update to version 3.4.1
 
-* Tue May 05 2020 wahibre  <wahibre@gmx.com> - 3.3.3-3
+* Tue May 05 2020 wahibre <wahibre@gmx.com> - 3.3.3-3
 - removed Enhances
 - Add dejavu-sans-fonts to Requires
 - bash completion
 - zsh completion
 
-* Thu May 30 2019 wahibre  <wahibre@gmx.com> - 3.3.2
+* Thu May 30 2019 wahibre <wahibre@gmx.com> - 3.3.2
 - add install prefix
 
-* Mon Aug 7 2017 wahibre  <wahibre@gmx.com> - 3.0
+* Mon Aug 7 2017 wahibre <wahibre@gmx.com> - 3.0
 - initial

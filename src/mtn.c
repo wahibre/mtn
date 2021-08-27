@@ -195,7 +195,10 @@ int gb_H_human_filesize = 0; // filesize only in human readable size (KiB, MiB, 
 #define GB_I_INFO 1
 int gb_i_info = GB_I_INFO; // 1 on; 0 off
 #define GB_I_INDIVIDUAL 0
-int gb_I_individual = GB_I_INDIVIDUAL; // 1 on; 0 off
+int gb_I_individual = GB_I_INDIVIDUAL;  // 1 on; 0 off
+int gb_I_individual_thumbnail = 0;      // 1 on; 0 off
+int gb_I_individual_original = 0;       // 1 on; 0 off
+int gb_I_individual_ignore_grid = 0;    // 1 on; 0 off
 #define GB_J_QUALITY 90
 int gb_j_quality = GB_J_QUALITY;
 #define GB_K_BCOLOR COLOR_WHITE
@@ -911,38 +914,46 @@ gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, 
     return ip;
 }
 
-/* for debuging
-void save_AVFrame(const AVFrame* const pFrame, int src_width, int src_height, int pix_fmt,
-    char *filename, int dst_width, int dst_height)
+int
+save_AVFrame(
+    const AVFrame* const pFrame,
+    int src_width,
+    int src_height,
+    enum AVPixelFormat pix_fmt,
+    char *filename,
+    int dst_width,
+    int dst_height
+)
 {
     AVFrame *pFrameRGB = NULL;
     uint8_t *rgb_buffer = NULL;
     struct SwsContext *pSwsCtx = NULL;
     gdImagePtr ip = NULL;
+    const enum AVPixelFormat rgb_pix_fmt = AV_PIX_FMT_RGB24;
+    int result = -1;
 
     pFrameRGB = av_frame_alloc();
     if (pFrameRGB == NULL) {
         av_log(NULL, AV_LOG_ERROR, "  couldn't allocate a video frame %s", NEWLINE);
         goto cleanup;
     }
-    int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, dst_width, dst_height, av_image_get_buffer_size_linesize);
+    int rgb_bufsize = av_image_get_buffer_size(rgb_pix_fmt, dst_width, dst_height, LINESIZE_ALIGN);
     rgb_buffer = av_malloc(rgb_bufsize);
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
         goto cleanup;
     }
-    //  DEPRECATED avpicture_fill -> av_image_fill_arrays
-//    avpicture_fill((AVPicture *) pFrameRGB, rgb_buffer, AV_PIX_FMT_RGB24, dst_width, dst_height);
-    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, pFrameRGB->format, pFrameRGB->width, pFrameRGB->height, av_image_get_buffer_size_linesize);
+
+    av_image_fill_arrays(pFrameRGB->data, pFrameRGB->linesize, rgb_buffer, rgb_pix_fmt, dst_width, dst_height, LINESIZE_ALIGN);
 
     pSwsCtx = sws_getContext(src_width, src_height, pix_fmt,
-        dst_width, dst_height, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
-    if (NULL == pSwsCtx) { // sws_getContext is not documented
+        dst_width, dst_height, rgb_pix_fmt, SWS_BILINEAR, NULL, NULL, NULL);
+    if (NULL == pSwsCtx) {
         av_log(NULL, AV_LOG_ERROR, "  sws_getContext failed\n");
         goto cleanup;
     }
 
-    sws_scale(pSwsCtx, pFrame->data, pFrame->linesize, 0, src_height, 
+    sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, src_height, 
         pFrameRGB->data, pFrameRGB->linesize);
     ip = gdImageCreateTrueColor(dst_width, dst_height);
     if (NULL == ip) {
@@ -950,23 +961,28 @@ void save_AVFrame(const AVFrame* const pFrame, int src_width, int src_height, in
         goto cleanup;
     }
     FrameRGB_2_gdImage(pFrameRGB, ip, dst_width, dst_height);
-    int ret = save_jpg(ip, filename);
+    
+    int ret = save_image(ip, filename);
     if (0 != ret) {
-        av_log(NULL, AV_LOG_ERROR, "  save_jpg failed: %s\n", filename);
+        av_log(NULL, AV_LOG_ERROR, "  save_image failed: %s\n", filename);
         goto cleanup;
     }
 
-  cleanup:
+    result = 0;
+    
+cleanup:
     if (NULL != ip)
         gdImageDestroy(ip);
     if (NULL != pSwsCtx)
-        sws_freeContext(pSwsCtx); // do we need to do this?
+        sws_freeContext(pSwsCtx);
     if (NULL != rgb_buffer)
         av_free(rgb_buffer);
     if (NULL != pFrameRGB)
         av_free(pFrameRGB);
+
+    return result;
 }
-*/
+
 
 
 /* av_pkt_dump_log()?? */
@@ -1870,7 +1886,7 @@ save_cover_image(AVFormatContext *s, const char* cover_filename)
 }
 
 void
-calculate_thumnail(
+calculate_thumbnail(
         int req_step,
         int req_cols,
         int req_rows,
@@ -1939,7 +1955,7 @@ reduce_shots_to_fit_in(
     while (tn->shot_height_out < gb_h_height && reduced_columns > 0 && tn->shot_width_out != src_width) {
         reduced_columns--;
 
-        calculate_thumnail(
+        calculate_thumbnail(
             req_step,
             reduced_columns,
             req_rows,
@@ -1962,7 +1978,7 @@ reduce_shots_to_fit_in(
 
         av_log(NULL, AV_LOG_INFO, "  movie is too short, reducing number of rows to %d%s", reduced_rows, NEWLINE);
 
-        calculate_thumnail(
+        calculate_thumbnail(
             req_step,
             reduced_columns,
             reduced_rows,
@@ -2392,7 +2408,7 @@ make_thumbnail(char *file)
 
     pSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
         tn.shot_width_in, tn.shot_height_in, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
-    if (NULL == pSwsCtx) { // sws_getContext is not documented
+    if (NULL == pSwsCtx) {
         av_log(NULL, AV_LOG_ERROR, "  sws_getContext failed\n");
         goto cleanup;
     }
@@ -2684,20 +2700,36 @@ make_thumbnail(char *file)
         if (gb_I_individual) {
             TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, '_');
+
             char individual_filename[UTF8_FILENAME_SIZE]; // FIXME
             strcpy(individual_filename, tn.out_filename);
             char *suffix = strstr(individual_filename, gb_o_suffix);
             assert(NULL != suffix);
-            sprintf(suffix, "_%s_%05d%s", time_str, idx, image_extension);
-            ret = save_image(ip, individual_filename);
-            if (0 != ret) { // error
-                av_log(NULL, AV_LOG_ERROR, "  saving individual shot #%05d to %s failed\n", idx, individual_filename);
+
+            if(gb_I_individual_thumbnail)
+            {
+                sprintf(suffix, "_t_%s_%05d%s", time_str, idx, image_extension);
+                if (save_image(ip, individual_filename) != 0)
+                    av_log(NULL, AV_LOG_ERROR, "  saving individual shot #%05d to %s failed\n", idx, individual_filename);
+            }
+
+            if(gb_I_individual_original)
+            {
+                sprintf(suffix, "_o_%s_%05d%s", time_str, idx, image_extension);
+            
+                if(save_AVFrame(pFrame,
+                        pCodecCtx->width, pCodecCtx->height,
+                        pCodecCtx->pix_fmt,
+                        individual_filename,
+                        pCodecCtx->width, pCodecCtx->height
+                ) != 0)
+                    av_log(NULL, AV_LOG_ERROR, "  saving individual shot #%05d to %s failed\n", idx, individual_filename);
             }
         }
 
         /* add picture to output image */
-        if (gb_I_individual < 2)
-	    thumb_add_shot(&tn, ip, thumbShadowIm, idx, found_pts);
+        if (!gb_I_individual_ignore_grid)
+            thumb_add_shot(&tn, ip, thumbShadowIm, idx, found_pts);
         gdImageDestroy(ip);
         ip = NULL;
 
@@ -2720,7 +2752,7 @@ make_thumbnail(char *file)
     }
     av_log(NULL, AV_LOG_VERBOSE, "  *** avg_evade_try: %.2f\n", avg_evade_try); // DEBUG
 
-    if (gb_I_individual >= 2) {
+    if (gb_I_individual_ignore_grid) {
 	return_code = 0;
 	goto cleanup;
     }
@@ -3222,9 +3254,6 @@ int get_format_opt(char c, char *optarg)
     ret = 0;
 
   cleanup:
-    //av_log(NULL, AV_LOG_INFO, "%s:%.1f:", format_color(gb_F_info_color), gb_F_info_font_size); // DEBUG
-    //av_log(NULL, AV_LOG_INFO, "%s:%s:", gb_F_ts_fontname, format_color(gb_F_ts_color)); // DEBUG
-    //av_log(NULL, AV_LOG_INFO, "%s:%.1f\n", format_color(gb_F_ts_shadow), gb_F_ts_font_size); // DEBUG
     if (0 != ret) {
         av_log(NULL, AV_LOG_ERROR, "%s: argument for option -%c is invalid at '%s'\n", gb_argv0, c, bak);
         av_log(NULL, AV_LOG_ERROR, "examples:\n");
@@ -3235,8 +3264,35 @@ int get_format_opt(char c, char *optarg)
     return ret;
 }
 
-/*
-*/
+int
+get_opt_for_I_arg(char *optarg)
+{
+    if(strchr(optarg, '-'))
+    {
+        av_log(NULL, AV_LOG_ERROR, "Missing argument for -I option!");
+        return 1;
+    }
+        
+    if(strchr(optarg, 't') || strchr(optarg, 'T'))
+        gb_I_individual_thumbnail = 1;
+    
+    if(strchr(optarg, 'o') || strchr(optarg, 'O'))
+        gb_I_individual_original  = 1;
+    
+    if(strchr(optarg, 'i') || strchr(optarg, 'I'))
+        gb_I_individual_ignore_grid = 1;
+
+    if( gb_I_individual_thumbnail +
+        gb_I_individual_original +
+        gb_I_individual_ignore_grid == 0 )
+    {
+        av_log(NULL, AV_LOG_ERROR, "Unknown argument \"%s\" for -I option!", optarg);
+        return 1;
+    }
+
+    return 0;
+}
+
 int get_int_opt(char *c, int *opt, char *optarg, int sign)
 {
     char *tailptr;
@@ -3322,7 +3378,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
     av_log(NULL, AV_LOG_INFO, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too\n");
     av_log(NULL, AV_LOG_INFO, "  -i : info text off\n");
-    av_log(NULL, AV_LOG_INFO, "  -I : save individual shots too; -I again to skip thumbnails\n");
+    av_log(NULL, AV_LOG_INFO, "  -I {toi}: save individual shots; t - thumbnail size, o - original size, i - individual shots only (no thumbnail grid)\n");
     av_log(NULL, AV_LOG_INFO, "  -j %d : jpeg quality\n", GB_J_QUALITY);
     av_log(NULL, AV_LOG_INFO, "  -k RRGGBB : background color (in hex)\n"); // backgroud color
     av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
@@ -3356,6 +3412,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to skip uninteresting shots, try:\n    %s -D 6 infile.avi\n", gb_argv0);
+    av_log(NULL, AV_LOG_INFO, "  to save only individual shots and keep original size:\n    %s -I io infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to draw shadows of the individual shots, try:\n    %s --shadow=3 -g 7 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
 #ifdef WIN32
@@ -3411,7 +3468,7 @@ int main(int argc, char *argv[])
 	};    
     int parse_error = 0, option_index = 0;
     int c;
-    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiIj:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ", long_options, &option_index))) {
+    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ", long_options, &option_index))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 0:
@@ -3505,7 +3562,8 @@ int main(int argc, char *argv[])
             gb_i_info = 0;
             break;
         case 'I':
-            gb_I_individual++;
+            gb_I_individual = 1;
+            parse_error += get_opt_for_I_arg(optarg);
             break;
         case 'j':
             parse_error += get_int_opt("j", &gb_j_quality, optarg, 1);
