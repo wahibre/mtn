@@ -47,6 +47,7 @@ _mtn()
 				'--shadow[Shadows beneath thumbnails]'\
 				'--transparent[Transparent background color]'\
 				'--cover[Extract album art]'\
+				'--vtt[Previews in WebVTT format]'\
 				'*:file:_files'
 }
 

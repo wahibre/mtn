@@ -50,7 +50,7 @@ static: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS) -DMTN_STATIC
 
 debug: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) -W -Wall -g $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -W -Wall -g -DDEBUG $(LIBS)
 
 clean:
 	rm -f $(OUT)/mtn

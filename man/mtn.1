@@ -66,6 +66,10 @@ set background color (-k) to transparent; works with PNG image only
 .IP --cover[=COVER_SUFFIX]
 extract album art if exists to the file with suffix COVER_SUFFIX, default _cover.jpg
 
+.IP --vtt[=Path_prefix]
+export WebVTT file (.vtt) and sprite chunks (.jpg or.png specified by -o) into directory specified by -O. Path_prefix is added to the sprite name in .vtt file. Max size of the output images is controlled by -w switch. Number of shots in sprite chunks is controlled by -c, -r/-s, -h switch.
+
+
 .IP Filename
 name of the movie file or directory containing movie files
 
@@ -96,6 +100,8 @@ name of the movie file or directory containing movie files
     mtn -I io infile.avi
   to draw shadow of the shot, try:
     mtn --shadow=3 -g 7 infile.avi
+  to export thumbnails in WebVTT format every 10 seconds and max size of 1920x1920px:
+    mtn -s 10 -w 1920 --vtt=/var/www/html/ -O /mnt/fileshare -Ii -o .jpg infile.avi
   to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:
     mtn -q infile.avi
     
