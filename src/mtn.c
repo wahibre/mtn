@@ -122,6 +122,7 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 #define COLOR_INFO (rgb_color){85, 85, 85}
 #define IMAGE_EXTENSION_JPG ".jpg"
 #define IMAGE_EXTENSION_PNG ".png"
+#define LIBGD_FONT_HEIGHT_CORRECTION 1
 
 typedef struct thumbnail
 {
@@ -599,9 +600,10 @@ int image_string_height(char *text, char *font, double size)
 
     char *err = gdImageStringFT(NULL, &brect[0], 0, font, size, 0, 0, 0, text);
     if (NULL != err) {
+        av_log(NULL, AV_LOG_WARNING, "gdImageStringFT error: %s\n", err);
         return 0;
     }
-    return brect[3] - brect[7];
+    return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
 }
 
 /*
@@ -612,38 +614,35 @@ position can be:
     4: upper left
 returns NULL if success, otherwise returns error message
 */
-char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int position, int gap, char *text, int shadow, rgb_color shadow_color)
+char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int position, int gap, char *text, int shadow, rgb_color shadow_color, int padding)
 {
     int brect[8];
 
     int gd_color = gdImageColorResolve(ip, color.r, color.g, color.b);
-    char *err = gdImageStringFT(NULL, &brect[0], gd_color, font, size, 0, 0, 0, text);
+    char *err = gdImageStringFT(NULL, brect, gd_color, font, size, 0, 0, 0, text);
+
     if (NULL != err) {
         return err;
     }
-    /*
-    int width = brect[2] - brect[6];
-    int height = brect[3] - brect[7];
-    */
 
     int x, y;
     switch (position)
     {
     case 1: // lower left
-        x = -brect[0] + gap;
-        y = gdImageSY(ip) - brect[1] - gap;
+        x = -brect[0] + gap + padding;
+        y = gdImageSY(ip) - brect[1] - gap - padding;
         break;
     case 2: // lower right
-        x = gdImageSX(ip) - brect[2] - gap;
-        y = gdImageSY(ip) - brect[3] - gap;
+        x = gdImageSX(ip) - brect[2] - gap - padding;
+        y = gdImageSY(ip) - brect[3] - gap - padding;
         break;
     case 3: // upper right
-        x = gdImageSX(ip) - brect[4] - gap;
-        y = -brect[5] + gap;
+        x = gdImageSX(ip) - brect[4] - gap - padding;
+        y = -brect[5] + gap + padding + LIBGD_FONT_HEIGHT_CORRECTION;
         break;
     case 4: // upper left
-        x = -brect[6] + gap;
-        y = -brect[7] + gap;
+        x = -brect[6] + gap + padding;
+        y = -brect[7] + gap + padding + LIBGD_FONT_HEIGHT_CORRECTION;
         break;
     default:
         return "image_string's position can only be 1, 2, 3, or 4";
@@ -677,13 +676,26 @@ char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int 
             return "image_string's position can only be 1, 2, 3, or 4";
         }
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
-        err = gdImageStringFT(ip, &brect[0], gd_shadow, font, size, 0, shadowx, shadowy, text);
+        err = gdImageStringFT(ip, brect, gd_shadow, font, size, 0, shadowx, shadowy, text);
         if (NULL != err) {
             return err;
         }
     }
 
-    return gdImageStringFT(ip, &brect[0], gd_color, font, size, 0, x, y, text);
+    return gdImageStringFT(ip, brect, gd_color, font, size, 0, x, y, text);
+}
+
+/*
+ * return 30% of character height as a padding
+ */
+int image_string_padding(char *font, double size)
+{
+    int padding = image_string_height("SAMPLE", font, size) * 0.3 + 0.5;
+
+    if(padding > 1)
+        return padding;
+
+    return 1;
 }
 
 /*
@@ -2633,8 +2645,11 @@ make_thumbnail(char *file)
             fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
         }
     }
+
+    const int info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size);
+
     if(gb_i_info == 1)
-        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap;
+        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap + info_text_padding;
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
     av_log(NULL, AV_LOG_INFO, "  step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
         tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
@@ -2705,13 +2720,13 @@ make_thumbnail(char *file)
     gdImageFilledRectangle(tn.out_ip, 0, 0, tn.img_width, tn.img_height, background);
     
     if(gb__transparent_bg)
-		gdImageColorTransparent (tn.out_ip, background);
+        gdImageColorTransparent (tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
     if (NULL != all_text && strlen(all_text) > 0) {
         char *str_ret = image_string(tn.out_ip, 
             gb_f_fontname, gb_F_info_color, gb_F_info_font_size, 
-            gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE);
+            gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding);
         if (NULL != str_ret) {
             av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option\n", str_ret);
             goto cleanup;
@@ -2948,6 +2963,8 @@ make_thumbnail(char *file)
         if (gb__webvtt)
             sprite_add_shot(sprite, ip, found_pts);
 
+        const int timestamp_text_padding = image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size);
+
         /* timestamping */
         // FIXME: this frame might not actually be at the requested position. is pts correct?
         if (1 == t_timestamp) { // on
@@ -2955,7 +2972,7 @@ make_thumbnail(char *file)
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, ':');
             char *str_ret = image_string(ip, 
                 gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size, 
-                gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow);
+                gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding);
             if (NULL != str_ret) {
                 av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option or -F option\n", str_ret);
                 goto cleanup; // LEAK: ip, edge_ip
@@ -2965,7 +2982,7 @@ make_thumbnail(char *file)
                 char idx_str[1000]; // FIXME
                 sprintf(idx_str, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f", 
                     idx, blank, edge[0], edge[1], edge[2], edge[3], edge[4], edge[5]);
-                image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK);
+                image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK, 0);
             }
         }
 
