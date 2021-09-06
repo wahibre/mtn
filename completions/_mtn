@@ -48,6 +48,7 @@ _mtn()
 				'--transparent[Transparent background color]'\
 				'--cover[Extract album art]'\
 				'--vtt[Previews in WebVTT format]'\
+				'--options[options for FFmpeg]'\
 				'*:file:_files'
 }
 

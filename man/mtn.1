@@ -69,6 +69,9 @@ extract album art if exists to the file with suffix COVER_SUFFIX, default _cover
 .IP --vtt[=Path_prefix]
 export WebVTT file (.vtt) and sprite chunks (.jpg or.png specified by -o) into directory specified by -O. Path_prefix is added to the sprite name in .vtt file. Max size of the output images is controlled by -w switch. Number of shots in sprite chunks is controlled by -c, -r/-s, -h switch.
 
+.IP --options=option_entries
+list of options passed to the FFmpeg library. option_entries contains list of options separated by "|". Each option contains name and value separated by ":".
+
 
 .IP Filename
 name of the movie file or directory containing movie files
@@ -104,6 +107,8 @@ name of the movie file or directory containing movie files
     mtn -s 10 -w 1920 --vtt=/var/www/html/ -O /mnt/fileshare -Ii -o .jpg infile.avi
   to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:
     mtn -q infile.avi
+  to enable additional protocols:
+    mtn --options=protocol_whitelist:file,crypto,data,http,https,tcp,tls infile.avi
     
 .SH SEE ALSO
 https://gitlab.com/movie_thumbnailer/mtn/wikis

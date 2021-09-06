@@ -278,6 +278,7 @@ int gb__cover=0;                //  album art (cover image)
 int gb__webvtt=0;
 const char* gb__cover_suffix="_cover.jpg";
 const char* gb__webvtt_prefix="";
+AVDictionary *gb__options = NULL;
 
 
 /* more global variables */
@@ -569,6 +570,25 @@ char *rem_trailing_slash(char *str)
     }
 #endif
     return str;
+}
+
+
+int options_add_2_AVDictionary(AVDictionary **gb_dict, char *input_string)
+{
+    char pair_sep[2];
+
+    if(strchr(input_string, '|'))
+        strcpy(pair_sep, "|");
+    else
+        strcpy(pair_sep, "");
+
+    if(av_dict_parse_string( gb_dict, input_string, ":", pair_sep, 0) != 0)
+    {
+        av_log(NULL, AV_LOG_ERROR, "Error parsing input parameter --options=%s!\n", input_string);
+        return -1;
+    }
+
+    return 0;
 }
 
 /* mtn */
@@ -2408,7 +2428,7 @@ make_thumbnail(char *file)
     }
 
     // Open video file
-    ret = avformat_open_input(&pFormatCtx, file, NULL, NULL);
+    ret = avformat_open_input(&pFormatCtx, file, NULL, &gb__options);
     if (0 != ret) {
         av_log(NULL, AV_LOG_ERROR, "\n%s: avformat_open_input %s failed: %d\n", gb_argv0, file, ret);
         goto cleanup;
@@ -3702,11 +3722,12 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --transparent\n       set background color (-k) to transparent; works with PNG image only \n");
     av_log(NULL, AV_LOG_INFO, "  --cover[=_cover.jpg]\n       extract album art if exists \n");
     av_log(NULL, AV_LOG_INFO, "  --vtt[=path in .vtt]\n       export WebVTT file and sprite chunks\n");
+    av_log(NULL, AV_LOG_INFO, "  --options=option_entries\n       list of options passed to the FFmpeg library. option_entries contains list of options separated by \"|\". Each option contains name and value separated by \":\".\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
+#ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "Examples:\n");
     av_log(NULL, AV_LOG_INFO, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to change time step to 65 seconds & change total width to 900:\n    %s -s 65 -w 900 infile.avi\n", gb_argv0);
-    // as of version 0.60, -s 0 is not needed
     av_log(NULL, AV_LOG_INFO, "  to step evenly to get 3 columns x 10 rows:\n    %s -c 3 -r 10 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to save output files to writeable directory:\n    %s -O writeable /read/only/dir/infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to get 2 columns in original movie size:\n    %s -c 2 -w 0 infile.avi\n", gb_argv0);
@@ -3715,7 +3736,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  to draw shadows of the individual shots, try:\n    %s --shadow=3 -g 7 infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to export thumbnails in WebVTT format every 10 seconds and max size of 1920x1920px:\n    %s -s 10 -w 1920 --vtt=/var/www/html/ -O /mnt/fileshare -Ii -o .jpg infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "  to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:\n    %s -q infile.avi\n", gb_argv0);
-#ifdef WIN32
+    av_log(NULL, AV_LOG_INFO, "  to enable additional protocols:\n    %s --options=protocol_whitelist:file,crypto,data,http,https,tcp,tls infile.avi\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "\nIn windows, you can run %s from command prompt or drag files/dirs from\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "windows explorer and drop them on %s. you can change the default options\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "by creating a shortcut to %s and add options there (right click the\n", gb_argv0);
@@ -3764,11 +3785,12 @@ int main(int argc, char *argv[])
     /* get & check options */
     
 	struct option long_options[] = {		// no_argument, required_argument, optional_argument
-		{"shadow",      optional_argument, 	0,  0 },
-		{"transparent", no_argument,        0,  0 },
-		{"cover",       optional_argument, 	0,  0 },
-		{"vtt",         optional_argument,  0,  0 },
-		{0,         	0,                 	0,  0 }
+		{"shadow",              optional_argument, 	0,  0 },
+		{"transparent",         no_argument,        0,  0 },
+		{"cover",               optional_argument, 	0,  0 },
+		{"vtt",                 optional_argument,  0,  0 },
+		{"options",             required_argument,  0,  0 },
+		{0,                     0,                 	0,  0 }
 	};    
     int parse_error = 0, option_index = 0;
     int c;
@@ -3776,17 +3798,17 @@ int main(int argc, char *argv[])
         double tmp_a_ratio = 0;
         switch (c) {
         case 0:
-			if(strcmp("shadow", long_options[option_index].name) == 0)
-			{
-				if(optarg)
-					parse_error += get_int_opt("-shadow", &gb__shadow, optarg, 0);
-				else
-					gb__shadow = 0;
-			}
-			else
-			{
-				if(strcmp("transparent", long_options[option_index].name) == 0)
-					gb__transparent_bg = 1;
+            if(strcmp("shadow", long_options[option_index].name) == 0)
+            {
+                if(optarg)
+                    parse_error += get_int_opt("-shadow", &gb__shadow, optarg, 0);
+                else
+                    gb__shadow = 0;
+            }
+            else
+            {
+                if(strcmp("transparent", long_options[option_index].name) == 0)
+                    gb__transparent_bg = 1;
                 else
                 {
                     if(strcmp("cover", long_options[option_index].name) == 0)
@@ -3799,14 +3821,24 @@ int main(int argc, char *argv[])
                     else
                     {
                         if(strcmp("vtt", long_options[option_index].name) == 0)
+                        {
                             gb__webvtt = 1;
-
-                        if(optarg)
-                            gb__webvtt_prefix = optarg;
+    
+                            if(optarg)
+                                gb__webvtt_prefix = optarg;
+                        }
+                        else
+                        {
+                            if(strcmp("options", long_options[option_index].name) == 0)
+                            {
+                                if(options_add_2_AVDictionary(&gb__options, optarg) != 0)
+                                    parse_error++;
+                            }
+                        }
                     }
                 }
-			}
-			break;
+            }
+            break;
         case 'a':
             if (0 == get_double_opt('a', &tmp_a_ratio, optarg, 1)) { // success
                 gb_a_ratio.num = tmp_a_ratio * 10000;
@@ -4046,6 +4078,9 @@ int main(int argc, char *argv[])
         free(argv[argc]);
     }
 #endif
+
+    if(gb__options)
+        av_dict_free(&gb__options);
 
     //av_log(NULL, AV_LOG_VERBOSE, "\n%s: total run time: %.2f s.\n", gb_argv0, difftime(time(NULL), gb_st_start));
 
