@@ -3676,7 +3676,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -h %d : minimum height of each shot; will reduce # of column to fit\n", GB_H_HEIGHT);
     av_log(NULL, AV_LOG_INFO, "  -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too\n");
     av_log(NULL, AV_LOG_INFO, "  -i : info text off\n");
-    av_log(NULL, AV_LOG_INFO, "  -I {toi}: save individual shots; t - thumbnail size, o - original size, i - individual shots only (no thumbnail grid)\n");
+    av_log(NULL, AV_LOG_INFO, "  -I {toi}: save individual shots; t - thumbnail size, o - original size, i - ignore creating thumbnail grid\n");
     av_log(NULL, AV_LOG_INFO, "  -j %d : jpeg quality\n", GB_J_QUALITY);
     av_log(NULL, AV_LOG_INFO, "  -k RRGGBB : background color (in hex)\n"); // backgroud color
     av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
