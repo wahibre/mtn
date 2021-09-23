@@ -187,21 +187,18 @@ int gb_D_edge = GB_D_EDGE; // edge detection; 0 off; >0 on
 //char *gb_e_ext = GB_E_EXT;
 #define GB_E_END 0.0
 double gb_E_end = GB_E_END; // skip this seconds at the end
+#ifndef GB_F_FONTNAME
 #ifdef __APPLE__
-#	define SRC_DEF_FONTNAME "Tahoma Bold.ttf"
+#	define GB_F_FONTNAME "Tahoma Bold.ttf"
 #else
 #ifdef WIN32
-#	define SRC_DEF_FONTNAME "tahomabd.ttf"
+#	define GB_F_FONTNAME "tahomabd.ttf"
 #else
-#	define SRC_DEF_FONTNAME "DejaVuSans.ttf"
+#	define GB_F_FONTNAME "DejaVuSans.ttf"
+#endif
 #endif
 #endif
 
-#ifdef MTN_DEF_FONTNAME
-#   define GB_F_FONTNAME MTN_DEF_FONTNAME
-#else
-#   define GB_F_FONTNAME SRC_DEF_FONTNAME
-#endif
 char *gb_f_fontname = GB_F_FONTNAME;
 rgb_color gb_F_info_color = COLOR_INFO; // info color
 double gb_F_info_font_size = 9; // info font size

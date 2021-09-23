@@ -29,7 +29,7 @@ From source
 ```sh
 cd src
 # USER_CFLAGS is optional
-make USER_CFLAGS=-DMTN_DEF_FONTNAME=\\\"DefaultFont.ttf\\\"
+make USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\"
 make install
 ```
 
