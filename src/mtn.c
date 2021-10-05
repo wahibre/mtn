@@ -168,6 +168,19 @@ typedef struct SPRITE
     char *filenamebase;
 } Sprite, *pSprite;
 
+typedef struct KEYS
+{
+    char *name;
+    int count;
+} Keys;
+
+typedef struct KEYCOUNTER
+{
+    Keys *key;
+    int count;
+} KeyCounter;
+
+
 /* command line options & default values */
 #define GB_A_RATIO (AVRational){0, 1}
 AVRational gb_a_ratio = GB_A_RATIO;
@@ -284,6 +297,60 @@ char *gb_version = "3.4.1";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */
+
+KeyCounter* kc_new()
+{
+    KeyCounter *kc = (KeyCounter*)malloc(sizeof(KeyCounter));
+    kc->key=NULL;
+    kc->count=0;
+
+    return kc;
+}
+
+int kc_keyindex(const KeyCounter* const kc, const char* const key)
+{
+    for(int i=0; i < kc->count; i++)
+    {
+        if(strcmp(key, kc->key[i].name) == 0)
+            return i;
+    }
+    return -1;
+}
+
+void kc_inc(KeyCounter *kc, const char *key)
+{
+    int keyindex = kc_keyindex(kc, key);
+
+    if(keyindex >= 0)
+    {
+        kc->key[keyindex].count++;
+        return;
+    }
+    else
+    {
+        kc->key = realloc(kc->key, (kc->count+1) * sizeof(Keys));
+        kc->key[kc->count].name = malloc((strlen(key)+1) * sizeof(char));
+        kc->key[kc->count].count = 1;
+
+        sprintf(kc->key[kc->count].name, key);
+
+        kc->count++;
+    }
+}
+
+void kc_destroy(KeyCounter **kc)
+{
+    if(*kc)
+    {
+        for(int i=0; i < (*kc)->count; i++)
+        {
+            free((*kc)->key[i].name);
+            free((*kc)->key);
+        }
+        free(*kc);
+        *kc=NULL;
+    }
+}
 
 void dealloc(void *ptr)
 {
@@ -1438,6 +1505,7 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
     unsigned int i;
     AVCodecContext *pCodexCtx=NULL;
     char subtitles_separator[3] = {'\0',};
+    KeyCounter *kc = kc_new();
 
     for(i=0; i<ic->nb_streams; i++) {
         char codec_buf[256];
@@ -1461,9 +1529,10 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
 
                 strcpy(subtitles_separator, ", ");
             }
-            else {
-                //ignore for now; language seem to be missing in .vob files
-                //sprintf(sub_buf + strlen(sub_buf), "? ");
+            else
+            {
+                const char *codec_name = avcodec_get_name(pCodexCtx->codec_id);
+                kc_inc(kc, codec_name);
             }
             continue;
         }
@@ -1534,12 +1603,30 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
         }
     } //for
 
-    if (0 < strlen(sub_buf)) {
-        sprintf(buf + strlen(buf), "\nSubtitles: %s", sub_buf);
+    {
+        if (0 < strlen(sub_buf) || 0 < kc->count)
+            strcat(buf, "\nSubtitles: ");
+
+        if (0 < strlen(sub_buf))
+        {
+            strcat(buf, sub_buf);
+
+            if(0 < kc->count)
+                strcat(buf, ", ");
+        }
+
+        for(int i=0; i < kc->count; i++) {
+            if(kc->count > 1)
+                sprintf(buf + strlen(buf), "%s (%dx)", kc->key[i].name, kc->key[i].count);
+            else
+                sprintf(buf + strlen(buf), "%s", kc->key[i].name);
+        }
     }
 
     if(pCodexCtx)
         avcodec_free_context(&pCodexCtx);
+
+    kc_destroy(&kc);
 }
 
 

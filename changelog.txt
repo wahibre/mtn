@@ -1,10 +1,11 @@
-version 3.4.2 	2021/09/06
+version 3.4.2 	2021/10/05
 - add --vtt switch to export previews in WebVTT format
 - add --options switch to pass options to the FFmpeg library
 - aspect ratio defaults to sample ratio from container
 - option -I now needs argument t,o,i or any combination (-It for old behavior)
 - saving individual shots now supports original image size (-Io)
 - making thumbnail grid can be ignored (-Ii)
+- fix subtitle info text when metadata is missing
 
 version 3.4.1 	2021/02/16
 - improved decoding frames (less skipped pictures)
