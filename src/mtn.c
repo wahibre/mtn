@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2021 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis	
+    Copyright (C) 2017-2022 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -2917,16 +2917,17 @@ make_thumbnail(char *file)
             ret = really_seek(pFormatCtx, video_index, eff_target, direction, duration);
             if (ret < 0) {
                 av_log(NULL, AV_LOG_ERROR, "  seeking to %.2f s failed\n", calc_time(eff_target, pStream->time_base, start_time));
-                goto cleanup;
+                goto eof;
             }
             avcodec_flush_buffers(pCodecCtx);
 
             ret = video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &found_pts);
             if (0 == ret) { // end of file
-                goto eof;
+                /*goto cleanup;         stops and writes no image */
+                goto eof;               // write into image everything we have so far
             } else if (ret < 0) { // error
                 av_log(NULL, AV_LOG_ERROR, "  read&decode failed!\n");
-                goto cleanup;
+                goto eof;
             }
         } else { // non-seek mode -- we keep decoding until we get to the next shot
             found_pts = 0;
@@ -2937,7 +2938,7 @@ make_thumbnail(char *file)
                     goto eof;
                 } else if (ret < 0) { // error
                     av_log(NULL, AV_LOG_ERROR, "  read&decode failed!\n");
-                    goto cleanup;
+                    goto eof;
                 }
             }
         }
