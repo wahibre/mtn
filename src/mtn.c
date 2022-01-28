@@ -309,7 +309,8 @@ KeyCounter* kc_new()
 
 int kc_keyindex(const KeyCounter* const kc, const char* const key)
 {
-    for(int i=0; i < kc->count; i++)
+    int i;
+    for(i=0; i < kc->count; i++)
     {
         if(strcmp(key, kc->key[i].name) == 0)
             return i;
@@ -342,7 +343,8 @@ void kc_destroy(KeyCounter **kc)
 {
     if(*kc)
     {
-        for(int i=0; i < (*kc)->count; i++)
+        int i;
+        for(i=0; i < (*kc)->count; i++)
         {
             free((*kc)->key[i].name);
             free((*kc)->key);
@@ -1615,7 +1617,8 @@ void get_stream_info_type(AVFormatContext *ic, enum AVMediaType type, char *buf,
                 strcat(buf, ", ");
         }
 
-        for(int i=0; i < kc->count; i++) {
+        int i;
+        for(i=0; i < kc->count; i++) {
             if(kc->count > 1)
                 sprintf(buf + strlen(buf), "%s (%dx)", kc->key[i].name, kc->key[i].count);
             else
