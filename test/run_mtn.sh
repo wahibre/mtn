@@ -50,12 +50,12 @@ colouredecho "====> use full input filename (include extension)"
 tcdir filename_extension_nosuffix
 run_mtn -X -o .jpg
 
-colouredecho  "===> save individual shots"
+colouredecho  "===> save individual shots (small and large) only"
 tcdir individual_shots
-run_mtn -I
+run_mtn -I toi
 
 colouredecho  "===> transparent png image"
-tcdir transparent_png_noinf
+tcdir transparent_png_noinfo
 run_mtn -o .png --transparent -i -g 10 -k 00FFBB
 
 colouredecho  "===> fixed grid"
@@ -107,9 +107,13 @@ colouredecho  "===> Low quality jpeg, human readable size, quietly"
 tcdir low_quality_human_size_quietly
 run_mtn -j 30 -q -H
 
-colouredecho  "===> High shots"
-tcdir big_shots
+colouredecho  "===> Tall shots"
+tcdir tall_shots
 run_mtn -C 30 -h 300
+
+colouredecho  "===> WebVTT"
+tcdir webvtt
+run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.jpg
 
 colouredecho  "===> Paused with normal priority"
 tcdir normal_priority

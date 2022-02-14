@@ -7,10 +7,13 @@ _movie_thumbnailer()
     _init_completion || return
 
     if [ "${cur:0:2}" == "--" ] ;then
-        COMPREPLY=( $( compgen -W "--shadow --transparent --cover" -- "$cur" ) )
+        COMPREPLY=( $( compgen -W "--shadow --transparent --cover --vtt --options" -- "$cur" ) )
     else
         case "$prev" in 
         "-f") fclist=$(fc-list :fontformat=TrueType file | cut -d : -f1)
+             COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
+            ;;
+        "-I") fclist="t o i"
              COMPREPLY=( $( compgen -W "$fclist" -- "$cur" ) )
             ;;
         "-O") _filedir -d

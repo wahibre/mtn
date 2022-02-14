@@ -7,19 +7,16 @@ variables:
 .fedora: &fc
     stage: build
     before_script:
-    - dnf -y install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
-    - dnf -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
-    - curl --output /home/sample.avi -L $MOVIE_URL
+    - dnf -yq install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    - dnf -yq install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
+    - make
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
         - ./bin/*
-        - ./*.jpg
 
 .centOS: &el
     stage: build
@@ -30,19 +27,16 @@ variables:
     - master
     - devel
     before_script:
-    - yum -y install https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
-    - yum -y install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
-    - curl --output /home/sample.avi -L $MOVIE_URL
+    - yum -y -q install https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
+    - yum -y -q install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
+    - make
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week
         paths:
         - ./bin/*
-        - ./*.jpg
 
 .ubu: &ubuntu
     stage: build
@@ -54,25 +48,15 @@ variables:
     - devel
     when: manual
     before_script:
-    - apt-get -y update
-    - DEBIAN_FRONTEND=noninteractive apt-get -y install curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
-    - curl --output /home/sample.avi -L $MOVIE_URL
+    - apt-get update
+    - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
     script:
     - cd src
-    - make test
-    - mv /tmp/*.jpg ..
-    artifacts:
-        name: mtn-$CI_JOB_NAME
-        expire_in: 4 week
-        paths:
-        - ./*.jpg
+    - make
 
 debian:
     image: debian:9
     stage: build
-    variables:
-        STATIC_GD_BRANCH: GD-2.2
-        STATIC_FFMPEG_BRANCH: release/4.3
 #    rules:
 #    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
 #      when: manual
@@ -83,7 +67,7 @@ debian:
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt-get update
-    - apt-get install -y git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
+    - apt-get install -qq git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libfreetype6-dev pkg-config gcc make g++ cmake
     - wget --no-verbose --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
@@ -121,10 +105,6 @@ debian:
 win:
     image: fedora
     stage: build
-    variables:
-        WIN_FFMPEG_VER: 4.3.1
-        WIN_LIBGD_VER: 2.1.1
-#       MYDOWNLOADSERVER:
 #    rules:
 #    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
 #      when: manual
@@ -134,7 +114,7 @@ win:
     when: manual
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
-    - dnf -y install curl make mingw64-gcc.x86_64
+    - dnf -yq install curl make mingw64-gcc.x86_64
     - curl --output /tmp/deps-win-libgd.tgz  -L https://$MYDOWNLOADSERVER/deps-libgd-$WIN_LIBGD_VER-x64.tgz
     - curl --output /tmp/deps-win-ffmpeg.tgz -L https://$MYDOWNLOADSERVER/deps-FFmpeg-$WIN_FFMPEG_VER-x64.tgz
     

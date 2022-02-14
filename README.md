@@ -29,7 +29,7 @@ From source
 ```sh
 cd src
 # USER_CFLAGS is optional
-make USER_CFLAGS=-DMTN_DEF_FONTNAME=\\\"DefaultFont.ttf\\\"
+make USER_CFLAGS=-DGB_F_FONTNAME=\\\"DefaultFont.ttf\\\"
 make install
 ```
 
@@ -73,7 +73,7 @@ yum localinstall https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(
 yum install ffmpeg-devel gd-devel make gcc-c++    
 ```
 
-**[FreeBSD](https://www.freebsd.org/)** 10+
+**[FreeBSD](https://www.freebsd.org/)**
 
 ```sh
 pkg install gmake ffmpeg libgd

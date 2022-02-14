@@ -50,7 +50,7 @@ static: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(S_INCPATH) $(CFLAGS) $(S_LIBS) -DMTN_STATIC
 
 debug: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) -W -Wall -g $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -W -Wall -g -DDEBUG $(LIBS)
 
 clean:
 	rm -f $(OUT)/mtn
@@ -73,7 +73,7 @@ install: mtn
 	install -m 755 $(OUT)/mtn $(DESTDIR)$(PREFIX)/bin/
 	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/mtn
 	cp -Rp ../doc/* $(DESTDIR)$(PREFIX)/share/doc/mtn
-	cp -p ../gpl-2.0.txt $(DESTDIR)$(PREFIX)/share/doc/mtn
+	cp -p ../LICENSE $(DESTDIR)$(PREFIX)/share/doc/mtn
 	mkdir -p $(DESTDIR)$(PREFIX)/share/man/man1
 	cp -p ../man/mtn.1 $(DESTDIR)$(PREFIX)/share/man/man1/
 

@@ -1,7 +1,7 @@
 .\" Manpage for mtn.
 .\" Contact wahibre@gmx.com to correct errors or typos.
 
-.TH man 1 "September 2020" "1.5" "mtn man page"
+.TH man 1 "Aug 2021" "1.7" "mtn man page"
 .SH NAME
 mtn \- generate thumbnail grid of a movie file(s)
 .SH SYNOPSIS
@@ -25,7 +25,7 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -h 150 : minimum height of each shot; will reduce # of column to fit
   -H : filesize only in human readable format (MiB, GiB). Default shows size in bytes too
   -i : info text off
-  -I : save individual shots too
+  -I {toi} : save individual shots; t - thumbnail size, o - original size, i - ignore creating thumbnail grid
   -j 90 : jpeg quality
   -k RRGGBB : background color (in hex)
   -L info_location[:time_location] : location of text
@@ -66,6 +66,13 @@ set background color (-k) to transparent; works with PNG image only
 .IP --cover[=COVER_SUFFIX]
 extract album art if exists to the file with suffix COVER_SUFFIX, default _cover.jpg
 
+.IP --vtt[=Path_prefix]
+export WebVTT file (.vtt) and sprite chunks (.jpg or.png specified by -o) into directory specified by -O. Path_prefix is added to the sprite name in .vtt file. Max size of the output images is controlled by -w switch. Number of shots in sprite chunks is controlled by -c, -r/-s, -h switch.
+
+.IP --options=option_entries
+list of options passed to the FFmpeg library. option_entries contains list of options separated by "|". Each option contains name and value separated by ":".
+
+
 .IP Filename
 name of the movie file or directory containing movie files
 
@@ -92,10 +99,16 @@ name of the movie file or directory containing movie files
     mtn -c 2 -w 0 infile.avi
   to skip uninteresting shots, try:
     mtn -D 6 infile.avi
-  to draw shadows of the individual shots, try:
+  to save only \fI\,i\fRndividual shots and keep \fI\,o\fRriginal size:
+    mtn -I io infile.avi
+  to draw shadow of the shot, try:
     mtn --shadow=3 -g 7 infile.avi
+  to export thumbnails in WebVTT format every 10 seconds and max size of 1920x1920px:
+    mtn -s 10 -w 1920 --vtt=/var/www/html/ -O /mnt/fileshare -Ii -o .jpg infile.avi
   to skip warning messages to be printed to console (useful for flv files producing lot of warnings), try:
     mtn -q infile.avi
+  to enable additional protocols:
+    mtn --options=protocol_whitelist:file,crypto,data,http,https,tcp,tls infile.avi
     
 .SH SEE ALSO
 https://gitlab.com/movie_thumbnailer/mtn/wikis
