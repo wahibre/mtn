@@ -1,6 +1,6 @@
 Name:		mtn	
-Version:	3.4.1
-Release:	8%{?dist}
+Version:	3.4.2
+Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -83,6 +83,9 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 rm -rf %{buildroot}
 
 %changelog
+* Mon Feb 14 2022 wahibre <wahibre@gmx.com> - 3.4.2-1
+- update to version 3.4.2
+
 * Tue Mar 02 2021 wahibre <wahibre@gmx.com> - 3.4.1-2
 - fix font dependency for Mageia
 

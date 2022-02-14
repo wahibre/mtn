@@ -293,7 +293,7 @@ AVDictionary *gb__options = NULL;
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.4.1";
+char *gb_version = "3.4.2";
 time_t gb_st_start = 0; // start time of program
 
 /* misc functions */

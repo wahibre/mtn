@@ -1,4 +1,4 @@
-version 3.4.2 	2021/10/05
+version 3.4.2 	2022/02/14
 - add --vtt switch to export previews in WebVTT format
 - add --options switch to pass options to the FFmpeg library
 - aspect ratio defaults to sample ratio from container
