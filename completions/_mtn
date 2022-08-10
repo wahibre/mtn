@@ -41,6 +41,7 @@ _mtn()
 				'-v[Verbose mode]'\
 				'-w[Width of output image]'\
 				'-W[Dont overwrite existing files]'\
+				'-x[change output filename to CustomFileName]'\
 				'-X[Use full input filename (include extension)]'\
 				'-z[Always use seek mode]'\
 				'-Z[Always use non-seek mode]'\

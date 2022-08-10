@@ -131,6 +131,7 @@ win:
     - cp -r src mtn-win64/
     - cp ./*.txt mtn-win64/
     - cp ./*.md mtn-win64/
+    - cp ./LICENSE mtn-win64/
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week

@@ -243,8 +243,6 @@ int gb_L_time_location = GB_L_TIME_LOCATION;
 int gb_n_normal = GB_N_NORMAL; // normal priority; 1 normal; 0 lower
 #define GB_N_SUFFIX NULL
 char *gb_N_suffix = GB_N_SUFFIX; // info text file suffix
-#define GB_X_FILENAME_USE_FULL 0
-int gb_X_filename_use_full = GB_X_FILENAME_USE_FULL; // use full input filename (include extension)
 #define GB_O_SUFFIX "_s.jpg"
 char *gb_o_suffix = GB_O_SUFFIX;
 #define GB_O_OUTDIR NULL
@@ -276,6 +274,9 @@ int gb_V = GB_V_VERBOSE; // 1 on; 0 off
 int gb_w_width = GB_W_WIDTH; // 0 = column * movie width
 #define GB_W_OVERWRITE 1
 int gb_W_overwrite = GB_W_OVERWRITE; // 1 = overwrite; 0 = dont overwrite
+#define GB_X_FILENAME_USE_FULL 0
+int gb_X_filename_use_full = GB_X_FILENAME_USE_FULL; // use full input filename (include extension)
+char* gb_x_basename_custom = NULL;
 #define GB_Z_SEEK 0
 int gb_z_seek = GB_Z_SEEK; // always use seek mode; 1 on; 0 off
 #define GB_Z_NONSEEK 0
@@ -2420,7 +2421,7 @@ make_thumbnail(char *file)
 
     {
         char *extpos;
-        char *filenamepos = NULL;
+        char *filenamestartpos = NULL;
         char filenamebase[UTF8_FILENAME_SIZE] = {'\0',};
 
         if (gb_O_outdir != NULL && strlen(gb_O_outdir) > 0) {
@@ -2429,13 +2430,25 @@ make_thumbnail(char *file)
             strcpy(filenamebase, file);
         }
 
-        filenamepos=path_2_file(filenamebase);
-        extpos = strrchr(filenamepos, '.');
+        filenamestartpos=path_2_file(filenamebase);
+        extpos = strrchr(filenamestartpos, '.');
 
         if (gb_X_filename_use_full != 1 && extpos != NULL)
         {
             // remove movie extenxtion (e.g. .avi)
             *extpos = '\0';
+        }
+
+        if(gb_x_basename_custom)
+        {
+            if(extpos)
+            {
+                char *extension = strdup(extpos);
+                strcpy_va(filenamestartpos, 2, gb_x_basename_custom, extension);
+                free(extension);
+            }
+            else
+                strcpy(filenamestartpos, gb_x_basename_custom);
         }
 
         tn.filenamebase = (char*)malloc((strlen(filenamebase)+1) * sizeof(char));
@@ -3803,6 +3816,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -v : verbose mode (debug)\n");
     av_log(NULL, AV_LOG_INFO, "  -w %d : width of output image; 0:column * movie width\n", GB_W_WIDTH);
     av_log(NULL, AV_LOG_INFO, "  -W : don't overwrite existing files, i.e. update mode\n");
+    av_log(NULL, AV_LOG_INFO, "  -x CustomFileName : change output filename to CustomFileName\n");
     av_log(NULL, AV_LOG_INFO, "  -X : use full input filename (include extension)\n");
     av_log(NULL, AV_LOG_INFO, "  -z : always use seek mode\n");
     av_log(NULL, AV_LOG_INFO, "  -Z : always use non-seek mode -- slower but more accurate timing\n");
@@ -3836,13 +3850,14 @@ usage()
     av_log(NULL, AV_LOG_INFO, "systems. if you don't have a truetype font, you can turn the text off by\n");
     av_log(NULL, AV_LOG_INFO, "using -i -t.\n");
 #endif
+#ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
     av_log(NULL, AV_LOG_INFO, "welcome to redistribute it under certain conditions; for details see file\n");
     av_log(NULL, AV_LOG_INFO, "gpl-2.0.txt.\n\n");
 
     av_log(NULL, AV_LOG_INFO, "wahibre@gmx.com\n");
     av_log(NULL, AV_LOG_INFO, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
-
+#endif
 #endif
     
 }
@@ -3882,7 +3897,7 @@ int main(int argc, char *argv[])
 	};    
     int parse_error = 0, option_index = 0;
     int c;
-    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:WXzZ", long_options, &option_index))) {
+    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:Wx:XzZ", long_options, &option_index))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 0:
@@ -4065,7 +4080,9 @@ int main(int argc, char *argv[])
         case 'W':
             gb_W_overwrite = 0;
             break;
-//		case 'x':
+		case 'x':
+            gb_x_basename_custom = optarg;
+            break;
         case 'X':
             gb_X_filename_use_full = 1;
             break;

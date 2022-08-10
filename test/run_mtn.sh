@@ -111,6 +111,10 @@ colouredecho  "===> Tall shots"
 tcdir tall_shots
 run_mtn -C 30 -h 300
 
+colouredecho  "===> Custom filename"
+tcdir custom_filename
+run_mtn -r2 -c2 -o .jpg -It -N.txt --vtt="out/" -x "MyCustomFileName"
+
 colouredecho  "===> WebVTT"
 tcdir webvtt
 run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.jpg

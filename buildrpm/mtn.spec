@@ -1,6 +1,6 @@
 Name:		mtn	
 Version:	3.4.2
-Release:	1%{?dist}
+Release:	2%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
