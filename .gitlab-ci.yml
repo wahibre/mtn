@@ -7,7 +7,7 @@ variables:
 .fedora: &fc
     stage: build
     before_script:
-    - dnf -yq install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
+    - dnf -yq install https://mirrors.rpmfusion.org/free/fedora/rpmfusion-free-release-$(rpm -E %fedora).noarch.rpm
     - dnf -yq install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
     - cd src
@@ -27,7 +27,7 @@ variables:
     - master
     - devel
     before_script:
-    - yum -y -q install https://download1.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
+    - yum -y -q install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %centos).noarch.rpm
     - yum -y -q install curl make gcc-c++ ffmpeg-devel gd-devel zlib-devel libpng-devel
     script:
     - cd src
