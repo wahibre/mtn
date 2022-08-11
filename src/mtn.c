@@ -330,11 +330,13 @@ void kc_inc(KeyCounter *kc, const char *key)
     }
     else
     {
+        size_t kl = strlen(key)+1;
         kc->key = realloc(kc->key, (kc->count+1) * sizeof(Keys));
-        kc->key[kc->count].name = malloc((strlen(key)+1) * sizeof(char));
+        kc->key[kc->count].name = malloc(kl * sizeof(char));
         kc->key[kc->count].count = 1;
 
-        sprintf(kc->key[kc->count].name, key);
+        memset(kc->key[kc->count].name, '\0', kl);
+        strncpy(kc->key[kc->count].name, key, kl);
 
         kc->count++;
     }
