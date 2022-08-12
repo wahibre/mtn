@@ -4148,7 +4148,7 @@ int main(int argc, char *argv[])
 #ifdef WIN32
         int ret = mkdir(gb_O_outdir);
 #else
-        int ret = mkdir(gb_O_outdir, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+        int ret = mkdir(gb_O_outdir, S_IRWXU | S_IRWXG | S_IRWXO);
 #endif
         if (0 != ret) {
             av_log(NULL, AV_LOG_ERROR, "\n%s: creating output directory '%s' failed: %s\n", gb_argv0, gb_O_outdir, strerror(errno));
