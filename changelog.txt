@@ -1,5 +1,6 @@
-version 3.4.3 	2022/08/12
+version 3.4.3 	2022/08/16
 - add -x switch to change output filename
+- get rid of font warning if no font needed
 - fix folder permission for newly created directory with -O switch
 
 version 3.4.2 	2022/02/14

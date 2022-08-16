@@ -2772,7 +2772,7 @@ make_thumbnail(char *file)
         }
     }
 
-    const int info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size);
+    const int info_text_padding = gb_i_info ? image_string_padding(gb_f_fontname, gb_F_info_font_size) : 0;
 
     if(gb_i_info == 1)
         tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap + info_text_padding;
@@ -3090,7 +3090,7 @@ make_thumbnail(char *file)
         if (gb__webvtt)
             sprite_add_shot(sprite, ip, found_pts);
 
-        const int timestamp_text_padding = image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size);
+        const int timestamp_text_padding = gb_t_timestamp ? image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size) : 0;
 
         /* timestamping */
         // FIXME: this frame might not actually be at the requested position. is pts correct?
