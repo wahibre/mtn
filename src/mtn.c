@@ -3754,8 +3754,9 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
 
 char* mtn_identification()
 {
-    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with: %s %s %s %s GD:%s";
-	const char GD_VER[] = 
+    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s) GD %s";
+    const char* FFMPEG_IDENT = av_version_info();
+    const char GD_VER[] = 
 	   #ifdef GD_VERSION_STRING
            GD_VERSION_STRING
        #else
@@ -3769,9 +3770,9 @@ char* mtn_identification()
             ""
         #endif
             ;
-    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
+    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
 	char* msg = malloc(s);
-               snprintf( msg, s, txt, gb_version, STATIC_MSG, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
+               snprintf( msg, s, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
 	return msg;
 }
 
@@ -4160,6 +4161,10 @@ int main(int argc, char *argv[])
 #if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 9, 100)
     av_register_all();          // Register all formats and codecs
 #endif
+#if LIBAVFORMAT_VERSION_INT < AV_VERSION_INT(58, 0, 0)
+    avformat_network_init();    // optional since FFmpeg 4.0
+#endif
+
 	if(gb_q_quiet>0)
 		av_log_set_level(AV_LOG_ERROR);
 	else

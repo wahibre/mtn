@@ -1,22 +1,22 @@
 Description
 ===========
-movie thumbnailer (mtn)  
-fork from http://moviethumbnail.sourceforge.net/  
 
-Movie Thumbnailer (mtn) saves thumbnails (screenshots) of movie or video files to image files (jpg, png).
+Movie Thumbnailer (mtn) saves thumbnails (screenshots) of video files to image files (jpg, png).
 It uses FFmpeg's libavcodec as its engine, so it supports all popular codecs, e.g. h.265/hevc, h.264, mpeg1, mpeg2, mp4, vc1, wmv, xvid, divx...     
 mtn was originaly developed by tuit (tuitfun); though most of its magic is actually done
-by FFmpeg libraries. For documents, please see in the doc directory and at
+by FFmpeg libraries. For documents, please see in the doc directory and wiki at 
 https://gitlab.com/movie_thumbnailer/mtn/wikis/home .
 
 
 Dependency
 ==========
+
  - ffmpeg   (>=3.1)
  - gd       (>=2.0.33)
 
 Getting source
 ==============
+
 ```sh
 git clone https://gitlab.com/movie_thumbnailer/mtn.git
 ```
@@ -26,6 +26,7 @@ Installation
 
 From source
 -----------
+
 ```sh
 cd src
 # USER_CFLAGS is optional
@@ -48,7 +49,7 @@ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$
 dnf install ffmpeg-devel gd-devel make gcc-c++  
 ```
 
-**[Debian](https://www.debian.org/)** 9+, **[Ubuntu](https://www.ubuntu.com/)** 17.10, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
+**[Debian](https://www.debian.org/)** 9, **[Ubuntu](https://www.ubuntu.com/)** 18.04, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
 
 ```sh
 sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
@@ -66,7 +67,14 @@ sudo pacman -Sy ffmpeg gd
 zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
-**[CentOS](https://centos.org/)** 7+
+**[RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/)** 8+
+
+```sh
+dnf install https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
+dnf install ffmpeg-devel gd-devel make gcc-c++    
+```
+
+**[RHEL](https://centos.org/)** 7
 
 ```sh
 yum localinstall https://mirrors.rpmfusion.org/free/el/rpmfusion-free-release-$(rpm -E %rhel).noarch.rpm
@@ -82,6 +90,7 @@ gmake
 
 Windows
 =======
+
 Install msys2 and open a MinGW64 terminal:
 
 ```sh
@@ -111,6 +120,7 @@ sudo make install
 
 Links
 =====
+
  * [FFmpeg project](http://www.ffmpeg.org)
  * [libgd project](https://libgd.github.io)
  * [MinGW](http://mingw-w64.org)

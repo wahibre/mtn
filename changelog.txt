@@ -1,7 +1,8 @@
-version 3.4.3 	2022/08/16
+version 3.4.3 	2022/08/23
 - add -x switch to change output filename
-- get rid of font warning if no font needed
 - fix folder permission for newly created directory with -O switch
+- fix font warning if no font needed
+- fix network init warning
 
 version 3.4.2 	2022/02/14
 - add --vtt switch to export previews in WebVTT format
