@@ -109,7 +109,7 @@ macOS [(brew)](https://brew.sh/)
 
 
 If you don't want to contribute please refer to the installation guide
-[here](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#macos-homebrew)
+[here](https://gitlab.com/movie_thumbnailer/mtn/wikis/home#macos)
 instead.
 
 ```sh

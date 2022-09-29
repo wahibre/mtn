@@ -22,6 +22,7 @@ endif
 
 ifeq ($(KERNELNAME),Linux)
 INCPATH=-I/usr/include/ffmpeg
+LIBS+=$(shell pkg-config --libs-only-L libavutil)
 endif
 
 ifeq ($(OSNAME),Msys)
