@@ -2758,27 +2758,40 @@ make_thumbnail(char *file)
     if (gb_w_width > 0 && gb_w_width != tn.img_width) {
         av_log(NULL, AV_LOG_INFO, "  changing width to %d to match movie's size (%dx%d)\n", tn.img_width, scaled_src_width, tn.column);
     }
+
     char *all_text = get_stream_info(pFormatCtx, file, 1, sample_aspect_ratio); // FIXME: using function's static buffer
+
     if (NULL != info_fp) {
         fprintf(info_fp, "%s%s", all_text, NEWLINE);
     }
     if (0 == gb_i_info) { // off
         *all_text = '\0';
     }
-    if (NULL != gb_T_text) {
-        sprintf(all_text+strlen(all_text), "%s%s", NEWLINE, gb_T_text);
-        if (NULL != info_fp) {
-            fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
-        }
-    }
 
     const int info_text_padding = gb_i_info ? image_string_padding(gb_f_fontname, gb_F_info_font_size) : 0;
 
-    if(gb_i_info == 1)
+    if (gb_T_text)
+        sprintf(all_text+strlen(all_text), "%s%s", NEWLINE, gb_T_text);
+
+    if(gb_i_info)
         tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap + info_text_padding;
+
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
-    av_log(NULL, AV_LOG_INFO, "  step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d\n",
-        tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
+
+    char* extra_info_text = NULL;
+    sprintf_realloc(&extra_info_text, 0, "Tiles: step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d",
+		tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
+
+    av_log(NULL, AV_LOG_INFO, extra_info_text);
+
+    if (NULL != info_fp) {
+        fprintf(info_fp, "%s%s", extra_info_text, NEWLINE);
+        if(gb_T_text)
+			fprintf(info_fp, "%s%s", gb_T_text, NEWLINE);
+    }
+
+	free(extra_info_text);
+	extra_info_text = NULL;
 
     // jpeg seems to have max size of 65500 pixels
     if (strcasecmp(image_extension, IMAGE_EXTENSION_JPG)==0 && (tn.img_width > 65500 || tn.img_height > 65500)) {
