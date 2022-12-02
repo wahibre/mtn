@@ -2782,7 +2782,7 @@ make_thumbnail(char *file)
     sprintf_realloc(&extra_info_text, 0, "Tiles: step: %.1f s; # tiles: %dx%d, tile size: %dx%d; total size: %dx%d",
 		tn.step_t*tn.time_base, tn.column, tn.row, tn.shot_width_out, tn.shot_height_out, tn.img_width, tn.img_height);
 
-    av_log(NULL, AV_LOG_INFO, extra_info_text);
+    av_log(NULL, AV_LOG_INFO, "%s%s", extra_info_text, NEWLINE);
 
     if (NULL != info_fp) {
         fprintf(info_fp, "%s%s", extra_info_text, NEWLINE);
