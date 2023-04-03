@@ -1,7 +1,7 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2022 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
+    Copyright (C) 2017-2023 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -56,8 +56,15 @@
 #include "libavutil/imgutils.h"
 #include "libavutil/avutil.h"
 #include "libavutil/display.h"
+#include "libavutil/opt.h"
+#include "libavutil/avconfig.h"
+#include "libavutil/avstring.h"
+#include "libavutil/pixfmt.h"
 #include "libavcodec/avcodec.h"
 #include "libavformat/avformat.h"
+#include "libavfilter/avfilter.h"
+#include "libavfilter/buffersrc.h"
+#include "libavfilter/buffersink.h"
 #include "libswscale/swscale.h"
 
 #include "gd.h"
@@ -106,6 +113,8 @@
 #define EDGE_PARTS 6 // # of parts used in edge detection
 #define EDGE_FOUND 0.001f // edge is considered found
 
+int process_loop(int n, char **files, int current_depth);
+
 typedef char TIME_STR[20];
 
 typedef struct rgb_color
@@ -123,6 +132,16 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 #define IMAGE_EXTENSION_JPG ".jpg"
 #define IMAGE_EXTENSION_PNG ".png"
 #define LIBGD_FONT_HEIGHT_CORRECTION 1
+#define DEFAULT_FLTERGRAPH 1
+#define NR_OF_FLTERGRAPH 3
+
+const char* const FILTER_GRAPHS[] = {
+    "zscale=transfer=linear,tonemap=clip,zscale=transfer=bt709,format=yuv420p",
+    "zscale=t=linear,tonemap=tonemap=hable,zscale=p=bt709:t=bt709:m=bt709",
+    "zscale=t=linear:npl=100,format=gbrpf32le,zscale=p=bt709,tonemap=tonemap=hable,zscale=t=bt709:m=bt709:r=tv,format=yuv420p"
+};
+
+
 #ifdef WIN32
  #define FOLDER_SEPARATOR "\\"
 #else
@@ -290,7 +309,9 @@ int gb__webvtt=0;
 const char* gb__cover_suffix="_cover.jpg";
 const char* gb__webvtt_prefix="";
 AVDictionary *gb__options = NULL;
-
+char* gb__filters = NULL;
+char* gb__filter_color_primaries = NULL;
+int gb__tonemap = 0;
 
 /* more global variables */
 char *gb_argv0 = NULL;
@@ -602,6 +623,7 @@ int is_reg_newer(char *file, time_t st_time)
     }
     return S_ISREG(buf.st_mode) && (difftime(buf.st_mtime, st_time) >= 0);
 }
+
 
 /* 
 return 1 if file is a directory
@@ -1373,8 +1395,12 @@ void dump_codec_context(AVCodecContext * p)
     if(p->codec == 0)
         av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context: codec = ?0?\n");
     else
-        av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context %s, time_base: %d / %d\n", p->codec->name,
-            p->time_base.num, p->time_base.den);
+        av_log(NULL, AV_LOG_VERBOSE, "***dump_codec_context: name: %s, time_base: %d / %d, color_primaries = %s, colorspace = %s\n",
+            p->codec->name,
+            p->time_base.num, p->time_base.den,
+            av_color_primaries_name(p->color_primaries),
+            av_color_space_name(p->colorspace)
+            );
 
     av_log(NULL, AV_LOG_VERBOSE, "frame_number: %d, width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
         p->frame_number, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
@@ -1744,6 +1770,16 @@ void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, 
         av_log(NULL, AV_LOG_INFO, "  Year: %s\n",      year->value);
     if (genre != NULL)
         av_log(NULL, AV_LOG_INFO, "  Genre: %s\n",     genre->value);
+}
+
+void dump_frame(AVFrame *f)
+{
+    av_log(NULL, AV_LOG_INFO, "*** dump_frame ***\n");
+    av_log(NULL, AV_LOG_INFO, "  linesize: %d\n", f->linesize[0]);
+    av_log(NULL, AV_LOG_INFO, "  format:   %s\n", av_get_pix_fmt_name((enum AVPixelFormat)f->format));
+    av_log(NULL, AV_LOG_INFO, "  pts:      %"PRId64"\n", f->pts);
+    av_log(NULL, AV_LOG_INFO, "  data at:  %p\n", f->data);
+    av_log(NULL, AV_LOG_INFO, "******************\n");
 }
 
 /*
@@ -2415,12 +2451,15 @@ make_thumbnail(char *file)
     //FILE *out_fp = NULL;
     FILE *info_fp = NULL;
     gdImagePtr ip = NULL;
+    const char *codec_color_primaries = NULL;
+    int filter_color_primaries_match = 1;
 
     int t_timestamp = gb_t_timestamp; // local timestamp; can be turned off; 0 = off
     int ret;
 
     av_log(NULL, AV_LOG_INFO, "\n");
 
+    // output filenames
     {
         char *extpos;
         char *filenamestartpos = NULL;
@@ -2536,6 +2575,7 @@ make_thumbnail(char *file)
         goto cleanup;
     }
 
+
     // generate pts?? -- from ffplay, not documented
     // it should make av_read_frame() generate pts for unknown value
     assert(NULL != pFormatCtx);
@@ -2575,6 +2615,8 @@ make_thumbnail(char *file)
     dump_codec_context(pCodecCtx);
     av_log(NULL, AV_LOG_VERBOSE, "\n");
 
+    codec_color_primaries = av_color_primaries_name(pCodecCtx->color_primaries);
+
     // Find the decoder for the video stream
     const AVCodec *pCodec = avcodec_find_decoder(pCodecCtx->codec_id);
     if (pCodec == NULL) {
@@ -2609,6 +2651,67 @@ make_thumbnail(char *file)
     if( gb__cover )
         save_cover_image(pFormatCtx, tn.cover_filename);
 
+    AVFilterContext *buffersink_ctx = NULL;
+    AVFilterContext *buffersrc_ctx = NULL;
+    AVFilterGraph *filter_graph = NULL;
+
+    if(gb__filters)
+    {
+        // initialize filters (FFmpeg/doc/examples/filtering_video.c)
+        AVCodecContext *dec_ctx = pCodecCtx;
+        AVRational time_base = pStream->time_base;
+        av_log(NULL, AV_LOG_VERBOSE, "Initializing filtergraph\n");
+
+        char args[512];
+        int ret = 0;
+        const AVFilter *buffersrc  = avfilter_get_by_name("buffer");
+        const AVFilter *buffersink = avfilter_get_by_name("buffersink");
+        AVFilterInOut* inputs = avfilter_inout_alloc();
+        AVFilterInOut* outputs = avfilter_inout_alloc();
+        filter_graph = avfilter_graph_alloc();
+
+        snprintf(args, sizeof(args),
+                "video_size=%dx%d:pix_fmt=%d:time_base=%d/%d:pixel_aspect=%d/%d",
+                dec_ctx->width, dec_ctx->height, dec_ctx->pix_fmt,
+                time_base.num, time_base.den,
+                dec_ctx->sample_aspect_ratio.num, dec_ctx->sample_aspect_ratio.den);
+
+        ret = avfilter_graph_create_filter(&buffersrc_ctx, buffersrc, "in",
+                                           args, NULL, filter_graph);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Cannot create buffer source\n");
+            goto cleanup;
+        }
+
+        ret = avfilter_graph_create_filter(&buffersink_ctx, buffersink, "out",
+                                           NULL, NULL, filter_graph);
+        if (ret < 0) {
+            av_log(NULL, AV_LOG_ERROR, "Cannot create buffer sink\n");
+            goto cleanup;
+        }
+
+        outputs->name       = av_strdup("in");
+        outputs->filter_ctx = buffersrc_ctx;
+        outputs->pad_idx    = 0;
+        outputs->next       = NULL;
+
+        inputs->name       = av_strdup("out");
+        inputs->filter_ctx = buffersink_ctx;
+        inputs->pad_idx    = 0;
+        inputs->next       = NULL;
+
+        if(avfilter_graph_parse_ptr(filter_graph, gb__filters, &inputs, &outputs, NULL)<0)
+            goto cleanup;
+
+        if (avfilter_graph_config(filter_graph, NULL) < 0)
+            goto cleanup;
+
+        avfilter_inout_free(&inputs);
+        avfilter_inout_free(&outputs);
+
+        if(gb__filter_color_primaries)
+            filter_color_primaries_match = av_match_list(codec_color_primaries, gb__filter_color_primaries, ',');
+    }
 
     // keep a copy of sample_aspect_ratio because it might be changed after 
     // decoding a frame, e.g. Dragonball Z 001 (720x480 H264 AAC).mkv
@@ -2813,7 +2916,6 @@ make_thumbnail(char *file)
     }
     int rgb_bufsize = av_image_get_buffer_size(AV_PIX_FMT_RGB24, tn.shot_width_in, tn.shot_height_in, LINESIZE_ALIGN);
     rgb_buffer = av_malloc(rgb_bufsize);
-//    rgb_buffer = (uint8_t*)malloc(rgb_bufsize*sizeof(uint8_t));
 
     if (NULL == rgb_buffer) {
         av_log(NULL, AV_LOG_ERROR, "  av_malloc %d bytes failed\n", rgb_bufsize);
@@ -3030,11 +3132,48 @@ make_thumbnail(char *file)
             goto skip_shot;
         }
 
+        if(gb__filters && filter_color_primaries_match)
+        {
+            av_log(NULL, AV_LOG_VERBOSE, "Aplying filtergraph to the frame\n");
+
+            AVFrame *filt_frame = av_frame_alloc();
+
+            /* push the decoded frame into the filtergraph */
+            if (av_buffersrc_add_frame_flags(buffersrc_ctx, pFrame, AV_BUFFERSRC_FLAG_KEEP_REF) >= 0)
+            {
+                 /* pull filtered frames from the filtergraph */
+                 while (1) {
+                     int ret = av_buffersink_get_frame(buffersink_ctx, filt_frame);
+                     if (ret == AVERROR(EAGAIN) || ret == AVERROR_EOF)
+                         break;
+                     if (ret >= 0)
+                     {
+                        av_frame_unref(pFrame);
+                        pFrame = filt_frame;
+                     }
+                     else
+                        av_log(NULL, AV_LOG_ERROR, "Error while reading the filtergraph\n");
+                 }
+
+                struct SwsContext *pFilteredSwsCtx = sws_getContext(pCodecCtx->width, pCodecCtx->height, filt_frame->format,
+                    tn.shot_width_in, tn.shot_height_in, AV_PIX_FMT_RGB24, SWS_BILINEAR, NULL, NULL, NULL);
+
+                if (!pFilteredSwsCtx) {
+                    av_log(NULL, AV_LOG_ERROR, "  Filtered sws_getContext failed\n");
+                    goto cleanup;
+                }
+
+                sws_freeContext(pSwsCtx);
+                pSwsCtx = pFilteredSwsCtx;
+            }
+            else
+                av_log(NULL, AV_LOG_ERROR, "Error while feeding the filtergraph\n");
+        }
+
         /* convert to AV_PIX_FMT_RGB24 & resize */
-        int output_height; //the height of the output slice
-        output_height = sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height,
+        int height_of_the_output_slice = sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, pCodecCtx->height,
             pFrameRGB->data, pFrameRGB->linesize);
-        if(output_height <= 0)
+        if(height_of_the_output_slice <= 0)
         {
             av_log(NULL, AV_LOG_ERROR, "  sws_scale() failed\n");
             goto cleanup;
@@ -3268,8 +3407,7 @@ make_thumbnail(char *file)
         }
     }
 
-    if (NULL != pSwsCtx)
-        sws_freeContext(pSwsCtx); // do we need to do this?
+    sws_freeContext(pSwsCtx);
 
     // Free the video frame
     if (NULL != rgb_buffer)
@@ -3341,8 +3479,6 @@ int check_extension(char *filename)
     }
     return 1;
 }
-
-int process_loop(int n, char **files, int current_depth);
 
 /**
  * @brief modified from glibc's scandir -- mingw doesn't have scandir
@@ -3841,6 +3977,9 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --cover[=_cover.jpg]\n       extract album art if exists \n");
     av_log(NULL, AV_LOG_INFO, "  --vtt[=path in .vtt]\n       export WebVTT file and sprite chunks\n");
     av_log(NULL, AV_LOG_INFO, "  --options=option_entries\n       list of options passed to the FFmpeg library. option_entries contains list of options separated by \"|\". Each option contains name and value separated by \":\".\n");
+    av_log(NULL, AV_LOG_INFO, "  --filters=FILTER_GRAPH\n       simple FILTER_GRAPH passed to the FFmpeg's libavfilter library (same as -vf or -filter:v in ffmpeg)\n");
+    av_log(NULL, AV_LOG_INFO, "  --filter-color-primaries=<COLOR_PRIMARIES>\n       comma-separated list of color primaries\n");
+    av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
 #ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "Examples:\n");
@@ -3861,10 +4000,10 @@ usage()
     av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
     av_log(NULL, AV_LOG_INFO, "instead.\n");
 #else
-    av_log(NULL, AV_LOG_INFO, "\nYou'll probably need to change the truetype font path (-f fontfile).\n");
-    av_log(NULL, AV_LOG_INFO, "the default is set to %s which might not exist in non-windows\n", GB_F_FONTNAME);
-    av_log(NULL, AV_LOG_INFO, "systems. if you don't have a truetype font, you can turn the text off by\n");
-    av_log(NULL, AV_LOG_INFO, "using -i -t.\n");
+    av_log(NULL, AV_LOG_INFO, "Notice:\n");
+    av_log(NULL, AV_LOG_INFO, "  You'll probably need to change the truetype font path (-f fontfile).\n");
+    av_log(NULL, AV_LOG_INFO, "  the default is set to %s which might not exist in non-windows systems.\n", GB_F_FONTNAME);
+    av_log(NULL, AV_LOG_INFO, "  If you don't have a truetype font, you can turn the text off by using -i -t.\n");
 #endif
 #ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
@@ -3904,12 +4043,15 @@ int main(int argc, char *argv[])
     /* get & check options */
     
 	struct option long_options[] = {		// no_argument, required_argument, optional_argument
-		{"shadow",              optional_argument, 	0,  0 },
-		{"transparent",         no_argument,        0,  0 },
-		{"cover",               optional_argument, 	0,  0 },
-		{"vtt",                 optional_argument,  0,  0 },
-		{"options",             required_argument,  0,  0 },
-		{0,                     0,                 	0,  0 }
+		{"shadow",                optional_argument,  0,  0 },
+		{"transparent",           no_argument,        0,  0 },
+		{"cover",                 optional_argument,  0,  0 },
+		{"vtt",                   optional_argument,  0,  0 },
+		{"options",               required_argument,  0,  0 },
+		{"filters",               required_argument,  0,  0 },
+		{"filter-color-primaries",required_argument,  0,  0 },
+		{"tonemap",               optional_argument,  0,  0 },
+		{0,                       0,                  0,  0 }
 	};    
     int parse_error = 0, option_index = 0;
     int c;
@@ -3952,6 +4094,55 @@ int main(int argc, char *argv[])
                             {
                                 if(options_add_2_AVDictionary(&gb__options, optarg) != 0)
                                     parse_error++;
+                            }
+                            else
+                            {
+                                if(strcmp("filters", long_options[option_index].name) == 0)
+                                {
+                                    gb__filters = strdup(optarg);
+                                }
+                                else
+                                {
+                                    if(strcmp("filter-color-primaries", long_options[option_index].name) == 0)
+                                    {
+                                        gb__filter_color_primaries = strdup(optarg);
+                                    }
+                                    else
+                                    {
+                                        if(strcmp("tonemap", long_options[option_index].name) == 0)
+                                        {
+                                            if(optarg)
+                                            {
+                                                char *endptr = NULL;
+                                                errno = 0;
+                                                gb__tonemap = strtol(optarg, &endptr, 10);
+
+                                                if(errno != 0)
+                                                {
+                                                    parse_error++;
+                                                    av_log(NULL, AV_LOG_ERROR, "%s: invalid argument for the --tonemap option\n", gb_argv0);
+                                                }
+
+                                                if(optarg == endptr)
+                                                {
+                                                    parse_error++;
+                                                    av_log(NULL, AV_LOG_ERROR, "%s: No digits were found in argument for the --tonemap option\n", gb_argv0);
+                                                }
+
+                                                if(gb__tonemap < 0 || gb__tonemap > 4347
+                                                )
+                                                {
+                                                    parse_error++;
+                                                    av_log(NULL, AV_LOG_ERROR, "%s: argument for the --tonemap option must be between 0 and 3\n", gb_argv0);
+                                                }
+                                            }
+                                            else
+                                            {
+                                                gb__tonemap = DEFAULT_FLTERGRAPH;
+                                            }
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
@@ -4138,10 +4329,24 @@ int main(int argc, char *argv[])
         av_log(NULL, AV_LOG_ERROR, "%s: option -C and -E cant be used together", gb_argv0);
         parse_error += 1;
     }
+    if (gb__tonemap && gb__filters)    {
+        parse_error += 1;
+        av_log(NULL, AV_LOG_ERROR, "%s: option --tonemap and --filters cant be used together", gb_argv0);
+    }
 
     if (0 != parse_error) {
         usage();
         goto exit;
+    }
+
+    if(gb__tonemap > 0)
+    {
+        gb__filters = strdup(FILTER_GRAPHS[gb__tonemap-1]);
+
+        if(gb__filter_color_primaries)
+            free(gb__filter_color_primaries);
+
+        gb__filter_color_primaries = strdup("bt2020");
     }
 
     /* lower priority */
@@ -4186,8 +4391,10 @@ int main(int argc, char *argv[])
 			av_log_set_level(AV_LOG_VERBOSE);
 		else
 			av_log_set_level(AV_LOG_INFO);
+
+        av_log_set_flags(AV_LOG_SKIP_REPEATED);
 	}
-		
+
 	// display mtn+libraries versions for bug reporting
 	av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
 		
@@ -4206,6 +4413,11 @@ int main(int argc, char *argv[])
 
     if(gb__options)
         av_dict_free(&gb__options);
+
+    if(gb__filters)
+        free(gb__filters);
+    if(gb__filter_color_primaries)
+        free(gb__filter_color_primaries);
 
     //av_log(NULL, AV_LOG_VERBOSE, "\n%s: total run time: %.2f s.\n", gb_argv0, difftime(time(NULL), gb_st_start));
 

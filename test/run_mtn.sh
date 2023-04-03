@@ -1,6 +1,11 @@
 #!/bin/bash
 
-# Purpose of this skript is to test most of posible MTN options 
+# Purpose of this skript is to test most of posible MTN options
+
+# Usage:
+#    [MTN=bin/mtn] run_mtn.sh [FILE_OR_DIR]
+
+export LANG=en_US
 
 [ -v ${MTN} ] && MTN=$(which mtn)
 
@@ -13,7 +18,14 @@ fi
 
 if [ ! -f $MTN ]; then
     echo "mtn not built!"
-    exit
+    exit 1
+fi
+
+TESTFONT="$(dirname $(readlink -f "$0"))/font.ttf"
+
+if [ ! -f $TESTFONT ]; then
+    echo "cant find test font!"
+    exit 1
 fi
 
 function colouredecho {
@@ -92,7 +104,7 @@ run_mtn --shadow=5 -g 12 -o .png
 
 colouredecho  "===> colors & fonts, recursive "
 tcdir colors
-testfont=../../font.ttf
+testfont="$TESTFONT"
 run_mtn -g 5 -k 10FF55 -f $testfont -F FF1010:16:$testfont:FFFFFF:FF0000:20 -d 1
 
 colouredecho  "===> text position "
@@ -113,11 +125,15 @@ run_mtn -C 30 -h 300
 
 colouredecho  "===> Custom filename"
 tcdir custom_filename
-run_mtn -r2 -c2 -o .jpg -It -N.txt --vtt="out/" -x "MyCustomFileName"
+run_mtn -r2 -c2 -o .jpg -It -N.txt -x "MyCustomFileName"
 
 colouredecho  "===> WebVTT"
 tcdir webvtt
 run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.jpg
+
+colouredecho  "===> filters"
+tcdir filters
+run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'
 
 colouredecho  "===> Paused with normal priority"
 tcdir normal_priority

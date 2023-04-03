@@ -31,7 +31,7 @@ INCPATH=-I/mingw64/include
 CFLAGS=-W
 endif
 
-LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lgd -lm
+LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lavfilter -lgd -lm
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS= -static-libgcc -static \
 	$(LIBSDIR)/FFmpeg/libavformat/libavformat.a \

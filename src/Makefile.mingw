@@ -41,7 +41,7 @@ CFLAGS=-Wall -DWIN32 -O3
 OUT=../bin
 LDFLAGS=-L../lib/windows/lib
 INCLUDE=-I../lib/windows/include
-LIBS=-llibgd -lavutil -lavdevice -lavformat -lavcodec  -lswscale -lm
+LIBS=-llibgd -lavutil -lavdevice -lavformat -lavfilter -lavcodec  -lswscale -lm
 
 mtn: mtn.c outdir
 	$(CC) -o $(OUT)/mtn.exe mtn.c $(CFLAGS) $(LDFLAGS) $(INCLUDE) $(LIBS)

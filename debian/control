@@ -7,6 +7,7 @@ Build-Depends: debhelper(>=10),
                libavutil-dev,
                libavcodec-dev,
                libavformat-dev,
+               libavfilter-dev,
                libswscale-dev
 Standards-Version: 4.1.2
 Homepage: https://gitlab.com/movie_thumbnailer/mtn/wikis

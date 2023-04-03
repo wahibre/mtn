@@ -52,7 +52,7 @@ dnf install ffmpeg-devel gd-devel make gcc-c++
 **[Debian](https://www.debian.org/)** 9, **[Ubuntu](https://www.ubuntu.com/)** 18.04, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
 
 ```sh
-sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev make  
+sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev make  
 ```
 
 **[Archlinux](https://www.archlinux.org/), [Manjaro](https://manjaro.org/)**  
@@ -64,7 +64,7 @@ sudo pacman -Sy ffmpeg gd
 **[OpenSUSE](http://opensuse.org/)** 15
 
 ```sh
-zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
+zypper install ffmpeg-4-libavcodec-devel ffmpeg-4-libavdevice-devel ffmpeg-4-libavfilter-devel ffmpeg-4-libavformat-devel ffmpeg-4-libswscale-devel gd-devel freetype2-devel libjpeg62-devel make gcc 
 ```
 
 **[RHEL](https://www.redhat.com/en/technologies/linux-platforms/enterprise-linux/)** 8+

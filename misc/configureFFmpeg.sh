@@ -4,11 +4,9 @@
 --pkg-config-flags="--static" \
 --disable-alsa \
 --disable-avdevice \
---disable-avfilter \
 --disable-bsfs \
 --disable-doc \
 --disable-encoders \
---disable-filters \
 --disable-indevs \
 --disable-muxers \
 --disable-network \
@@ -23,6 +21,8 @@
 
 exit
 
+--disable-avfilter \
+--disable-filters \
 --disable-protocols \
 --disable-demuxers \
 --disable-bzlib \

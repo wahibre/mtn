@@ -1,4 +1,5 @@
-version 3.4.3 	2022/11/23
+version 3.5.0 	2023/03/31
+- add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
 - add -x switch to change output filename
 - append "tiles info" to the info file with -N
 - fix folder permission for newly created directory with -O switch

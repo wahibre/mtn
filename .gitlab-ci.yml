@@ -49,7 +49,7 @@ variables:
     when: manual
     before_script:
     - apt-get update
-    - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libswscale-dev
+    - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev
     script:
     - cd src
     - make
