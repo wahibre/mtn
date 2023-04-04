@@ -1,8 +1,8 @@
 diff --git a/lib/libgd/src/gd_jpeg.c b/lib/libgd/src/gd_jpeg.c
-index cdf884d..69e738c 100644
+index f2dd329..f80e7ca 100644
 --- a/lib/libgd/src/gd_jpeg.c
 +++ b/lib/libgd/src/gd_jpeg.c
-@@ -346,7 +346,10 @@ static int _gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
+@@ -346,7 +346,9 @@ static int _gdImageJpegCtx(gdImagePtr im, gdIOCtx *outfile, int quality)
  
  	jpeg_start_compress(&cinfo, TRUE);
  

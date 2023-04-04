@@ -1401,10 +1401,15 @@ void dump_codec_context(AVCodecContext * p)
             av_color_primaries_name(p->color_primaries),
             av_color_space_name(p->colorspace)
             );
-
+    #if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 2, 0)
     av_log(NULL, AV_LOG_VERBOSE, "frame_number: %d, width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
         p->frame_number, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
         (0 == p->sample_aspect_ratio.num) ? "" : "**a**");
+    #else
+    av_log(NULL, AV_LOG_VERBOSE, "frame_number: %"PRId64", width: %d, height: %d, sample_aspect_ratio %d/%d%s\n",
+        p->frame_num, p->width, p->height, p->sample_aspect_ratio.num, p->sample_aspect_ratio.den,
+        (0 == p->sample_aspect_ratio.num) ? "" : "**a**");
+    #endif
 }
 
 /*
