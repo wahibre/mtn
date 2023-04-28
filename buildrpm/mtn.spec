@@ -1,6 +1,6 @@
 Name:		mtn	
 Version:	3.4.2
-Release:	8%{?dist}
+Release:	9%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -56,6 +56,11 @@ cd %{name}-*
 %build
 cd %{name}-*/src
 %make_build
+#fedora38, rhel9: /usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf
+#centos7: /usr/share/fonts/dejavu/DejaVuSans.ttf
+#mageia:8 OK default
+#rhel:8 OK default
+#%make_build USER_CFLAGS=-DGB_F_FONTNAME=\\\"/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf\\\"
 
 %install
 cd %{name}-*/src

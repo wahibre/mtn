@@ -50,7 +50,7 @@ _mtn()
 				'--cover[Extract album art]'\
 				'--vtt[Previews in WebVTT format]'\
 				'--options[options for FFmpeg]'\
-				'--filters[filtergraph for FFmpeg's filters]'\
+				'--filters[filtergraph for FFmpegs filters]'\
 				'--filter-color-primaries[color primaries for --filters]'\
 				'--tonemap[predefined filters for tonemaping frames; values 1-3]'\
 				'*:file:_files'

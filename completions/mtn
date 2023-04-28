@@ -7,7 +7,7 @@ _movie_thumbnailer()
     _init_completion || return
 
     if [ "${cur:0:2}" == "--" ] ;then
-        COMPREPLY=( $( compgen -W "--shadow --transparent --cover --vtt --options --filters" --filter-color-primaries" --tonemap" -- "$cur" ) )
+        COMPREPLY=( $( compgen -W "--shadow --transparent --cover --vtt --options --filters --filter-color-primaries --tonemap" -- "$cur" ) )
     else
         case "$prev" in 
         "-f") fclist=$(fc-list :fontformat=TrueType file | cut -d : -f1)
