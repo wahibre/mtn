@@ -34,12 +34,15 @@ endif
 LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lavfilter -lgd -lm
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS= -static-libgcc -static \
-	$(LIBSDIR)/FFmpeg/libavformat/libavformat.a \
-	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
 	$(LIBSDIR)/FFmpeg/libswscale/libswscale.a \
+	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
+	$(LIBSDIR)/FFmpeg/libswresample/libswresample.a \
+	$(LIBSDIR)/FFmpeg/libavformat/libavformat.a \
+	$(LIBSDIR)/FFmpeg/libavfilter/libavfilter.a \
 	$(LIBSDIR)/FFmpeg/libavutil/libavutil.a \
+	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
 	$(LIBSDIR)/libgd/Bin/libgd.a \
-	-lpthread -lbz2 -lfreetype -ljpeg -lpng16 -lz -lm
+    -lpthread -lbz2 -lfreetype -lbrotlidec -lbrotlicommon -ljpeg -lpng16 -lz -lm
 
 mtn: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
@@ -69,7 +72,7 @@ test_bin:
 test:  rebuild  mtn  test_bin
 static_test: rebuild_static static test_bin
 
-install: mtn
+install:
 	mkdir -p $(DESTDIR)$(PREFIX)/bin/
 	install -m 755 $(OUT)/mtn $(DESTDIR)$(PREFIX)/bin/
 	mkdir -p $(DESTDIR)$(PREFIX)/share/doc/mtn
