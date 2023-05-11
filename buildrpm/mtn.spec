@@ -1,6 +1,6 @@
 Name:		mtn	
 Version:	3.4.2
-Release:	9%{?dist}
+Release:	10%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -21,6 +21,14 @@ Requires:	fonts-ttf-dejavu
 %else
 Requires:	ffmpeg-libs
 Requires:	dejavu-sans-fonts
+%endif
+
+%if %{?mageia}%{!?mageia:100} <= 8 || %{?rhel}%{!?rhel:100} <= 8
+%define with_avif ENABLE_AVIF=0
+%endif
+
+%if %{?rhel}%{!?rhel:100} <= 7
+%define with_webp ENABLE_WEBP=0
 %endif
 
 %description
@@ -55,12 +63,7 @@ cd %{name}-*
 
 %build
 cd %{name}-*/src
-%make_build
-#fedora38, rhel9: /usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf
-#centos7: /usr/share/fonts/dejavu/DejaVuSans.ttf
-#mageia:8 OK default
-#rhel:8 OK default
-#%make_build USER_CFLAGS=-DGB_F_FONTNAME=\\\"/usr/share/fonts/dejavu-sans-fonts/DejaVuSans.ttf\\\"
+%make_build %?with_webp %?with_avif
 
 %install
 cd %{name}-*/src
@@ -88,6 +91,9 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 rm -rf %{buildroot}
 
 %changelog
+* Tue May 16 2023 wahibre <wahibre@gmx.com> - 3.4.2-2
+- building with avif and webp
+
 * Mon Feb 14 2022 wahibre <wahibre@gmx.com> - 3.4.2-1
 - update to version 3.4.2
 

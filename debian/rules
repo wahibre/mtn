@@ -1,7 +1,23 @@
 #!/usr/bin/make -f
 
+# export DH_VERBOSE=1
+
+building_on_id := $(shell lsb_release -is)
+building_on_version := $(shell lsb_release -rs)
+with_avif := 0
+
+ifeq ($(building_on_id),Debian)
+	with_avif := $(shell test $(building_on_version) -ge 12 && echo 1 || echo 0)
+endif
+
+ifeq ($(building_on_id),Ubuntu)
+	majver := $(firstword $(subst ., , $(building_on_version)))
+	with_avif := $(shell test $(majver) -ge 23 && echo 1 || echo 0)
+endif
+
 %:
 	dh $@
 
 override_dh_auto_build:
-	dh_auto_build --sourcedirectory=src
+	dh_auto_build --sourcedirectory=src -- ENABLE_WEBP=1 ENABLE_AVIF=$(with_avif)
+

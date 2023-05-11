@@ -1,7 +1,8 @@
-version 3.5.0 	2023/03/31
+version 3.5.0 	2023/05/11
 - add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
 - add -x switch to change output filename
-- append "tiles info" to the info file with -N
+- add support for webp and avif (-o)
+- append "tiles info" to the info file (-N)
 - fix folder permission for newly created directory with -O switch
 - fix font warning if no font needed
 - fix network init warning

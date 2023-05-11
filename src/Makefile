@@ -9,6 +9,9 @@
 # According to a convention, PREFIX macro is the prefix of instalation.
 PREFIX = /usr/local
 
+ENABLE_AVIF=1
+ENABLE_WEBP=1
+
 KERNELNAME=$(shell uname -s)
 OSNAME=$(shell uname -o)
 CFLAGS=-W -Wall -O3 $(USER_CFLAGS)
@@ -31,6 +34,14 @@ INCPATH=-I/mingw64/include
 CFLAGS=-W
 endif
 
+ifeq ($(ENABLE_WEBP),1)
+    CFLAGS+=-DMTN_WITH_WEBP
+endif
+
+ifeq ($(ENABLE_AVIF),1)
+    CFLAGS+=-DMTN_WITH_AVIF
+endif
+
 LIBS+=-lavcodec -lavformat -lavcodec -lswscale -lavutil -lavfilter -lgd -lm
 S_INCPATH=-I$(LIBSDIR)/FFmpeg -I$(LIBSDIR)/libgd/src
 S_LIBS= -static-libgcc -static \
@@ -42,7 +53,7 @@ S_LIBS= -static-libgcc -static \
 	$(LIBSDIR)/FFmpeg/libavutil/libavutil.a \
 	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
 	$(LIBSDIR)/libgd/Bin/libgd.a \
-    -lpthread -lbz2 -lfreetype -lbrotlidec -lbrotlicommon -ljpeg -lpng16 -lz -lm
+    -lpthread -lbz2 -lfreetype -lbrotlidec -lbrotlicommon -ljpeg -lpng16 -lwebp -lz -lm
 
 mtn: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)

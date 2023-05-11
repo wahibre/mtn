@@ -3,6 +3,7 @@ Section: utils
 Priority: optional
 Maintainer: wahibre <wahibre@gmx.com>
 Build-Depends: debhelper(>=10),
+               lsb-release,
                libgd-dev,
                libavutil-dev,
                libavcodec-dev,

@@ -58,23 +58,31 @@ colouredecho "====> Minimum switches"
 tcdir minimum
 run_mtn
 
-colouredecho "====> use full input filename (include extension)"
+colouredecho "====> Use full input filename (include extension)"
 tcdir filename_extension_nosuffix
 run_mtn -X -o .jpg
 
-colouredecho  "===> save individual shots (small and large) only"
+colouredecho  "===> Save individual shots (small and large) only"
 tcdir individual_shots
-run_mtn -I toi
+run_mtn -c2 -r1 -I toi -o.webp
 
-colouredecho  "===> transparent png image"
+colouredecho  "===> Save image to avif"
+tcdir avif
+run_mtn -o .avif
+
+colouredecho  "===> Save image to webp"
+tcdir webp
+run_mtn -o .webp
+
+colouredecho  "===> Transparent png image"
 tcdir transparent_png_noinfo
 run_mtn -o .png --transparent -i -g 10 -k 00FFBB
 
-colouredecho  "===> fixed grid"
+colouredecho  "===> Fixed grid"
 tcdir grid_3_3_with_cover
 run_mtn -r3 -c3 --cover
 
-colouredecho  "===> info in text file"
+colouredecho  "===> Info in text file"
 tcdir info_in_file
 run_mtn -i -N _info.txt
 
@@ -102,12 +110,12 @@ colouredecho  "===> Shadows "
 tcdir shadows
 run_mtn --shadow=5 -g 12 -o .png
 
-colouredecho  "===> colors & fonts, recursive "
+colouredecho  "===> Colors & fonts, recursive "
 tcdir colors
 testfont="$TESTFONT"
 run_mtn -g 5 -k 10FF55 -f $testfont -F FF1010:16:$testfont:FFFFFF:FF0000:20 -d 1
 
-colouredecho  "===> text position "
+colouredecho  "===> Text position "
 tcdir text_position_changed
 run_mtn -k FFFFFF -g 5 -L 3:4
 
@@ -129,13 +137,12 @@ run_mtn -r2 -c2 -o .jpg -It -N.txt -x "MyCustomFileName"
 
 colouredecho  "===> WebVTT"
 tcdir webvtt
-run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.jpg
+run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.avif
 
-colouredecho  "===> filters"
+colouredecho  "===> Filters"
 tcdir filters
 run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'
 
 colouredecho  "===> Paused with normal priority"
 tcdir normal_priority
 run_mtn -c1 -r1 -p -n
-

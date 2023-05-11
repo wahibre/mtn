@@ -32,7 +32,7 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
      1=lower left, 2=lower right, 3=upper right, 4=upper left
   -n : run at normal priority
   -N info_suffix : save info text to a file with suffix
-  -o _s.jpg : output suffix including image extension (.jpg or .png)
+  -o _s.jpg : output suffix including image extension (.jpg, .png, .webp, .avif)
   -O directory : save output files in the specified directory
   -p : pause before exiting; default on in win32
   -P : don't pause before exiting; override -p
@@ -60,7 +60,7 @@ set background color (\fI-k\fP) to transparent; works with PNG image only
 extract album art if exists to the file with suffix COVER_SUFFIX, default _cover.jpg
 
 .IP --vtt[=PATH_PREFIX]
-export WebVTT file (.vtt) and sprite chunks (.jpg or.png specified by \fI-o\fP) into directory specified by \fI-O\fP. PATH_PREFIX is added to the sprite name in .vtt file. Max size of the output images is controlled by \fI-w\fP switch. Number of shots in sprite chunks is controlled by \fI-c\fP, \fI-r\fP/\fI-s\fP, \fI-h\fP switch.
+export WebVTT file (.vtt) and sprite chunks (specified by \fI-o\fP) into directory specified by \fI-O\fP. PATH_PREFIX is added to the sprite name in .vtt file. Max size of the output images is controlled by \fI-w\fP switch. Number of shots in sprite chunks is controlled by \fI-c\fP, \fI-r\fP/\fI-s\fP, \fI-h\fP switch.
 
 .IP --options=<OPTION_ENTRIES>
 list of options passed to the FFmpeg library. <OPTION_ENTRIES> contains list of options separated by "|". Each option contains name and value separated by ":".

@@ -131,6 +131,8 @@ typedef char color_str[7]; // "RRGGBB" (in hex)
 #define COLOR_INFO (rgb_color){85, 85, 85}
 #define IMAGE_EXTENSION_JPG ".jpg"
 #define IMAGE_EXTENSION_PNG ".png"
+#define IMAGE_EXTENSION_WEBP ".webp"
+#define IMAGE_EXTENSION_AVIF ".avif"
 #define LIBGD_FONT_HEIGHT_CORRECTION 1
 #define DEFAULT_FLTERGRAPH 1
 #define NR_OF_FLTERGRAPH 3
@@ -829,10 +831,30 @@ int save_image(gdImagePtr ip, char *outname)
     if (fp != NULL) {
 
         char* image_extension = strrchr(outname, '.');
-        if(image_extension && strcmp(image_extension, ".png") == 0 )
-            gdImagePngEx(ip, fp, 9);  // 9-best png compression
-        else
-            gdImageJpeg (ip, fp, gb_j_quality);
+
+		if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_PNG) == 0 )
+			gdImagePng(ip, fp);
+		else
+			if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_WEBP) == 0 )
+#ifdef MTN_WITH_WEBP
+				gdImageWebp(ip, fp);
+#else
+		{	av_log(NULL, AV_LOG_ERROR, "MTN not built with WebP support!\n");
+			return -1;
+		}
+#endif
+			else
+				if(image_extension && strcasecmp(image_extension, IMAGE_EXTENSION_AVIF) == 0 )
+#ifdef MTN_WITH_AVIF
+					gdImageAvif(ip, fp);
+#else
+		{
+			av_log(NULL, AV_LOG_ERROR, "MTN not built with avif support!\n");
+			return -1;
+		}
+#endif
+				else
+					gdImageJpeg (ip, fp, gb_j_quality);
 
         if(fclose(fp) == 0)
             return 0;
@@ -2518,13 +2540,17 @@ make_thumbnail(char *file)
 
     char *suffix;
 
-    // idenfity thumbnail image extension
-    char image_extension[5];
-    suffix = strrchr(tn.out_filename, '.');
-    if(suffix && strcasecmp(suffix, ".png")==0 )
-        strcpy(image_extension, IMAGE_EXTENSION_PNG);
-    else
-        strcpy(image_extension, IMAGE_EXTENSION_JPG);
+	// idenfity thumbnail image extension
+	char image_extension[6];
+	suffix = strrchr(tn.out_filename, '.');
+	if(suffix && (
+				strcasecmp(suffix, IMAGE_EXTENSION_PNG)==0 ||
+				strcasecmp(suffix, IMAGE_EXTENSION_WEBP)==0 ||
+				strcasecmp(suffix, IMAGE_EXTENSION_AVIF)==0 
+				))
+		strcpy(image_extension, suffix);
+	else
+		strcpy(image_extension, IMAGE_EXTENSION_JPG);
 
 
     // if output files exist and modified time >= program start time,
@@ -2962,11 +2988,11 @@ make_thumbnail(char *file)
 		//gdEffectMultiply	//overlay pixels with multiply effect, see gdLayerMultiply
     );
     */
-    int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b); // set backgroud
+    int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b);
     gdImageFilledRectangle(tn.out_ip, 0, 0, tn.img_width, tn.img_height, background);
     
-    if(gb__transparent_bg)
-        gdImageColorTransparent (tn.out_ip, background);
+	if(gb__transparent_bg)
+		gdImageColorTransparent(tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
     if (NULL != all_text && strlen(all_text) > 0) {
@@ -3908,7 +3934,7 @@ int get_double_opt(char c, double *opt, char *optarg, double sign)
 
 char* mtn_identification()
 {
-    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s) GD %s";
+    const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s), GD %s, WebP %s, Avif %s";
     const char* FFMPEG_IDENT = av_version_info();
     const char GD_VER[] = 
 	   #ifdef GD_VERSION_STRING
@@ -3924,9 +3950,24 @@ char* mtn_identification()
             ""
         #endif
             ;
-    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER) +1;
+
+	const char* WEBP_IDENT = 
+#ifdef MTN_WITH_WEBP
+		"enabled";
+#else
+	"n/a";
+#endif
+
+	const char* AVIF_IDENT = 
+#ifdef MTN_WITH_AVIF
+		"enabled";
+#else
+	"n/a";
+#endif
+
+    size_t s = snprintf(NULL, 0, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT) +1;
 	char* msg = malloc(s);
-               snprintf( msg, s, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER);
+               snprintf( msg, s, txt, gb_version, STATIC_MSG, FFMPEG_IDENT, LIBAVCODEC_IDENT, LIBAVFORMAT_IDENT, LIBAVUTIL_IDENT, LIBSWSCALE_IDENT, GD_VER, WEBP_IDENT, AVIF_IDENT);
 	return msg;
 }
 
@@ -3960,7 +4001,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -L info_location[:time_location] : location of text\n     1=lower left, 2=lower right, 3=upper right, 4=upper left\n");
     av_log(NULL, AV_LOG_INFO, "  -n : run at normal priority\n");
     av_log(NULL, AV_LOG_INFO, "  -N info_suffix : save info text to a file with suffix\n");
-    av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (.jpg or .png)\n", GB_O_SUFFIX);
+    av_log(NULL, AV_LOG_INFO, "  -o %s : output suffix including image extension (e.g. .jpg, .png)\n", GB_O_SUFFIX);
     av_log(NULL, AV_LOG_INFO, "  -O directory : save output files in the specified directory\n");
     av_log(NULL, AV_LOG_INFO, "  -p : pause before exiting; default on in win32\n");
     av_log(NULL, AV_LOG_INFO, "  -P : don't pause before exiting; override -p\n");

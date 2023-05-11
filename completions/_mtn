@@ -28,7 +28,7 @@ _mtn()
 				'-L[Location of text: info_location\[:time_location\]]'\
 				'-n[Run at normal priority]'\
 				'-N[Suffix for info text file]'\
-				'-o[Output suffix including image extension (.jpg or .png)]'\
+				'-o[Output suffix including image extension (.jpg, .png, .webp, .avif)]'\
 				'-O[Output directory]:directory:_dirs'\
 				'-p[Pause before exiting]'\
 				'-P[Dont pause before exiting]'\
