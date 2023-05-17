@@ -52,7 +52,7 @@ variables:
     - DEBIAN_FRONTEND=noninteractive apt-get install -qq curl gcc make libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev
     script:
     - cd src
-    - make
+    - make $make_opt
 
 debian:
     image: debian:bookworm
@@ -157,4 +157,6 @@ ubuntu_devel:
 # old DEB
 u18.04:
     image: ubuntu:18.04
+    variables:
+        make_opt: ENABLE_WEBP=0 ENABLE_AVIF=0 
     <<: *ubuntu
