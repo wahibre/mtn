@@ -648,8 +648,16 @@ int is_dir(char *file)
     return S_ISDIR(buf.st_mode);
 }
 
-/*
-*/
+int is_key_frame(AVFrame *pFrame)
+{
+       return
+#if LIBAVUTIL_VERSION_MAJOR < 59
+               pFrame->key_frame;
+#else
+               !!(pFrame->flags & AV_FRAME_FLAG_KEY);
+#endif
+}
+
 char *rem_trailing_slash(char *str)
 {
 #ifdef WIN32
@@ -1997,7 +2005,8 @@ video_decode_next_frame(AVFormatContext *pFormatCtx,
             pkt_without_pic=0;
             decoded_frame++;
 
-            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %c\n", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
+            av_log(NULL, AV_LOG_VERBOSE, "*get_videoframe got frame: key_frame: %d, pict_type: %c\n",
+                           is_key_frame(pFrame), av_get_picture_type_char(pFrame->pict_type));
 
             if (0 == decoded_frame%200) {
                 av_log(NULL, AV_LOG_INFO, "  picture not decoded in %d frames\n", decoded_frame);
@@ -2018,8 +2027,11 @@ video_decode_next_frame(AVFormatContext *pFormatCtx,
     run++;
     avg_decoded_frame = (avg_decoded_frame*(run-1) + decoded_frame) / run;
 
-    av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %c\n", pFrame->repeat_pict,
-        (pFrame->repeat_pict > 0) ? "**r**" : "", pFrame->key_frame, av_get_picture_type_char(pFrame->pict_type));
+
+    av_log(NULL, AV_LOG_VERBOSE, "*****got picture, repeat_pict: %d%s, key_frame: %d, pict_type: %c\n",
+        pFrame->repeat_pict,(pFrame->repeat_pict > 0) ? "**r**" : "", is_key_frame(pFrame), av_get_picture_type_char(pFrame->pict_type));
+
+
 
     dump_stream(pStream);
     dump_codec_context(pCodecCtx);
