@@ -16,4 +16,6 @@
 --disable-programs \
 --disable-shared \
 --disable-x86asm \
---disable-autodetect
+--disable-autodetect \
+--enable-libzimg \
+--enable-filter=zscale

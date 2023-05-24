@@ -1,11 +1,20 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # Purpose of this skript is to test most of posible MTN options
 
 # Usage:
-#    [MTN=bin/mtn] run_mtn.sh [FILE_OR_DIR]
+#    run_mtn.sh [FILE_OR_DIR]
+# 
+# Env. variable: 
+#    MTN - path to the binary (for overriding)
+
 
 export LANG=en_US
+VID_COVER=""
+VID_UTF=""
+VID_HDR=""
+FONT_UTF=""
+FONT="$(dirname $(readlink -f "$0"))/font.ttf"
 
 [ -v ${MTN} ] && MTN=$(which mtn)
 
@@ -21,9 +30,7 @@ if [ ! -f $MTN ]; then
     exit 1
 fi
 
-TESTFONT="$(dirname $(readlink -f "$0"))/font.ttf"
-
-if [ ! -f $TESTFONT ]; then
+if [ ! -f $FONT ]; then
     echo "cant find test font!"
     exit 1
 fi
@@ -36,7 +43,7 @@ function run_mtn {
     pushd $O_DIR > /dev/null
     CMD="$MTN $MIN_SWITCHES $*"
     echo $CMD $VIDEO
-    $CMD "$VIDEO" &>out.log
+    $CMD "$VIDEO" &>>out.log
     popd > /dev/null
 }
 
@@ -64,7 +71,7 @@ run_mtn -X -o .jpg
 
 colouredecho  "===> Save individual shots (small and large) only"
 tcdir individual_shots
-run_mtn -c2 -r1 -I toi -o.webp
+run_mtn -c2 -r1 -I toi
 
 colouredecho  "===> Save image to avif"
 tcdir avif
@@ -80,7 +87,7 @@ run_mtn -o .png --transparent -i -g 10 -k 00FFBB
 
 colouredecho  "===> Fixed grid"
 tcdir grid_3_3_with_cover
-run_mtn -r3 -c3 --cover
+run_mtn -r3 -c3 --cover $VID_COVER
 
 colouredecho  "===> Info in text file"
 tcdir info_in_file
@@ -112,7 +119,7 @@ run_mtn --shadow=5 -g 12 -o .png
 
 colouredecho  "===> Colors & fonts, recursive "
 tcdir colors
-testfont="$TESTFONT"
+testfont="$FONT"
 run_mtn -g 5 -k 10FF55 -f $testfont -F FF1010:16:$testfont:FFFFFF:FF0000:20 -d 1
 
 colouredecho  "===> Text position "
@@ -137,11 +144,20 @@ run_mtn -r2 -c2 -o .jpg -It -N.txt -x "MyCustomFileName"
 
 colouredecho  "===> WebVTT"
 tcdir webvtt
-run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/ -o.avif
+run_mtn -c 4 -w 1280 -Ii --vtt=path_to_image/
 
 colouredecho  "===> Filters"
 tcdir filters
 run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'
+
+colouredecho  "===> unicode"
+tcdir unicode
+run_mtn -f $FONT_UTF -C 20 "$VID_UTF"
+
+colouredecho  "===> tonemap"
+tcdir tonemap
+run_mtn -C 95 -D0 -b2 "$VID_HDR"
+run_mtn -C 95 -D0 -b2 --tonemap -o_tonemap.jpg "$VID_HDR"
 
 colouredecho  "===> Paused with normal priority"
 tcdir normal_priority

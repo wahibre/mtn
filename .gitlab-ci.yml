@@ -67,7 +67,7 @@ debian:
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt-get update
-    - apt-get install -qq git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev pkg-config gcc make g++ cmake
+    - apt-get install -qq git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev libzimg-dev pkg-config gcc make g++ cmake
     - wget --no-verbose --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
