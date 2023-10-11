@@ -650,11 +650,11 @@ int is_dir(char *file)
 
 int is_key_frame(AVFrame *pFrame)
 {
-       return
-#if LIBAVUTIL_VERSION_MAJOR < 59
-               pFrame->key_frame;
+    return
+#if LIBAVUTIL_VERSION_INT < AV_VERSION_INT(58, 7, 100)
+    pFrame->key_frame;
 #else
-               !!(pFrame->flags & AV_FRAME_FLAG_KEY);
+    !!(pFrame->flags & AV_FRAME_FLAG_KEY);
 #endif
 }
 
@@ -1468,13 +1468,20 @@ double get_stream_rotation(AVStream *st)
 {
     double rotation = 0.0;
 
-    if (st->nb_side_data)
-    {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 15, 100)
+    int _nb_side_data = st->nb_side_data;
+    const AVPacketSideData *const _src_sd = st->side_data;
+#else
+    int _nb_side_data = st->codecpar->nb_coded_side_data;
+    const AVPacketSideData *const _src_sd = st->codecpar->coded_side_data;
+#endif
 
+    if (_nb_side_data)
+    {
         int i;
-        for(i=0; i < st->nb_side_data; i++ )
+        for(i=0; i < _nb_side_data ; i++ )
         {
-            AVPacketSideData sd = st->side_data[i];
+            AVPacketSideData sd = _src_sd[i];
 
             if(sd.type == AV_PKT_DATA_DISPLAYMATRIX) {
                 rotation = av_display_rotation_get((int32_t *)sd.data);

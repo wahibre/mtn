@@ -55,7 +55,7 @@ variables:
     - make $make_opt
 
 debian:
-    image: debian:bookworm
+    image: debian:12
     stage: build
 #    rules:
 #    - if: $CI_PROJECT_NAMESPACE == "movie_thumbnailer"
