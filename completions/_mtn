@@ -15,6 +15,7 @@ _mtn()
 				'-C[Max. seconds to cut off]'\
 				'-d[Recursion depth]'\
 				'-D[Edge detection]'\
+				'-e[comma separated list of file extensions]'\
 				'-E[Omit seconds at the end]'\
 				'-f[TrueType font file]:fonts:_TTFfontlist'\
 				'-F[font format: RRGGBB:size\[:font:RRGGBB:RRGGBB:size\]]'\

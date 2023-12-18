@@ -1,6 +1,7 @@
-version 3.5.0 	2023/05/11
+version 3.5.0 	2023/12/18
 - add filtering and tonemaping (--filters, --filter-color-primaries, --tonemap)
 - add -x switch to change output filename
+- add -e switch to specify file extension list
 - add support for webp and avif (-o)
 - append "tiles info" to the info file (-N)
 - fix folder permission for newly created directory with -O switch

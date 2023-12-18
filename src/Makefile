@@ -14,7 +14,7 @@ ENABLE_WEBP=1
 
 KERNELNAME=$(shell uname -s)
 OSNAME=$(shell uname -o)
-CFLAGS=-W -Wall -O3 $(USER_CFLAGS)
+CFLAGS=-W -Wall $(USER_CFLAGS)
 OUT=../bin
 LIBSDIR=../lib
 
@@ -56,7 +56,7 @@ S_LIBS= -static-libgcc -static \
     -lpthread -lbz2 -lfreetype -lbrotlidec -lbrotlicommon -ljpeg -lpng16 -lwebp -lz -lzimg -lm -lstdc++
 
 mtn: mtn.c outdir
-	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) $(LIBS)
+	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -O3 $(LIBS)
 
 outdir:
 	mkdir -p $(OUT)

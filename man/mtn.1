@@ -1,7 +1,7 @@
 .\" Manpage for mtn.
 .\" Contact wahibre@gmx.com to correct errors or typos.
 
-.TH man 1 "Mar 2023" "1.9" "mtn man page"
+.TH man 1 "Dec 2023" "1.10" "mtn man page"
 .SH NAME
 mtn \- generate thumbnail grid of a movie file(s)
 .SH SYNOPSIS
@@ -17,8 +17,9 @@ Mtn saves thumbnails of specified movie files or directories to jpeg files.
   -C -1 : cut movie and thumbnails not more than the specified seconds; <=0:off
   -d #: recursion depth; 0:immediate children files only
   -D 12 : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8
+  -e : comma separated list of file extensions scaned in directories (e.g. mkv,avi,mp4)
   -E 0,0 : omit this seconds at the end
-  -f tahomabd.ttf : font file; use absolute path if not in usual places
+  -f fontname.ttf : Truetype font file; use absolute path if not in usual places. If you don't have a truetype font, you can turn the text off by using -i -t. 
   -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]
      info_color:info_size[:time_font:time_color:time_shadow:time_size]
   -g 0 : gap between each shot

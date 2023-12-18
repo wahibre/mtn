@@ -1,7 +1,8 @@
 /*  mtn - movie thumbnailer
 
     Copyright (C) 2007-2017 tuit <tuitfun@yahoo.co.th>, et al.	 		http://moviethumbnail.sourceforge.net/
-    Copyright (C) 2017-2023 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
+    Copyright (C) 2017-2024 wahibre <wahibre@gmx.com>					https://gitlab.com/movie_thumbnailer/mtn/wikis
+
 
     based on "Using libavformat and libavcodec" by Martin Böhme:
         http://www.inb.uni-luebeck.de/~boehme/using_libavcodec.html
@@ -217,8 +218,8 @@ double gb_C_cut = GB_C_CUT; // cut movie; <=0 off
 int gb_d_depth = GB_D_DEPTH; //directory depth
 #define GB_D_EDGE 12
 int gb_D_edge = GB_D_EDGE; // edge detection; 0 off; >0 on
-//#define GB_E_EXT NULL
-//char *gb_e_ext = GB_E_EXT;
+#define GB_E_EXT "3gp,3g2,asf,avi,avs,dat,divx,dsm,evo,flv,m1v,m2ts,m2v,m4v,mj2,mjpg,mjpeg,mkv,mov,moov,mp4,mpg,mpeg,mpv,nut,ogg,ogm,qt,rm,rmvb,swf,ts,vob,webm,wmv,xvid"
+char *gb_e_ext = GB_E_EXT;
 #define GB_E_END 0.0
 double gb_E_end = GB_E_END; // skip this seconds at the end
 #ifndef GB_F_FONTNAME
@@ -319,6 +320,7 @@ int gb__tonemap = 0;
 char *gb_argv0 = NULL;
 char *gb_version = "3.4.2";
 time_t gb_st_start = 0; // start time of program
+char **movie_ext = NULL;
 
 /* misc functions */
 
@@ -458,6 +460,32 @@ char *strlaststr (char *haystack, char *needle)
         start++;
     }
     return prev;
+}
+
+/*
+ * returns NULL terminated array of strings
+ */
+char **strsplit(char *string, const char *delimiter)
+{
+    char **arr = NULL;
+    char **tmparr = NULL;
+    int arrcnt = 0;
+
+    char *copy = strdup(string);
+    char *tok = strtok(copy, delimiter);
+
+    while(tok != NULL)
+    {
+        ++arrcnt;
+        tmparr = realloc(arr, (arrcnt+1) * sizeof(char*));
+        arr = tmparr;
+        arr[arrcnt-1] = strdup(tok);
+        tok = strtok(NULL, delimiter);
+    }
+
+    arr[arrcnt] = NULL;
+    free(copy);
+    return arr;
 }
 
 char *format_color(rgb_color col)
@@ -2484,7 +2512,7 @@ make_thumbnail(char *file)
     
     gdImagePtr thumbShadowIm=NULL;
 
-    int nb_shots = 0; // # of decoded shots (stat purposes)
+    //int nb_shots = 0; // # of decoded shots (stat purposes)
 
     /* these are checked during cleaning up, must be NULL if not used */
     AVFormatContext *pFormatCtx = NULL;
@@ -3162,7 +3190,7 @@ make_thumbnail(char *file)
         }
       non_seek_too_long:
 
-        nb_shots++;
+        //nb_shots++;
         av_log(NULL, AV_LOG_VERBOSE, "shot %d: found_: %"PRId64" (%.2fs), eff_: %"PRId64" (%.2fs), dtime: %.3f\n", 
             idx, found_pts, calc_time(found_pts, pStream->time_base, start_time), 
             eff_target, calc_time(eff_target, pStream->time_base, start_time), decode_time);
@@ -3502,15 +3530,22 @@ return 1 if filename has one of the predefined extensions
 */
 int check_extension(char *filename)
 {
-    static char *movie_ext[] = {
-        "3gp", "3g2", "asf", "avi", "avs", "dat", "divx", "dsm", "evo", "flv", 
-        "m1v", "m2ts", "m2v", "m4a", "mj2", "mjpg", "mjpeg", "mkv", "mov", 
-        "moov", "mp4", "mpg", "mpeg", "mpv", "nut", "ogg", "ogm", "qt", "rm", 
-        "rmvb", "swf", "ts", "vob", "webm", "wmv", "xvid"
-    }; // FIXME: static
+    assert(movie_ext);
+
     static int sorted = 0; // 1 = sorted
 
-    static const int nb_ext = sizeof(movie_ext) / sizeof(*movie_ext);
+    static int nb_ext = 0;
+    if(nb_ext == 0)
+    {
+        while(1)
+        {
+            if(movie_ext[nb_ext] == NULL)
+                break;
+
+            nb_ext++;
+        }
+    }
+
     if (0 == sorted) {
         qsort(movie_ext, nb_ext, sizeof(*movie_ext), myalphacasesort);
         sorted = 1;
@@ -4006,7 +4041,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  -C %d : cut movie and thumbnails not more than the specified seconds; <=0:off\n", GB_C_CUT);
     av_log(NULL, AV_LOG_INFO, "  -d #: recursion depth; 0:immediate children files only\n");
     av_log(NULL, AV_LOG_INFO, "  -D %d : edge detection; 0:off >0:on; higher detects more; try -D4 -D6 or -D8\n", gb_D_edge);
-    //av_log(NULL, AV_LOG_ERROR, "  -e : to be done\n"); // extension of movie files
+    av_log(NULL, AV_LOG_INFO, "  -e : comma separated list of file extensions\n");
     av_log(NULL, AV_LOG_INFO, "  -E %.1f : omit this seconds at the end\n", GB_E_END);
     av_log(NULL, AV_LOG_INFO, "  -f %s : font file; use absolute path if not in usual places\n", GB_F_FONTNAME);
     av_log(NULL, AV_LOG_INFO, "  -F RRGGBB:size[:font:RRGGBB:RRGGBB:size] : font format [time is optional]\n     info_color:info_size[:time_font:time_color:time_shadow:time_size]\n");
@@ -4046,6 +4081,8 @@ usage()
     av_log(NULL, AV_LOG_INFO, "  --filter-color-primaries=<COLOR_PRIMARIES>\n       comma-separated list of color primaries\n");
     av_log(NULL, AV_LOG_INFO, "  --tonemap[=<MODE>]\n       tonemap HDR movies; 0: off, 1-3: predefined filtergraphs\n");
     av_log(NULL, AV_LOG_INFO, "  file_or_dirX\n       name of the movie file or directory containing movie files\n\n");
+
+// no man page for windows; let them know about examples
 #ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "Examples:\n");
     av_log(NULL, AV_LOG_INFO, "  to save thumbnails to file infile%s with default options:\n    %s infile.avi\n", GB_O_SUFFIX, gb_argv0);
@@ -4064,11 +4101,11 @@ usage()
     av_log(NULL, AV_LOG_INFO, "by creating a shortcut to %s and add options there (right click the\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
     av_log(NULL, AV_LOG_INFO, "instead.\n");
-#else
-    av_log(NULL, AV_LOG_INFO, "Notice:\n");
-    av_log(NULL, AV_LOG_INFO, "  You'll probably need to change the truetype font path (-f fontfile).\n");
-    av_log(NULL, AV_LOG_INFO, "  the default is set to %s which might not exist in non-windows systems.\n", GB_F_FONTNAME);
-    av_log(NULL, AV_LOG_INFO, "  If you don't have a truetype font, you can turn the text off by using -i -t.\n");
+//#else
+//    av_log(NULL, AV_LOG_INFO, "Notice:\n");
+//    av_log(NULL, AV_LOG_INFO, "  You'll probably need to change the truetype font path (-f fontfile).\n");
+//    av_log(NULL, AV_LOG_INFO, "  the default is set to %s which might not exist in non-windows systems.\n", GB_F_FONTNAME);
+//    av_log(NULL, AV_LOG_INFO, "  If you don't have a truetype font, you can turn the text off by using -i -t.\n");
 #endif
 #ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
@@ -4120,7 +4157,7 @@ int main(int argc, char *argv[])
 	};    
     int parse_error = 0, option_index = 0;
     int c;
-    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:Wx:XzZ", long_options, &option_index))) {
+    while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:Wx:XzZ", long_options, &option_index))) {
         double tmp_a_ratio = 0;
         switch (c) {
         case 0:
@@ -4252,9 +4289,9 @@ int main(int argc, char *argv[])
                 av_log(NULL, AV_LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
             }
             break;
-//		case 'e':
-            //gb_e_ext = optarg;
-            //break;
+		case 'e':
+            gb_e_ext = optarg;
+            break;
         case 'E':
             parse_error += get_double_opt('E', &gb_E_end, optarg, 0);
             break;
@@ -4398,6 +4435,15 @@ int main(int argc, char *argv[])
         parse_error += 1;
         av_log(NULL, AV_LOG_ERROR, "%s: option --tonemap and --filters cant be used together", gb_argv0);
     }
+
+
+    if((movie_ext = strsplit(gb_e_ext, ",")) == NULL)
+    {
+        parse_error += 1;
+        av_log(NULL, AV_LOG_ERROR, "%s: error parsing option -e", gb_argv0);
+    }
+
+
 
     if (0 != parse_error) {
         usage();

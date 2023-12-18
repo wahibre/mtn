@@ -18,4 +18,3 @@ future plans:
 - use multiple threads
 - make mtn work with dvds -- both real ones and image files
 - make mtn work with blue-ray & hd-dvd
-- GUI! wxWidgets?

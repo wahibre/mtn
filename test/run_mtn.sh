@@ -13,6 +13,7 @@ export LANG=en_US
 VID_COVER=""
 VID_UTF=""
 VID_HDR=""
+VID_DIR=""
 FONT_UTF=""
 FONT="$(dirname $(readlink -f "$0"))/font.ttf"
 
@@ -150,6 +151,16 @@ colouredecho  "===> Filters"
 tcdir filters
 run_mtn --filters='split[main][tmp];[tmp]crop=iw/2:ih:0:0,hflip[flip];[main][flip]overlay=W/2:0'
 
+colouredecho  "===> Paused with normal priority"
+tcdir normal_priority
+run_mtn -c1 -r1 -p -n
+
+unset VIDEO
+
+colouredecho  "===> file extensions"
+tcdir file_ext
+run_mtn -e mp4 -r1 -c1 "$VID_DIR"
+
 colouredecho  "===> unicode"
 tcdir unicode
 run_mtn -f $FONT_UTF -C 20 "$VID_UTF"
@@ -158,7 +169,3 @@ colouredecho  "===> tonemap"
 tcdir tonemap
 run_mtn -C 95 -D0 -b2 "$VID_HDR"
 run_mtn -C 95 -D0 -b2 --tonemap -o_tonemap.jpg "$VID_HDR"
-
-colouredecho  "===> Paused with normal priority"
-tcdir normal_priority
-run_mtn -c1 -r1 -p -n
