@@ -150,6 +150,7 @@ const char* const FILTER_GRAPHS[] = {
 #else
  #define FOLDER_SEPARATOR "/"
 #endif
+
 typedef struct thumbnail
 {
     gdImagePtr out_ip;
@@ -321,6 +322,9 @@ char *gb_argv0 = NULL;
 char *gb_version = "3.4.2";
 time_t gb_st_start = 0; // start time of program
 char **movie_ext = NULL;
+
+gdFTStringExtra fcStrFlagsInfotext = {0};
+gdFTStringExtra fcStrFlagsTimestamp = {0};
 
 /* misc functions */
 
@@ -593,7 +597,7 @@ char *path_2_file(char *path)
     return path;
 }
 
-/* 
+/*
 copy n strings to dst
 ... must be char *
 dst must be large enough
@@ -614,9 +618,9 @@ char *strcpy_va(char *dst, int n, ...)
     return dst;
 }
 
-/* 
+/*
 return 1 if file is a regular file
-return 0 if fail or is not 
+return 0 if fail or is not
 */
 int is_reg(char *file)
 {
@@ -634,9 +638,9 @@ int is_reg(char *file)
     return S_ISREG(buf.st_mode);
 }
 
-/* 
+/*
 return 1 if file is a regular file and modified time >= st_time
-return 0 if fail or is not 
+return 0 if fail or is not
 */
 int is_reg_newer(char *file, time_t st_time)
 {
@@ -655,7 +659,7 @@ int is_reg_newer(char *file, time_t st_time)
 }
 
 
-/* 
+/*
 return 1 if file is a directory
 return 0 if fail or is not a directory
 FIXME: /c under msys is not a directory. why?
@@ -693,7 +697,7 @@ char *rem_trailing_slash(char *str)
     // strip trailing '/' or '\\' that might get added by shell filename completion for directories
     int last_index = strlen(str) - 1;
     // we need last '/' or '\\' for root drive "c:\"
-    while (last_index > 2 && 
+    while (last_index > 2 &&
         ('/' == str[last_index] || '\\' == str[last_index])) {
         str[last_index--] = '\0';
     }
@@ -722,7 +726,7 @@ int options_add_2_AVDictionary(AVDictionary **gb_dict, char *input_string)
 
 /* mtn */
 
-/* 
+/*
 return pointer to a new cropped image. the original one is freed.
 if error, return original and the original stays intact
 */
@@ -740,10 +744,17 @@ gdImagePtr crop_image(gdImagePtr ip, int new_width, int new_height)
     return new_ip;
 }
 
+void dump_used_font(gdFTStringExtra *flags)
+{
+	av_log(NULL, AV_LOG_VERBOSE, "Using font: \"%s\"\n", flags->fontpath);
+	free(flags->fontpath);
+	flags->fontpath=NULL;
+}
+
 /*
 returns height, or 0 if error
 */
-int image_string_height(char *text, char *font, double size)
+int image_string_height(char *text, char *font, double size, gdFTStringExtra *fcFlags)
 {
     int brect[8];
 
@@ -751,12 +762,15 @@ int image_string_height(char *text, char *font, double size)
         return 0;
     }
 
-    char *err = gdImageStringFT(NULL, &brect[0], 0, font, size, 0, 0, 0, text);
+    char *err = gdImageStringFTEx(NULL, &brect[0], 0, font, size, 0, 0, 0, text, fcFlags);
     if (NULL != err) {
-        av_log(NULL, AV_LOG_WARNING, "gdImageStringFT error: %s\n", err);
+        av_log(NULL, AV_LOG_WARNING, "[@%d] error opening font '%s': %s\n", __LINE__, font, err);
         return 0;
     }
-    return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
+
+	dump_used_font(fcFlags);
+
+	return brect[3] - brect[7] + LIBGD_FONT_HEIGHT_CORRECTION;
 }
 
 /*
@@ -764,19 +778,32 @@ position can be:
     1: lower left
     2: lower right
     3: upper right
-    4: upper left
+    4: upper leftage_string(gdImageP
 returns NULL if success, otherwise returns error message
 */
-char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int position, int gap, char *text, int shadow, rgb_color shadow_color, int padding)
+char *image_string(gdImagePtr ip,
+	char*		font,
+	rgb_color	color,
+	double 		size,
+	int 		position,
+	int 		gap,
+	char*		text,
+	int 		shadow,
+	rgb_color 	shadow_color,
+	int 		padding,
+	gdFTStringExtra* fcFlags
+)
 {
     int brect[8];
 
     int gd_color = gdImageColorResolve(ip, color.r, color.g, color.b);
-    char *err = gdImageStringFT(NULL, brect, gd_color, font, size, 0, 0, 0, text);
+    char *err = gdImageStringFTEx(NULL, brect, gd_color, font, size, 0, 0, 0, text, fcFlags);
 
     if (NULL != err) {
         return err;
-    }
+	}
+
+	dump_used_font(fcFlags);
 
     int x, y;
     switch (position)
@@ -829,26 +856,31 @@ char *image_string(gdImagePtr ip, char *font, rgb_color color, double size, int 
             return "image_string's position can only be 1, 2, 3, or 4";
         }
         int gd_shadow = gdImageColorResolve(ip, shadow_color.r, shadow_color.g, shadow_color.b);
-        err = gdImageStringFT(ip, brect, gd_shadow, font, size, 0, shadowx, shadowy, text);
-        if (NULL != err) {
+        err = gdImageStringFTEx(ip, brect, gd_shadow, font, size, 0, shadowx, shadowy, text, fcFlags);
+        if (NULL != err)
+		{
+			av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
             return err;
-        }
+		}
+		dump_used_font(fcFlags);
     }
 
-    return gdImageStringFT(ip, brect, gd_color, font, size, 0, x, y, text);
+	char *gdstrret = gdImageStringFTEx(ip, brect, gd_color, font, size, 0, x, y, text, fcFlags);
+
+	if(gdstrret)
+		av_log(NULL, AV_LOG_VERBOSE, "at line %d\n", __LINE__);
+	else
+		dump_used_font(fcFlags);
+
+    return gdstrret;
 }
 
 /*
  * return 30% of character height as a padding
  */
-int image_string_padding(char *font, double size)
+int image_string_padding(char *font, double size, gdFTStringExtra *fcFlags)
 {
-    int padding = image_string_height("SAMPLE", font, size) * 0.3 + 0.5;
-
-    if(padding > 1)
-        return padding;
-
-    return 1;
+    return image_string_height("SAMPLE", font, size, fcFlags) * 0.3 + 0.5;
 }
 
 /*
@@ -917,7 +949,7 @@ void FrameRGB_2_gdImage(AVFrame *pFrame, gdImagePtr ip, int width, int height)
     }
 }
 
-/* initialize 
+/* initialize
 */
 void thumb_new(thumbnail *ptn)
 {
@@ -934,7 +966,7 @@ void thumb_new(thumbnail *ptn)
     ptn->shot_width_out = ptn->shot_height_out = 0;
     ptn->center_gap = 0;
     ptn->idx = -1;
-    ptn->tiles_nr = 0;    
+    ptn->tiles_nr = 0;
     ptn->rotation = 0;
 
     // dynamic
@@ -1103,7 +1135,7 @@ void sprite_destroy(pSprite s)
     }
 }
 
-/* 
+/*
 alloc dynamic data; must be called after all required static data is filled in
 return -1 if failed
 */
@@ -1136,7 +1168,7 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
 	{
 		if(radius == 0)
 			*INOUTradius = radius = MAX((int)(((double)MIN(width, height)) * 0.03), 3);
-		
+
 		int shadowOffset = 2*radius+1;
 		shW = width +(shadowOffset);
 		shH = height+(shadowOffset);
@@ -1178,9 +1210,9 @@ gdImagePtr create_shadow_image(int background, int *INOUTradius, int width, int 
     return NULL;
 }
 
-/* 
+/*
 add shot
-because ptn->idx is the last index, this function assumes that shots will be added 
+because ptn->idx is the last index, this function assumes that shots will be added
 in increasing order.
 */
 void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int idx, int64_t pts)
@@ -1191,7 +1223,7 @@ void thumb_add_shot(thumbnail *ptn, gdImagePtr ip, gdImagePtr thumbShadowIm, int
 
     if(gb__shadow > 0 && thumbShadowIm!=NULL)
 		gdImageCopy(ptn->out_ip, thumbShadowIm, dstX+gb__shadow+1, dstY+gb__shadow+1, 0, 0, gdImageSX(thumbShadowIm), gdImageSY(thumbShadowIm));
-    
+
     gdImageCopy(ptn->out_ip, ip, dstX, dstY, 0, 0, ptn->shot_width_out, ptn->shot_height_out);
     ptn->idx = idx;
     ptn->ppts[idx] = pts;
@@ -1207,7 +1239,7 @@ filter should be a 2-dimensional but since we cant pass it without knowning the 
 modified from:
 http://cvs.php.net/viewvc.cgi/php-src/ext/gd/libgd/gd.c?revision=1.111&view=markup
 */
-void FrameRGB_convolution(AVFrame *pFrame, int width, int height, 
+void FrameRGB_convolution(AVFrame *pFrame, int width, int height,
     float *filter, int filter_size, float filter_div, float offset,
     gdImagePtr ip, int xbegin, int ybegin, int xend, int yend)
 {
@@ -1260,7 +1292,7 @@ float cmp_edge(gdImagePtr ip, int xbegin, int ybegin, int xend, int yend)
     for (j = ybegin; j <= yend; j++) {
         for (i = xbegin; i <= xend; i++) {
             int pixel = gdImageGetPixel(ip, i, j);
-            if (gdImageRed(ip, pixel) >= CMP_EDGE 
+            if (gdImageRed(ip, pixel) >= CMP_EDGE
                 && gdImageGreen(ip, pixel) >= CMP_EDGE
                 && gdImageBlue(ip, pixel) >= CMP_EDGE) {
                 count++;
@@ -1350,7 +1382,7 @@ gdImagePtr detect_edge(AVFrame *pFrame, const thumbnail* const tn, float *edge, 
     };
     int count = 0;
     for (i = 0; i < EDGE_PARTS && count < 2; i++) {
-        FrameRGB_convolution(pFrame, width, height, filter, FILTER_SIZE, FILTER_DIV, OFFSET, 
+        FrameRGB_convolution(pFrame, width, height, filter, FILTER_SIZE, FILTER_DIV, OFFSET,
             ip, parts[i][0], parts[i][1], parts[i][2], parts[i][3]);
         edge[i] = cmp_edge(ip, parts[i][0], parts[i][1], parts[i][2], parts[i][3]);
         if (edge[i] >= edge_found) {
@@ -1399,7 +1431,7 @@ save_AVFrame(
         goto cleanup;
     }
 
-    sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, src_height, 
+    sws_scale(pSwsCtx, (const uint8_t* const*)pFrame->data, pFrame->linesize, 0, src_height,
         pFrameRGB->data, pFrameRGB->linesize);
     ip = gdImageCreateTrueColor(dst_width, dst_height);
     if (NULL == ip) {
@@ -1407,7 +1439,7 @@ save_AVFrame(
         goto cleanup;
     }
     FrameRGB_2_gdImage(pFrameRGB, ip, dst_width, dst_height);
-    
+
     int ret = save_image(ip, filename);
     if (0 != ret) {
         av_log(NULL, AV_LOG_ERROR, "  save_image failed: %s\n", filename);
@@ -1415,7 +1447,7 @@ save_AVFrame(
     }
 
     result = 0;
-    
+
 cleanup:
     if (NULL != ip)
         gdImageDestroy(ip);
@@ -1435,16 +1467,16 @@ cleanup:
 void dump_packet(AVPacket *p, AVStream * ps)
 {
     /* from av_read_frame()
-    pkt->pts, pkt->dts and pkt->duration are always set to correct values in 
-    AVStream.timebase units (and guessed if the format cannot provided them). 
-    pkt->pts can be AV_NOPTS_VALUE if the video format has B frames, so it is 
+    pkt->pts, pkt->dts and pkt->duration are always set to correct values in
+    AVStream.timebase units (and guessed if the format cannot provided them).
+    pkt->pts can be AV_NOPTS_VALUE if the video format has B frames, so it is
     better to rely on pkt->dts if you do not decompress the payload.
     */
     av_log(NULL, AV_LOG_VERBOSE, "***dump_packet: pos:%"PRId64"%s", p->pos, NEWLINE);
     av_log(NULL, AV_LOG_VERBOSE, "pts tb: %"PRId64", dts tb: %"PRId64", duration tb: %"PRId64"%s",
         p->pts, p->dts, p->duration, NEWLINE);
     av_log(NULL, AV_LOG_VERBOSE, "pts s: %.2f, dts s: %.2f, duration s: %.2f%s",
-        p->pts * av_q2d(ps->time_base), p->dts * av_q2d(ps->time_base), 
+        p->pts * av_q2d(ps->time_base), p->dts * av_q2d(ps->time_base),
         p->duration * av_q2d(ps->time_base), NEWLINE); // pts can be AV_NOPTS_VALUE
 }
 
@@ -1475,7 +1507,7 @@ void dump_index_entries(AVStream * p)
 {
     int i;
     double diff = 0;
-    for (i=0; i < p->nb_index_entries; i++) { 
+    for (i=0; i < p->nb_index_entries; i++) {
         AVIndexEntry *e = p->index_entries + i;
         double prev_ts = 0, cur_ts = 0;
         cur_ts = e->timestamp * av_q2d(p->time_base);
@@ -1523,14 +1555,14 @@ double get_stream_rotation(AVStream *st)
 
 void dump_stream(AVStream * p)
 {
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_stream, time_base: %d / %d\n", 
+    av_log(NULL, AV_LOG_VERBOSE, "***dump_stream, time_base: %d / %d\n",
         p->time_base.num, p->time_base.den);
     av_log(NULL, AV_LOG_VERBOSE, "start_time tb: %"PRId64", duration tb: %"PRId64", nb_frames: %"PRId64"\n",
         p->start_time, p->duration, p->nb_frames);
     // get funny results here. use format_context's.
     av_log(NULL, AV_LOG_VERBOSE, "start_time s: %.2f, duration s: %.2f\n",
-        p->start_time * av_q2d(p->time_base), 
-        p->duration * av_q2d(p->time_base)); // duration can be AV_NOPTS_VALUE 
+        p->start_time * av_q2d(p->time_base),
+        p->duration * av_q2d(p->time_base)); // duration can be AV_NOPTS_VALUE
     // field pts in AVStream is for encoding
 }
 
@@ -1540,7 +1572,7 @@ set scale source width & height (scaled_w and scaled_h)
 void calc_scale_src(int width, int height, AVRational ratio, int *scaled_w, int *scaled_h)
 {
     // mplayer dont downscale horizontally. however, we'll always scale
-    // horizontally, up or down, which is the same as mpc's display and 
+    // horizontally, up or down, which is the same as mpc's display and
     // vlc's snapshot. this should make square pixel for both pal & ntsc.
     *scaled_w = width;
     *scaled_h = height;
@@ -1779,7 +1811,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
     }
     */
 
-    // some formats, eg. flv, dont seem to support bit_rate, so we'll prefer to 
+    // some formats, eg. flv, dont seem to support bit_rate, so we'll prefer to
     // calculate from duration.
     // is this ok? probably not ok with .vob files when duration is wrong. DEBUG
 
@@ -1803,7 +1835,7 @@ char *get_stream_info(AVFormatContext *ic, char *url, int strip_path, AVRational
 void dump_format_context(AVFormatContext *p, int __attribute__((unused)) index, char *url, int __attribute__((unused)) is_output)
 {
     //av_log(NULL, AV_LOG_ERROR, "\n");
-    av_log(NULL, AV_LOG_VERBOSE, "***dump_format_context, name: %s, long_name: %s\n", 
+    av_log(NULL, AV_LOG_VERBOSE, "***dump_format_context, name: %s, long_name: %s\n",
         p->iformat->name, p->iformat->long_name);
     //dump_format(p, index, url, is_output);
 
@@ -1920,7 +1952,7 @@ int get_frame_from_packet(AVCodecContext *pCodecCtx,
        fret == -1 /* Operation not permitted */
     )
         return AVERROR(EAGAIN);
-    
+
     if (fret < 0) {
         av_log(NULL, AV_LOG_ERROR,  "Error sending a packet for decoding - %s\n", get_error_text(fret));
         exit(EXIT_ERROR);
@@ -2080,8 +2112,8 @@ video_decode_next_frame(AVFormatContext *pFormatCtx,
 */
 double calc_time(int64_t timestamp, AVRational time_base, double start_time)
 {
-    // for files with start_time > 0, we need to subtract the start_time 
-    // from timestamp. this should match the time display by MPC & VLC. 
+    // for files with start_time > 0, we need to subtract the start_time
+    // from timestamp. this should match the time display by MPC & VLC.
     // however, for .vob files of dvds, after subtracting start_time
     // each file will start with timestamp 0 instead of continuing from the previous file.
 
@@ -2092,7 +2124,7 @@ double calc_time(int64_t timestamp, AVRational time_base, double start_time)
 return the duration. guess when unknown.
 must be called after codec has been opened
 */
-double guess_duration(AVFormatContext *pFormatCtx, int index, 
+double guess_duration(AVFormatContext *pFormatCtx, int index,
     AVCodecContext *pCodecCtx, AVFrame __attribute__((unused)) *pFrame)
 {
     double duration = (double) pFormatCtx->duration / AV_TIME_BASE; // can be incorrect for .vob files
@@ -2121,7 +2153,7 @@ double guess_duration(AVFormatContext *pFormatCtx, int index,
     }
 
     return -1;
-    
+
     // the following doesn't work.
     /*
     // we'll guess the duration by seeking to near the end of the file and
@@ -2129,7 +2161,7 @@ double guess_duration(AVFormatContext *pFormatCtx, int index,
     // things get more complicated for dvd's .vob files. each .vob file
     // can contain more than 1 title. and each title will have its own pts.
     // for example, 90% of a .vob might be for title 1 and the last 10%
-    // might be for title 2; seeking to near the end will end up getting 
+    // might be for title 2; seeking to near the end will end up getting
     // title 2's pts. this problem cannot be solved if we just look at the
     // .vob files. need to process other info outside .vob files too.
     // as a result, the following will probably never work.
@@ -2196,7 +2228,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
         start_time = 0;
     }
 
-    // normally when seeking by timestamp we add start_time to timestamp 
+    // normally when seeking by timestamp we add start_time to timestamp
     // before seeking, but seeking by byte we need to subtract the added start_time
     timestamp -= start_time / av_q2d(pStream->time_base);
     int64_t file_size = avio_size(pFormatCtx->pb);
@@ -2213,7 +2245,7 @@ int really_seek(AVFormatContext *pFormatCtx, int index, int64_t timestamp, int f
     return -1;
 }
 
-/* 
+/*
 modify name so that it'll (hopefully) be unique
 by inserting a unique string before suffix.
 if unum is != 0, it'll be used
@@ -2302,7 +2334,7 @@ gdImagePtr rotate_gdImage(gdImagePtr ip, int angle)
 {
     if(angle == 0)
         return ip;
-    
+
     int win = gdImageSX(ip);
     int hin = gdImageSY(ip);
     int wout = win;
@@ -2335,7 +2367,7 @@ gdImagePtr rotate_gdImage(gdImagePtr ip, int angle)
                     gdImageDestroy(ipr);
                     return ip;
             }
-            
+
     gdImageDestroy(ip);
     return ipr;
 }
@@ -2509,7 +2541,7 @@ make_thumbnail(char *file)
     thumb_new(&tn);
 
     pSprite sprite = NULL;
-    
+
     gdImagePtr thumbShadowIm=NULL;
 
     //int nb_shots = 0; // # of decoded shots (stat purposes)
@@ -2593,7 +2625,7 @@ make_thumbnail(char *file)
 	if(suffix && (
 				strcasecmp(suffix, IMAGE_EXTENSION_PNG)==0 ||
 				strcasecmp(suffix, IMAGE_EXTENSION_WEBP)==0 ||
-				strcasecmp(suffix, IMAGE_EXTENSION_AVIF)==0 
+				strcasecmp(suffix, IMAGE_EXTENSION_AVIF)==0
 				))
 		strcpy(image_extension, suffix);
 	else
@@ -2687,7 +2719,7 @@ make_thumbnail(char *file)
 
     if((tn.rotation = get_stream_rotation(pStream)) != 0)
         av_log(NULL, AV_LOG_INFO,  "  Rotation: %d degrees%s", tn.rotation, NEWLINE);
-    
+
     dump_stream(pStream);
     //dump_index_entries(pStream);
     dump_codec_context(pCodecCtx);
@@ -2791,7 +2823,7 @@ make_thumbnail(char *file)
             filter_color_primaries_match = av_match_list(codec_color_primaries, gb__filter_color_primaries, ',');
     }
 
-    // keep a copy of sample_aspect_ratio because it might be changed after 
+    // keep a copy of sample_aspect_ratio because it might be changed after
     // decoding a frame, e.g. Dragonball Z 001 (720x480 H264 AAC).mkv
     AVRational sample_aspect_ratio = av_guess_sample_aspect_ratio(pFormatCtx, pStream, NULL);
 
@@ -2827,7 +2859,7 @@ make_thumbnail(char *file)
     // with some files, eg. http://download.pocketmovies.net/movies/3d/twittwit_320x184.mpg
     // bug reported by: swmaherl, jake_o from sourceforge
     // and pCodecCtx->width and pCodecCtx->height might not be correct without this
-    // for .flv files. bug reported by: dragonbook 
+    // for .flv files. bug reported by: dragonbook
     int64_t found_pts = -1;
     int64_t first_pts = -1; // pts of first frame
     ret = video_decode_next_frame(pFormatCtx, pCodecCtx, pFrame, video_index, &first_pts);
@@ -2853,7 +2885,7 @@ make_thumbnail(char *file)
             av_log(NULL, AV_LOG_INFO, "      to use sample_aspect_ratio %.2f use: -a %.4f option\n",
                 av_q2d(pCodecCtx->sample_aspect_ratio), av_q2d(pCodecCtx->sample_aspect_ratio) * pCodecCtx->width / pCodecCtx->height);
             // we'll continue with existing value. is this ok? FIXME
-            // this is the same as mpc's and vlc's. 
+            // this is the same as mpc's and vlc's.
         }
         if (sample_aspect_ratio.num == 0) { // not defined
             sample_aspect_ratio = pCodecCtx->sample_aspect_ratio;
@@ -2886,7 +2918,7 @@ make_thumbnail(char *file)
 
     if (scaled_src_width != pCodecCtx->width || scaled_src_height != pCodecCtx->height) {
         av_log(NULL, AV_LOG_INFO, "  * scaling input * %dx%d => %dx%d according to sample_aspect_ratio %d/%d\n",
-            pCodecCtx->width, pCodecCtx->height, scaled_src_width, scaled_src_height, 
+            pCodecCtx->width, pCodecCtx->height, scaled_src_width, scaled_src_height,
             sample_aspect_ratio.num, sample_aspect_ratio.den);
     }
 
@@ -2949,13 +2981,40 @@ make_thumbnail(char *file)
         *all_text = '\0';
     }
 
-    const int info_text_padding = gb_i_info ? image_string_padding(gb_f_fontname, gb_F_info_font_size) : 0;
+    int info_text_padding = 0;
+	int timestamp_text_padding = 0;
+	int turning_off_info_text = 0;
+
+	if( gb_i_info)
+	{
+		if((info_text_padding = image_string_padding(gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)) == 0)
+		{
+			av_log(NULL, AV_LOG_WARNING, "Turning off info text rendering\n");
+			gb_i_info = 0;
+			turning_off_info_text = 1;
+		}
+	}
+
+	if(gb_t_timestamp)
+	{
+		if( (turning_off_info_text && !strcmp(gb_f_fontname, gb_F_ts_fontname) && fcStrFlagsInfotext.flags == fcStrFlagsTimestamp.flags)
+			||
+			(timestamp_text_padding = image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size, &fcStrFlagsTimestamp)) == 0)
+		{
+			av_log(NULL, AV_LOG_WARNING, "Turning off timestamp rendering\n");
+			gb_t_timestamp = t_timestamp = 0;
+		}
+	}
 
     if (gb_T_text)
         sprintf(all_text+strlen(all_text), "%s%s", NEWLINE, gb_T_text);
 
     if(gb_i_info)
-        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size) + gb_g_gap + info_text_padding;
+	{
+        tn.txt_height = image_string_height(all_text, gb_f_fontname, gb_F_info_font_size, &fcStrFlagsInfotext)
+						+ gb_g_gap
+						+ info_text_padding;
+	}
 
     tn.img_height = tn.shot_height_out*tn.row + gb_g_gap*(tn.row+1) + tn.txt_height;
 
@@ -3024,10 +3083,10 @@ make_thumbnail(char *file)
     if(gb__webvtt)
         sprite = sprite_create(gb_w_width, tn.shot_width_in, tn.shot_height_out, tn);
 
-    
+
     /* setting alpha blending is not needed, using default mode:
      * https://libgd.github.io/manuals/2.2.5/files/gd-h.html#Effects
-    gdImageAlphaBlending(tn.out_ip,	
+    gdImageAlphaBlending(tn.out_ip,
 		//gdEffectReplace		//replace pixels
 		gdEffectAlphaBlend	   	//blend pixels, see gdAlphaBlend
 		//gdEffectNormal		//default mode; same as gdEffectAlphaBlend
@@ -3037,15 +3096,15 @@ make_thumbnail(char *file)
     */
     int background = gdImageColorResolve(tn.out_ip, gb_k_bcolor.r, gb_k_bcolor.g, gb_k_bcolor.b);
     gdImageFilledRectangle(tn.out_ip, 0, 0, tn.img_width, tn.img_height, background);
-    
+
 	if(gb__transparent_bg)
 		gdImageColorTransparent(tn.out_ip, background);
 
     /* add info & text */ // do this early so when font is not found we'll quit early
-    if (NULL != all_text && strlen(all_text) > 0) {
-        char *str_ret = image_string(tn.out_ip, 
-            gb_f_fontname, gb_F_info_color, gb_F_info_font_size, 
-            gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding);
+    if (gb_i_info &&  all_text && strlen(all_text) > 0) {
+        char *str_ret = image_string(tn.out_ip,
+            gb_f_fontname, gb_F_info_color, gb_F_info_font_size,
+            gb_L_info_location, gb_g_gap, all_text, 0, COLOR_WHITE, info_text_padding, &fcStrFlagsInfotext);
         if (NULL != str_ret) {
             av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option\n", str_ret);
             goto cleanup;
@@ -3118,7 +3177,7 @@ make_thumbnail(char *file)
         eff_target = MAX(eff_target, prevfound_pts+1);
 
         format_time(calc_time(eff_target, pStream->time_base, start_time), time_tmp, ':');
-        av_log(NULL, AV_LOG_VERBOSE, "\n***eff_target tb: %"PRId64", eff_target s:%.2f (%s), prevshot_pts: %"PRId64"\n", 
+        av_log(NULL, AV_LOG_VERBOSE, "\n***eff_target tb: %"PRId64", eff_target s:%.2f (%s), prevshot_pts: %"PRId64"\n",
             eff_target, calc_time(eff_target, pStream->time_base, start_time), time_tmp, prevshot_pts);
 
         /* jump to next shot */
@@ -3161,11 +3220,11 @@ make_thumbnail(char *file)
         int64_t found_diff = found_pts - eff_target;
         //av_log(NULL, AV_LOG_INFO, "  found_diff: %.2f\n", found_diff); // DEBUG
         // if found frame is too far off from target, we'll disable seeking and start over
-        if (idx < 5 && 1 == seek_mode && 0 == gb_z_seek 
+        if (idx < 5 && 1 == seek_mode && 0 == gb_z_seek
             // usually movies have key frames every 10 s
             && (tn.step_t < (15/tn.time_base) || found_diff > 15/tn.time_base)
             && (found_diff <= -tn.step_t || found_diff >= tn.step_t)) {
-            
+
             // compute the approx. time it take for the non-seek mode, if too long print a msg instead
             double shot_dtime;
             if (scaled_src_width > 576*4/3.0) { // HD
@@ -3191,14 +3250,14 @@ make_thumbnail(char *file)
       non_seek_too_long:
 
         //nb_shots++;
-        av_log(NULL, AV_LOG_VERBOSE, "shot %d: found_: %"PRId64" (%.2fs), eff_: %"PRId64" (%.2fs), dtime: %.3f\n", 
-            idx, found_pts, calc_time(found_pts, pStream->time_base, start_time), 
+        av_log(NULL, AV_LOG_VERBOSE, "shot %d: found_: %"PRId64" (%.2fs), eff_: %"PRId64" (%.2fs), dtime: %.3f\n",
+            idx, found_pts, calc_time(found_pts, pStream->time_base, start_time),
             eff_target, calc_time(eff_target, pStream->time_base, start_time), decode_time);
         av_log(NULL, AV_LOG_VERBOSE, "approx. decoded frames/s: %.2f\n", tn.step_t * tn.time_base * 30 / decode_time); //TODO W: decode_time allways==0
         /*
         char debug_filename[2048]; // DEBUG
         sprintf(debug_filename, "%s_decoded%05d.jpg", tn.out_filename, nb_shots - 1);
-        save_AVFrame(pFrame, pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt, 
+        save_AVFrame(pFrame, pCodecCtx->width, pCodecCtx->height, pCodecCtx->pix_fmt,
             debug_filename, pCodecCtx->width, pCodecCtx->height);
         */
 
@@ -3274,8 +3333,8 @@ make_thumbnail(char *file)
                 tn.rotation);
 
         }
-        //av_log(NULL, AV_LOG_VERBOSE, "  idx: %d, evade_try: %d, blank: %.2f%s edge: %.3f %.3f %.3f %.3f %.3f %.3f%s\n", 
-        //    idx, evade_try, blank, (blank > gb_b_blank) ? "**b**" : "", 
+        //av_log(NULL, AV_LOG_VERBOSE, "  idx: %d, evade_try: %d, blank: %.2f%s edge: %.3f %.3f %.3f %.3f %.3f %.3f%s\n",
+        //    idx, evade_try, blank, (blank > gb_b_blank) ? "**b**" : "",
         //    edge[0], edge[1], edge[2], edge[3], edge[4], edge[5], is_edge(edge, EDGE_FOUND) ? "" : "**e**"); // DEBUG
         if (evade_step > 0 && (blank > gb_b_blank || !is_edge(edge, EDGE_FOUND))) {
             idx--;
@@ -3284,7 +3343,7 @@ make_thumbnail(char *file)
             // keep trying until getting close to next step
             seek_evade = evade_step * evade_try;
             if (seek_evade < (tn.step_t - evade_step)) {
-                av_log(NULL, AV_LOG_VERBOSE, "  * blank or no edge * try #%d: seeking forward seek_evade: %"PRId64" (%.2f s)\n", 
+                av_log(NULL, AV_LOG_VERBOSE, "  * blank or no edge * try #%d: seeking forward seek_evade: %"PRId64" (%.2f s)\n",
                     evade_try, seek_evade, seek_evade * av_q2d(pStream->time_base));
                 goto continue_cleanup;
             }
@@ -3320,26 +3379,24 @@ make_thumbnail(char *file)
         if (gb__webvtt)
             sprite_add_shot(sprite, ip, found_pts);
 
-        const int timestamp_text_padding = gb_t_timestamp ? image_string_padding(gb_F_ts_fontname, gb_F_ts_font_size) : 0;
-
         /* timestamping */
         // FIXME: this frame might not actually be at the requested position. is pts correct?
-        if (1 == t_timestamp) { // on
+        if (t_timestamp) { // on
             TIME_STR time_str;
             format_time(calc_time(found_pts, pStream->time_base, start_time), time_str, ':');
-            char *str_ret = image_string(ip, 
-                gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size, 
-                gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding);
+            char *str_ret = image_string(ip,
+                gb_F_ts_fontname, gb_F_ts_color, gb_F_ts_font_size,
+                gb_L_time_location, 0, time_str, 1, gb_F_ts_shadow, timestamp_text_padding, &fcStrFlagsTimestamp);
             if (NULL != str_ret) {
-                av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f option or -F option\n", str_ret);
+                av_log(NULL, AV_LOG_ERROR, "  %s; font problem? see -f or -F option\n", str_ret);
                 goto cleanup; // LEAK: ip, edge_ip
             }
             /* stamp idx & blank & edge for debugging */
             if (gb_v_verbose > 0) {
                 char idx_str[1000]; // FIXME
-                sprintf(idx_str, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f", 
+                sprintf(idx_str, "idx: %d, blank: %.2f\n%.6f  %.6f\n%.6f  %.6f\n%.6f  %.6f",
                     idx, blank, edge[0], edge[1], edge[2], edge[3], edge[4], edge[5]);
-                image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK, 0);
+                image_string(ip, gb_f_fontname, COLOR_WHITE, gb_F_ts_font_size, 2, 0, idx_str, 1, COLOR_BLACK, 0, &fcStrFlagsTimestamp);
             }
         }
 
@@ -3363,7 +3420,7 @@ make_thumbnail(char *file)
             if(gb_I_individual_original)
             {
                 sprintf(suffix, "_o_%s_%05d%s", time_str, idx, image_extension);
-            
+
                 if(save_AVFrame(pFrame,
                         pCodecCtx->width, pCodecCtx->height,
                         pCodecCtx->pix_fmt,
@@ -3384,13 +3441,13 @@ make_thumbnail(char *file)
       skip_shot:
         /* step */
         seek_target += tn.step_t;
-        
+
         seek_evade = 0;
         direction = 0;
         evade_try = 0;
         prevshot_pts = found_pts;
         av_log(NULL, AV_LOG_VERBOSE, "found_pts bottom: %"PRId64"\n", found_pts);
-    
+
       continue_cleanup: // cleaning up before continuing the loop
         prevfound_pts = found_pts;
         if (NULL != edge_ip) {
@@ -3443,7 +3500,7 @@ make_thumbnail(char *file)
 	{
 		tn.out_ip = crop_image(tn.out_ip, tn.img_width, tn.img_height);
 
-		av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n", 
+		av_log(NULL, AV_LOG_INFO, "  changing # of tiles to %dx%d because of skipped shots; total size: %dx%d\n",
 			tn.column,
 			tn.row,
 			tn.img_width,
@@ -3499,14 +3556,14 @@ make_thumbnail(char *file)
     if (NULL != pCodecCtx) {
         avcodec_close(pCodecCtx);
         avcodec_free_context(&pCodecCtx);
-    }    
+    }
 
     // Close the video file
     if (NULL != pFormatCtx)
         avformat_close_input(&pFormatCtx);
 
     thumb_cleanup_dynamic(&tn);
-    
+
     av_log(NULL, AV_LOG_VERBOSE, "make_thumbnail: done\n");
     return return_code;
 }
@@ -3810,8 +3867,8 @@ col must be in the correct format RRGGBB (in hex)
 */
 rgb_color color_str2rgb_color(color_str col)
 {
-    return (rgb_color) {CHAR2INT(col[0])*16 + CHAR2INT(col[1]), 
-        CHAR2INT(col[2])*16 + CHAR2INT(col[3]), 
+    return (rgb_color) {CHAR2INT(col[0])*16 + CHAR2INT(col[1]),
+        CHAR2INT(col[2])*16 + CHAR2INT(col[3]),
         CHAR2INT(col[4])*16 + CHAR2INT(col[5]) };
 }
 
@@ -3927,13 +3984,13 @@ get_opt_for_I_arg(char *optarg)
         av_log(NULL, AV_LOG_ERROR, "Missing argument for -I option!");
         return 1;
     }
-        
+
     if(strchr(optarg, 't') || strchr(optarg, 'T'))
         gb_I_individual_thumbnail = 1;
-    
+
     if(strchr(optarg, 'o') || strchr(optarg, 'O'))
         gb_I_individual_original  = 1;
-    
+
     if(strchr(optarg, 'i') || strchr(optarg, 'I'))
         gb_I_individual_ignore_grid = 1;
 
@@ -3990,7 +4047,7 @@ char* mtn_identification()
 {
     const char txt[] = "Movie Thumbnailer (mtn) %s\nCompiled%s with FFmpeg %s (%s %s %s %s), GD %s, WebP %s, Avif %s";
     const char* FFMPEG_IDENT = av_version_info();
-    const char GD_VER[] = 
+    const char GD_VER[] =
 	   #ifdef GD_VERSION_STRING
            GD_VERSION_STRING
        #else
@@ -4005,14 +4062,14 @@ char* mtn_identification()
         #endif
             ;
 
-	const char* WEBP_IDENT = 
+	const char* WEBP_IDENT =
 #ifdef MTN_WITH_WEBP
 		"enabled";
 #else
 	"n/a";
 #endif
 
-	const char* AVIF_IDENT = 
+	const char* AVIF_IDENT =
 #ifdef MTN_WITH_AVIF
 		"enabled";
 #else
@@ -4101,11 +4158,6 @@ usage()
     av_log(NULL, AV_LOG_INFO, "by creating a shortcut to %s and add options there (right click the\n", gb_argv0);
     av_log(NULL, AV_LOG_INFO, "shortcut -> Properties -> Target); then drop files/dirs on the shortcut\n");
     av_log(NULL, AV_LOG_INFO, "instead.\n");
-//#else
-//    av_log(NULL, AV_LOG_INFO, "Notice:\n");
-//    av_log(NULL, AV_LOG_INFO, "  You'll probably need to change the truetype font path (-f fontfile).\n");
-//    av_log(NULL, AV_LOG_INFO, "  the default is set to %s which might not exist in non-windows systems.\n", GB_F_FONTNAME);
-//    av_log(NULL, AV_LOG_INFO, "  If you don't have a truetype font, you can turn the text off by using -i -t.\n");
 #endif
 #ifdef WIN32
     av_log(NULL, AV_LOG_INFO, "\nMtn comes with ABSOLUTELY NO WARRANTY. this is free software, and you are\n");
@@ -4116,7 +4168,7 @@ usage()
     av_log(NULL, AV_LOG_INFO, "https://gitlab.com/movie_thumbnailer/mtn/wikis\n");
 #endif
 #endif
-    
+
 }
 
 /**
@@ -4143,7 +4195,8 @@ int main(int argc, char *argv[])
     //av_log(NULL, AV_LOG_VERBOSE, "locale: %s\n", locale);
 
     /* get & check options */
-    
+
+
 	struct option long_options[] = {		// no_argument, required_argument, optional_argument
 		{"shadow",                optional_argument,  0,  0 },
 		{"transparent",           no_argument,        0,  0 },
@@ -4154,7 +4207,7 @@ int main(int argc, char *argv[])
 		{"filter-color-primaries",required_argument,  0,  0 },
 		{"tonemap",               optional_argument,  0,  0 },
 		{0,                       0,                  0,  0 }
-	};    
+	};
     int parse_error = 0, option_index = 0;
     int c;
     while (-1 != (c = getopt_long(argc, argv, "a:b:B:c:C:d:D:e:E:f:F:g:h:HiI:j:k:L:nN:o:O:pPqr:s:S:tT:vVw:Wx:XzZ", long_options, &option_index))) {
@@ -4186,7 +4239,7 @@ int main(int argc, char *argv[])
                         if(strcmp("vtt", long_options[option_index].name) == 0)
                         {
                             gb__webvtt = 1;
-    
+
                             if(optarg)
                                 gb__webvtt_prefix = optarg;
                         }
@@ -4284,7 +4337,7 @@ int main(int argc, char *argv[])
             break;
         case 'D':
             parse_error += get_int_opt("D", &gb_D_edge, optarg, 0);
-            if (gb_D_edge > 0 
+            if (gb_D_edge > 0
                 && (gb_D_edge < 4 || gb_D_edge > 12)) {
                 av_log(NULL, AV_LOG_INFO, "%s: -D%d might be too extreme; try -D4, -D6, or -D8\n", gb_argv0, gb_D_edge);
             }
@@ -4297,9 +4350,6 @@ int main(int argc, char *argv[])
             break;
         case 'f':
             gb_f_fontname = optarg;
-            if (0 == strcmp(gb_F_ts_fontname, GB_F_FONTNAME)) {
-                gb_F_ts_fontname = gb_f_fontname;
-            }
             break;
         case 'F':
             parse_error += get_format_opt('F', optarg);
@@ -4370,6 +4420,8 @@ int main(int argc, char *argv[])
             break;
         case 't':
             gb_t_timestamp = 0; // off
+			fcStrFlagsTimestamp.flags |= gdFTEX_FONTCONFIG;
+			fcStrFlagsTimestamp.flags &= ~gdFTEX_FONTPATHNAME;
             break;
         case 'T':
             gb_T_text = optarg;
@@ -4413,7 +4465,7 @@ int main(int argc, char *argv[])
         //av_log(NULL, AV_LOG_ERROR, "%s: no input files or directories specified", gb_argv0);
         parse_error += 1;
     }
-    
+
     /* check arguments */
     if (gb_r_row == 0 && gb_s_step == 0) {
         av_log(NULL, AV_LOG_ERROR, "%s: option -r and -s cant be 0 at the same time", gb_argv0);
@@ -4435,6 +4487,21 @@ int main(int argc, char *argv[])
         parse_error += 1;
         av_log(NULL, AV_LOG_ERROR, "%s: option --tonemap and --filters cant be used together", gb_argv0);
     }
+
+
+    /* gdFTUseFontConfig(1);  => no needed, using gdImageStringFTEx */
+	fcStrFlagsInfotext.flags  =
+	fcStrFlagsTimestamp.flags = gdFTEX_FONTPATHNAME | gdFTEX_RETURNFONTPATHNAME;
+
+	if (!strcmp(gb_f_fontname, GB_F_FONTNAME)) {
+		fcStrFlagsInfotext.flags |= gdFTEX_FONTCONFIG;
+		fcStrFlagsInfotext.flags &= ~gdFTEX_FONTPATHNAME;
+	}
+	if (!strcmp(gb_F_ts_fontname, GB_F_FONTNAME)) {
+		gb_F_ts_fontname = gb_f_fontname;
+
+		fcStrFlagsTimestamp = fcStrFlagsInfotext;
+	}
 
 
     if((movie_ext = strsplit(gb_e_ext, ",")) == NULL)
@@ -4497,7 +4564,7 @@ int main(int argc, char *argv[])
 	if(gb_q_quiet>0)
 		av_log_set_level(AV_LOG_ERROR);
 	else
-	{		
+	{
 		if (gb_v_verbose > 0)
 			av_log_set_level(AV_LOG_VERBOSE);
 		else
@@ -4508,8 +4575,6 @@ int main(int argc, char *argv[])
 
 	// display mtn+libraries versions for bug reporting
 	av_log(NULL, AV_LOG_VERBOSE, "%s\n\n", mtn_identification());
-		
-    //gdUseFontConfig(1); // set GD to use fontconfig patterns
 
     /* process movie files */
     return_code = process_loop(argc - optind, argv + optind, 0);

@@ -49,7 +49,7 @@ dnf install https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-$
 dnf install ffmpeg-devel gd-devel make gcc-c++  
 ```
 
-**[Debian](https://www.debian.org/)** 9, **[Ubuntu](https://www.ubuntu.com/)** 18.04, **[LinuxMint](https://linuxmint.com)** 19, **[MX Linux](https://mxlinux.org/)** 18, ...  
+**[Debian](https://www.debian.org/)** 9+, **[Ubuntu](https://www.ubuntu.com/)** 18.04+, **[LinuxMint](https://linuxmint.com)** 19+, **[MX Linux](https://mxlinux.org/)** 18+, ...  
 
 ```sh
 sudo apt-get install libgd-dev libavutil-dev libavcodec-dev libavformat-dev libavfilter-dev libswscale-dev make  
