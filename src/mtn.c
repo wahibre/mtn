@@ -3554,7 +3554,9 @@ make_thumbnail(char *file)
 
     // Close the codec
     if (NULL != pCodecCtx) {
+#if LIBAVCODEC_VERSION_INT < AV_VERSION_INT(60, 40, 100)
         avcodec_close(pCodecCtx);
+#endif
         avcodec_free_context(&pCodecCtx);
     }
 
