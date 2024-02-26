@@ -1,6 +1,6 @@
 Name:		mtn	
-Version:	3.4.2
-Release:	12%{?dist}
+Version:	3.5.0
+Release:	1%{?dist}
 Summary:	Movie thumbnailer
 
 License:	GPLv2
@@ -14,6 +14,7 @@ BuildRequires:	gd-devel >= 2.0.35
 BuildRequires:	ffmpeg-devel >= 3.3.1
 
 Requires:	gd
+Requires:   fontconfig
 
 %if 0%{?mageia}
 Requires:	ffmpeg
@@ -91,6 +92,9 @@ install -pm644 ../completions/_%{name} %{buildroot}%{_datadir}/zsh/site-function
 rm -rf %{buildroot}
 
 %changelog
+* Mon Feb 26 2024 wahibre <wahibre@gmx.com> - 3.5.0-1
+- update to new version
+
 * Tue May 16 2023 wahibre <wahibre@gmx.com> - 3.4.2-2
 - building with avif and webp
 

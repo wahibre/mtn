@@ -67,7 +67,7 @@ debian:
     before_script:
     - sh misc/gitlab-ci-info.sh > build_info.txt
     - apt-get update
-    - apt-get install -qq git wget libc6-dev zlib1g-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev libzimg-dev pkg-config gcc make g++ cmake
+    - apt-get install -qq git wget libc6-dev zlib1g-dev libfontconfig-dev libpng-dev libbz2-dev libjpeg-dev libwebp-dev libfreetype6-dev libbrotli-dev libzimg-dev pkg-config gcc make g++ cmake
     - wget --no-verbose --no-clobber -O /home/sample.avi $MOVIE_URL || echo $MOVIE_URL exists
     script:
     - echo cloning FFmpeg branch $STATIC_FFMPEG_BRANCH...
@@ -81,7 +81,7 @@ debian:
     - make -j$CPUS
     - cd -
     - cd lib/libgd
-    - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DENABLE_WEBP=1 -DENABLE_AVIF=0 -DFREETYPE_INCLUDE_DIR_ft2build=/usr/include/freetype2 -DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 .
+    - cmake -DBUILD_SHARED_LIBS=0 -DBUILD_STATIC_LIBS=1 -DENABLE_FREETYPE=1 -DENABLE_FONTCONFIG=1 -DENABLE_JPEG=1 -DENABLE_PNG=1 -DENABLE_WEBP=1 -DENABLE_AVIF=0 -DFREETYPE_INCLUDE_DIR_ft2build=/usr/include/freetype2 -DFREETYPE_INCLUDE_DIR_freetype2=/usr/include/freetype2 .
     - make -j$CPUS
     - cd -
     - cd src
@@ -126,13 +126,9 @@ win:
     - cd src
     - make -f Makefile.mingw
     - cd ..
-    - mkdir -p mtn-win64/bin
-    - mv lib/windows/bin/* mtn-win64/bin/
-    - mv bin/mtn.exe mtn-win64/bin/
-    - cp -r src mtn-win64/
-    - cp ./*.txt mtn-win64/
-    - cp ./*.md mtn-win64/
-    - cp ./LICENSE mtn-win64/
+    - mkdir -p mtn-win64
+    - mv lib/windows/bin/* mtn-win64/
+    - mv bin/mtn.exe mtn-win64/
     artifacts:
         name: mtn-$CI_JOB_NAME
         expire_in: 4 week

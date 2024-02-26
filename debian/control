@@ -18,7 +18,9 @@ Vcs-Browser: https://launchpad.net/~wahibre/+archive/ubuntu/mtn
 Package: mtn
 Architecture: any
 Depends: ${shlibs:Depends}, 
-         ${misc:Depends}
+         ${misc:Depends},
+         fontconfig,
+         fonts-dejavu-core
 Suggests: mtn-bash-completion,
           mtn-zsh-completion
 Description: Movie Thumbnailer - screens generator

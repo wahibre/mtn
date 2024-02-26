@@ -53,7 +53,7 @@ S_LIBS= -static-libgcc -static \
 	$(LIBSDIR)/FFmpeg/libavutil/libavutil.a \
 	$(LIBSDIR)/FFmpeg/libavcodec/libavcodec.a \
 	$(LIBSDIR)/libgd/Bin/libgd.a \
-    -lpthread -lbz2 -lfreetype -lbrotlidec -lbrotlicommon -ljpeg -lpng16 -lwebp -lz -lzimg -lm -lstdc++
+    -lpthread -lbz2 -lfontconfig -lfreetype -lbrotlidec -lbrotlicommon -lexpat -ljpeg -lpng16 -lwebp -lz -lzimg -lm -lstdc++
 
 mtn: mtn.c outdir
 	$(CC) -o $(OUT)/mtn mtn.c $(INCPATH) $(CFLAGS) -O3 $(LIBS)

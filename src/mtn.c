@@ -319,7 +319,7 @@ int gb__tonemap = 0;
 
 /* more global variables */
 char *gb_argv0 = NULL;
-char *gb_version = "3.4.2";
+char *gb_version = "3.5.0";
 time_t gb_st_start = 0; // start time of program
 char **movie_ext = NULL;
 
@@ -4192,9 +4192,7 @@ int main(int argc, char *argv[])
         return -1;
     }
 
-    // set locale
-    __attribute__((unused)) char *locale = setlocale(LC_ALL, "");
-    //av_log(NULL, AV_LOG_VERBOSE, "locale: %s\n", locale);
+    av_log(NULL, AV_LOG_VERBOSE, "locale: %s\n", setlocale(LC_ALL, ""));
 
     /* get & check options */
 
